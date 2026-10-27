@@ -76,6 +76,7 @@ export interface Settings {
   limit_l2: number;
   proveedor: string;
   brand: { nombre: string; corto: string };
+  destacados_modo?: 'auto' | 'manual';
 }
 
 export interface Beneficiary {
@@ -183,6 +184,7 @@ export interface Story {
 }
 
 export type WallMode = 'pattern' | 'color' | 'image';
+export interface Frame { x: number; y: number; z: number }
 export interface WallCfg { mode: WallMode; color: string; img: string | null }
 export interface Brand {
   nombre: string;
@@ -194,6 +196,9 @@ export interface Brand {
   cover_sub_es?: string;
   cover_sub_en?: string;
   home_bg_url?: string | null;
+  /** Encuadre de las fotos: x/y en % (0–100, 50 = centro) y zoom (1–3) */
+  cover_pos?: Frame;
+  home_pos?: Frame;
   walls?: Partial<Record<'home' | 'send' | 'shop' | 'pts' | 'profile' | 'community', WallCfg>>;
 }
 export interface Promo {
@@ -208,3 +213,6 @@ export interface Promo {
   activo: boolean;
   orden: number;
 }
+
+export interface Featured { id: string; kind: 'product' | 'service'; ref_id: string; orden: number }
+export interface TopSeller { kind: 'product' | 'service'; ref_id: string; veces: number; total: number }

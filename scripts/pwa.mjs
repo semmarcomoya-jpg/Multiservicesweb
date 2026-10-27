@@ -13,8 +13,8 @@ const manifest = {
   scope: `${base}/`,
   display: 'standalone',
   orientation: 'portrait',
-  background_color: '#FFE1C4',
-  theme_color: '#B84E17',
+  background_color: '#EAF2FB',
+  theme_color: '#1656A8',
   icons: [
     { src: `${base}/icon-192.png`, sizes: '192x192', type: 'image/png' },
     { src: `${base}/icon-512.png`, sizes: '512x512', type: 'image/png' },
@@ -25,13 +25,13 @@ fs.writeFileSync(path.join(dist, 'manifest.json'), JSON.stringify(manifest, null
 
 const tags = [
   `<link rel="manifest" href="${base}/manifest.json">`,
-  `<meta name="theme-color" content="#B84E17">`,
+  `<meta name="theme-color" content="#1656A8">`,
   `<link rel="apple-touch-icon" href="${base}/apple-touch-icon.png">`,
   `<meta name="apple-mobile-web-app-capable" content="yes">`,
   `<meta name="mobile-web-app-capable" content="yes">`,
   `<meta name="apple-mobile-web-app-title" content="Castillo">`,
   `<meta name="apple-mobile-web-app-status-bar-style" content="default">`,
-  `<style>html,body{background:#FBEEE2}</style>`,
+  `<style>html,body{background:#EAF2FB}</style>`,
 ].join('\n    ');
 for (const f of ['index.html', '404.html']) {
   const p = path.join(dist, f);

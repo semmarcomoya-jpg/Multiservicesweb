@@ -94,7 +94,7 @@ export default function TiendaProductos() {
               <View style={{ gap: 8, alignItems: 'flex-end' }}>
                 <Pressable accessibilityRole="switch" accessibilityState={{ checked: p.activo }} accessibilityLabel={L('Prender o apagar ', 'Turn on or off ') + prodName(p)} onPress={() => toggleProduct(p, !p.activo)}
                   style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 10, minHeight: 36, borderRadius: R.pill, backgroundColor: p.activo ? '#DDF1E4' : C.line }}>
-                  <View style={{ width: 38, height: 22, borderRadius: 11, padding: 3, backgroundColor: p.activo ? '#2E8B57' : '#B9A08E' }}>
+                  <View style={{ width: 38, height: 22, borderRadius: 11, padding: 3, backgroundColor: p.activo ? '#2E8B57' : '#93A5BD' }}>
                     <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#fff', transform: [{ translateX: p.activo ? 16 : 0 }] }} />
                   </View>
                   <Text style={{ fontWeight: '900', color: p.activo ? '#1E5B35' : C.muted }}>{p.activo ? L('Prendido', 'On') : L('Apagado', 'Off')}</Text>

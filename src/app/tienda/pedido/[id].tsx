@@ -91,7 +91,7 @@ export default function TiendaPedido() {
   const datos: [string, string][] = [];
   if (o.kind === 'send' && o.beneficiary) {
     const b = o.beneficiary;
-    datos.push([L('Beneficiario', 'Recipient'), `${b.nombre} ${b.apellidos}`], [L('Teléfono MX', 'MX phone'), b.telefono], [L('Lugar', 'Location'), `${b.ciudad}, ${b.estado}`]);
+    datos.push([L('Recibe', 'Recipient'), `${b.nombre} ${b.apellidos}`], [L('Teléfono MX', 'MX phone'), b.telefono], [L('Lugar', 'Location'), `${b.ciudad}, ${b.estado}`]);
     if (b.metodo === 'cuenta') datos.push([L('Banco', 'Bank'), b.banco], [b.cuenta.length === 18 ? 'CLABE' : L('Tarjeta', 'Card'), b.cuenta]);
     else datos.push([L('Retiro en', 'Pickup at'), b.red]);
     datos.push([L('Monto USD', 'Amount USD'), Number(o.monto).toFixed(2)], [L('Tipo de cambio', 'Rate'), Number(o.rate).toFixed(2)], [L('Recibe', 'Receives'), mxn(o.mxn)]);

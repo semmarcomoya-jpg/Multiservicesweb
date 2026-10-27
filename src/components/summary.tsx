@@ -75,14 +75,15 @@ export function Summary({
           setKind(k);
           setSvc('all');
         }}
-        style={{ flexGrow: 1, flexBasis: 150, maxWidth: 260, flexDirection: 'row', gap: 10, padding: 12, borderRadius: R.md, borderWidth: 1.5, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.tint : C.card }}
+        style={{ flexGrow: 1, flexBasis: 150, maxWidth: 280, gap: 6, padding: 12, borderRadius: R.md, borderWidth: 1.5, borderColor: on ? C.gold : C.line, backgroundColor: on ? C.tint : C.card }}
       >
-        <IcoBox n={icon} size={32} />
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '800', fontSize: 13, color: C.ink }} numberOfLines={2}>{label}</Text>
-          <Text style={{ fontWeight: '900', fontSize: 18, color: C.ink }}>{money(total)}</Text>
-          <P small muted>{nPed(n)}</P>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <IcoBox n={icon} size={30} />
+          <Text style={{ flex: 1, minWidth: 0, fontWeight: '800', fontSize: 13, color: C.ink }} numberOfLines={2}>{label}</Text>
         </View>
+        {/* El monto usa todo el ancho de la tarjeta para que nunca se corte */}
+        <Text style={{ fontWeight: '900', fontSize: money(total).length > 10 ? 16 : 19, color: C.ink }}>{money(total)}</Text>
+        <P small muted>{nPed(n)}</P>
       </Pressable>
     );
   };

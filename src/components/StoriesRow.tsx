@@ -34,7 +34,7 @@ export function StoriesRow({ stories, addHref }: { stories: Story[]; addHref?: s
             <View style={{ width: SIZE + 8, height: SIZE + 8, borderRadius: (SIZE + 8) / 2, borderWidth: 2, borderStyle: 'dashed', borderColor: C.brown, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: C.brown, fontSize: 34, fontWeight: '900', lineHeight: 38 }}>+</Text>
             </View>
-            <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '800', color: C.brown, maxWidth: SIZE + 8 }}>{L('Subir historia', 'Add story')}</Text>
+            <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '800', color: C.brown, maxWidth: SIZE + 8 }}>{L('Subir', 'Add')}</Text>
           </Pressable>
         ) : null}
         {ordered.map((s) => {

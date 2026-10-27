@@ -3,10 +3,12 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Scenery, Wallpaper } from '@/components/art';
+import { Scenery, Wallpaper, FramedImage } from '@/components/art';
 import { OrderRow } from '@/components/orders';
 import { ViewSwitch } from '@/components/panel';
+import { Destacados } from '@/components/Destacados';
 import { StoriesRow } from '@/components/StoriesRow';
+import { useDestacados } from '@/lib/featured';
 import { Text } from '@/components/Text';
 import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Loading, Note, P } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -32,6 +34,7 @@ export default function Inicio() {
   const { data: products } = useProducts(null);
   const { orders } = useMyOrders(5);
   const { brand } = useBranding();
+  const destacados = useDestacados();
   const { data: adminPromos } = useQuery<Promo[]>(() => supabase.from('promos').select('*').eq('activo', true).order('orden'));
 
   // Historias: igual que en Viva, al entrar se abren solas una vez por visita (primero las nuevas).
@@ -75,7 +78,7 @@ export default function Inicio() {
   const rate = cfg ? Number(cfg.exchange_rate) : 0;
   const updated = cfg ? new Date(cfg.rate_updated_at).toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '';
 
-  const PROMO_BG = { shop: C.brown, send: '#7A3412', pts: C.goldInk } as const;
+  const PROMO_BG = { shop: C.brown, send: '#0B2E5E', pts: C.goldInk } as const;
   const PROMO_GO = { shop: '/productos', send: '/enviar', services: '/servicios', none: '' } as const;
   const PROMO_IC = { shop: 'phone', send: 'send', pts: 'star' } as const;
   const fromAdmin = (adminPromos || []).map((p) => ({ bg: PROMO_BG[p.theme] || C.brown, icon: PROMO_IC[p.theme] || 'star', t: lang === 'es' ? p.title_es : p.title_en || p.title_es, s: lang === 'es' ? p.sub_es : p.sub_en || p.sub_es, go: PROMO_GO[p.go] || '', img: p.img_url }));
@@ -92,7 +95,7 @@ export default function Inicio() {
     any('shop') && { ic: 'phone', tone: 'blue', label: L('Celulares', 'Phones'), go: '/productos?fam=cel' },
     any('shop') && { ic: 'bag', tone: 'gold', label: L('Tienda', 'Shop'), go: '/productos?fam=all' },
     any('send') && { ic: 'send', tone: 'blue', label: L('Enviar dinero', 'Send money'), go: '/enviar' },
-    { ic: 'users', tone: 'gold', label: L('Beneficiarios', 'Recipients'), go: '/beneficiarios' },
+    { ic: 'users', tone: 'gold', label: L('Mis personas', 'My people'), go: '/beneficiarios' },
     { ic: 'receipt', tone: 'blue', label: L('Mis pedidos', 'My orders'), go: '/pedidos' },
   ].filter(Boolean) as { ic: string; tone: 'gold' | 'blue'; label: string; go: string }[];
 
@@ -102,8 +105,8 @@ export default function Inicio() {
       <ScrollView contentContainerStyle={{ alignItems: 'center', paddingBottom: 24 }}>
         <View style={{ width: '100%', maxWidth: 520 }}>
           {/* Portada */}
-          <View style={{ height: 200, overflow: 'hidden', backgroundColor: '#FFE1C4' }}>
-            {brand.home_bg_url ? <Image source={{ uri: brand.home_bg_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" /> : <Scenery mid />}
+          <View style={{ height: 200, overflow: 'hidden', backgroundColor: '#D3E7FA' }}>
+            {brand.home_bg_url ? <FramedImage uri={brand.home_bg_url} frame={brand.home_pos} /> : <Scenery mid />}
             <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 16, right: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16 }}>
                 <BrandChip />
@@ -119,9 +122,9 @@ export default function Inicio() {
               </View>
             ) : null}
             {/* Saludo */}
-            <View style={{ padding: 18, borderRadius: 22, backgroundColor: C.card, gap: 12, shadowColor: '#7A3412', shadowOpacity: 0.1, shadowRadius: 30, shadowOffset: { width: 0, height: 10 }, elevation: 4 }}>
+            <View style={{ padding: 18, borderRadius: 22, backgroundColor: C.card, gap: 12, shadowColor: '#0B2E5E', shadowOpacity: 0.1, shadowRadius: 30, shadowOffset: { width: 0, height: 10 }, elevation: 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Avatar name={`${profile?.nombre || ''} ${profile?.apellidos || ''}`} size={44} />
+                <Avatar name={`${profile?.nombre || ''} ${profile?.apellidos || ''}`} size={44} uri={profile?.foto_url} />
                 <Text style={{ fontSize: 22, fontWeight: '900', color: C.ink }}>
                   {L('Hola', 'Hi')}, {profile?.nombre || ''}
                 </Text>
@@ -155,28 +158,8 @@ export default function Inicio() {
               </Note>
             ) : null}
 
-            {/* Promociones */}
-            {promos.length ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={292} decelerationRate="fast" contentContainerStyle={{ gap: 10, paddingRight: 16 }} style={{ marginHorizontal: -16, paddingLeft: 16 }}>
-                {promos.map((p) => (
-                  <Pressable key={p.go + p.t} accessibilityRole="button" onPress={() => p.go && router.push(p.go as never)}
-                    style={{ width: 282, minHeight: 118, borderRadius: 20, backgroundColor: p.bg, padding: 16, justifyContent: 'flex-end', overflow: 'hidden' }}>
-                    {p.img ? (
-                      <>
-                        <Image source={{ uri: p.img }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
-                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(46,27,16,0.45)' }} />
-                      </>
-                    ) : (
-                      <View style={{ position: 'absolute', right: -10, top: -10, opacity: 0.22 }}>
-                        <Icon n={p.icon} size={110} color="#fff" sw={1.4} />
-                      </View>
-                    )}
-                    <Text style={{ color: '#fff', fontSize: 19, fontWeight: '900', lineHeight: 22 }}>{p.t}</Text>
-                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{p.s}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : null}
+            {/* Destacados: lo que elige el administrador o lo más vendido */}
+            {destacados ? <Destacados items={destacados} /> : null}
 
             {/* Enviar dinero */}
             {any('send') ? (
@@ -201,6 +184,30 @@ export default function Inicio() {
               ))}
             </View>
 
+            {/* Promociones (abajo de los accesos rápidos) */}
+            {promos.length ? <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Promociones', 'Promotions')}</Text> : null}
+            {promos.length ? (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={292} decelerationRate="fast" contentContainerStyle={{ gap: 10, paddingRight: 16 }} style={{ marginHorizontal: -16, paddingLeft: 16 }}>
+                {promos.map((p) => (
+                  <Pressable key={p.go + p.t} accessibilityRole="button" onPress={() => p.go && router.push(p.go as never)}
+                    style={{ width: 282, minHeight: 118, borderRadius: 20, backgroundColor: p.bg, padding: 16, justifyContent: 'flex-end', overflow: 'hidden' }}>
+                    {p.img ? (
+                      <>
+                        <Image source={{ uri: p.img }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(11,31,58,0.45)' }} />
+                      </>
+                    ) : (
+                      <View style={{ position: 'absolute', right: -10, top: -10, opacity: 0.22 }}>
+                        <Icon n={p.icon} size={110} color="#fff" sw={1.4} />
+                      </View>
+                    )}
+                    <Text style={{ color: '#fff', fontSize: 19, fontWeight: '900', lineHeight: 22 }}>{p.t}</Text>
+                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{p.s}</Text>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            ) : null}
+
             {/* Pedidos recientes */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Tus pedidos recientes', 'Your recent orders')}</Text>
@@ -217,7 +224,7 @@ export default function Inicio() {
 
             {/* Tu tienda */}
             <Pressable accessibilityRole="button" onPress={() => router.push('/perfil')}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#EFE8DD', backgroundColor: C.card }}>
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#E1E9F3', backgroundColor: C.card }}>
               <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: C.blueSoft, alignItems: 'center', justifyContent: 'center' }}>
                 <Icon n="store" size={24} color={C.blue} />
               </View>

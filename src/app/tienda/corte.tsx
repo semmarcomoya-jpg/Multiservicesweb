@@ -212,7 +212,7 @@ export default function TiendaCorte() {
                 <ScrollView horizontal>
                   <View>
                     <Row gap={0} style={{ flexWrap: 'nowrap', borderBottomWidth: 1, borderBottomColor: C.line }}>
-                      {[[L('Folio', 'Ref'), 80], [L('Pagado', 'Paid'), 150], [L('Cliente', 'Customer'), 170], [L('Concepto', 'Item'), 240], [L('Atendió', 'By'), 100], [L('Comisión', 'Fee'), 90], [L('Total', 'Total'), 100]].map(([h, w]) => (
+                      {[[L('Folio', 'Ref'), 80], [L('Pagado', 'Paid'), 150], [L('Cliente', 'Customer'), 170], [L('Concepto', 'Item'), 240], [L('Atendió', 'By'), 100], [L('Comisión', 'Fee'), 110], [L('Total', 'Total'), 130]].map(([h, w]) => (
                         <Text key={h as string} style={[cell, { width: w as number, fontWeight: '800', color: C.muted, textAlign: (h === L('Comisión', 'Fee') || h === L('Total', 'Total')) ? 'right' : 'left' }]}>{h}</Text>
                       ))}
                     </Row>
@@ -223,14 +223,14 @@ export default function TiendaCorte() {
                         <Text style={[cell, { width: 170, color: C.ink }]} numberOfLines={1}>{o.cliente_nombre}</Text>
                         <Text style={[cell, { width: 240, color: C.ink }]} numberOfLines={1}>{title(o)}</Text>
                         <Text style={[cell, { width: 100, color: C.ink }]}>{o.attended_name || '—'}</Text>
-                        <Text style={[cell, { width: 90, color: C.ink, textAlign: 'right' }]}>{money(o.fee)}</Text>
-                        <Text style={[cell, { width: 100, color: C.ink, fontWeight: '900', textAlign: 'right' }]}>{money(o.total)}</Text>
+                        <Text style={[cell, { width: 110, color: C.ink, textAlign: 'right' }]}>{money(o.fee)}</Text>
+                        <Text style={[cell, { width: 130, color: C.ink, fontWeight: '900', textAlign: 'right' }]}>{money(o.total)}</Text>
                       </Row>
                     ))}
                     <Row gap={0} style={{ flexWrap: 'nowrap', backgroundColor: C.tint }}>
                       <Text style={[cell, { width: 740, fontWeight: '900', color: C.ink }]}>{L('Total', 'Total')}</Text>
-                      <Text style={[cell, { width: 90, fontWeight: '900', color: C.ink, textAlign: 'right' }]}>{money(fees)}</Text>
-                      <Text style={[cell, { width: 100, fontWeight: '900', color: C.ink, textAlign: 'right' }]}>{money(total)}</Text>
+                      <Text style={[cell, { width: 110, fontWeight: '900', color: C.ink, textAlign: 'right' }]}>{money(fees)}</Text>
+                      <Text style={[cell, { width: 130, fontWeight: '900', color: C.ink, textAlign: 'right' }]}>{money(total)}</Text>
                     </Row>
                   </View>
                 </ScrollView>

@@ -25,7 +25,7 @@ export default function ClienteLayout() {
         headerShown: false,
         tabBarActiveTintColor: C.brown,
         tabBarInactiveTintColor: C.muted,
-        tabBarStyle: { backgroundColor: C.card, borderTopColor: '#EFE8DD', height: 74, paddingBottom: 10, paddingTop: 8 },
+        tabBarStyle: { backgroundColor: C.card, borderTopColor: '#E1E9F3', height: 74, paddingBottom: 10, paddingTop: 8 },
         tabBarLabelStyle: { fontFamily: 'Nunito_800ExtraBold', fontSize: 11 },
         sceneStyle: { backgroundColor: C.page },
       }}

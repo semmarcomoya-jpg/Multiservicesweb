@@ -65,7 +65,7 @@ export function OpenSwitch({ store, onChanged }: { store: Store; onChanged?: () 
       disabled={busy}
       style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, minHeight: 40, borderRadius: R.pill, backgroundColor: open ? '#DDF1E4' : C.redSoft }}
     >
-      <View style={{ width: 42, height: 24, borderRadius: 12, padding: 3, backgroundColor: open ? '#2E8B57' : '#B9A08E' }}>
+      <View style={{ width: 42, height: 24, borderRadius: 12, padding: 3, backgroundColor: open ? '#2E8B57' : '#93A5BD' }}>
         <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff', transform: [{ translateX: open ? 18 : 0 }] }} />
       </View>
       <Text style={{ fontWeight: '900', color: open ? '#1E5B35' : C.red }}>
@@ -118,6 +118,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           ['/admin', L('Ventas', 'Sales'), 'chart'],
           ['/admin/apariencia', L('Apariencia', 'Appearance'), 'image'],
           ['/admin/promociones', L('Promociones', 'Promotions'), 'gift'],
+          ['/admin/destacados', L('Destacados', 'Featured'), 'star'],
           ['/admin/historias', L('Historias', 'Stories'), 'camera'],
           ['/admin/servicios', L('Servicios', 'Services'), 'tool'],
           ['/admin/tiendas', L('Tiendas', 'Stores'), 'store'],
@@ -169,7 +170,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           {kind === 'tienda' && store ? <OpenSwitch store={store} onChanged={onStoreChange} /> : null}
         </View>
         {/* Pestañas en una sola fila que se desliza (cómodo en celular) */}
-        <View style={{ backgroundColor: '#F6E2D0', padding: 6 }}>
+        <View style={{ backgroundColor: '#DCE7F6', padding: 6 }}>
         <ChipScroll active={path}>
           {links.map(([href, label, ic]) => {
             const on = path === href;

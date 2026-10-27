@@ -9,9 +9,10 @@ import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 import { C } from '@/lib/theme';
 import type { Promo } from '@/lib/types';
-import { uploadPublic } from '@/lib/upload';
+import { expiresFor, type StoryDuration } from '@/lib/stories';
+import { pickImage, uploadImage, uploadPublic } from '@/lib/upload';
 
-const BG = { shop: C.brown, send: '#7A3412', pts: C.goldInk } as const;
+const BG = { shop: C.brown, send: '#0B2E5E', pts: C.goldInk } as const;
 const IC = { shop: 'phone', send: 'send', pts: 'star' } as const;
 
 function PromoCard({ p, lang }: { p: Promo; lang: string }) {
@@ -22,7 +23,7 @@ function PromoCard({ p, lang }: { p: Promo; lang: string }) {
       {p.img_url ? (
         <>
           <Image source={{ uri: p.img_url }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(46,27,16,0.45)' }]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(11,31,58,0.45)' }]} />
         </>
       ) : (
         <View style={{ position: 'absolute', right: -10, top: -10, opacity: 0.22 }}>
@@ -43,6 +44,7 @@ export default function AdminPromos() {
   const [busy, setBusy] = useState('');
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
+  const [storyDur, setStoryDur] = useState<StoryDuration>('7d');
   useEffect(() => {
     if (data) setList(data);
   }, [data]);
@@ -69,6 +71,35 @@ export default function AdminPromos() {
       setDirty((d) => ({ ...d, [p.id]: false })),
     );
   const quitar = (p: Promo) => run('d' + p.id, () => supabase.from('promos').delete().eq('id', p.id));
+  // La promoción también se publica como historia (con su propia foto vertical)
+  const asStory = async (p: Promo) => {
+    setErr('');
+    setMsg('');
+    const pick = await pickImage();
+    if (!pick) return;
+    setBusy('h' + p.id);
+    try {
+      const path = await uploadImage('stories', 'general', pick);
+      const url = supabase.storage.from('stories').getPublicUrl(path).data.publicUrl;
+      const link = p.go === 'shop' ? 'shop' : p.go === 'send' ? 'send' : 'none';
+      const { error } = await supabase.from('stories').insert({
+        store_id: null,
+        media_url: url,
+        media_type: 'image',
+        caption_es: [p.title_es, p.sub_es].filter(Boolean).join(' · ') || null,
+        caption_en: [p.title_en, p.sub_en].filter(Boolean).join(' · ') || null,
+        link_type: link,
+        expires_at: expiresFor(storyDur),
+        sort_order: -Math.floor(Date.now() / 1000),
+      });
+      if (error) throw error;
+      setMsg(L('¡Publicada como historia! Ya aparece en Inicio, en Novedades.', 'Published as a story! It now shows on Home under What\'s new.'));
+    } catch (e) {
+      setErr(errMsg(e));
+    }
+    setBusy('');
+  };
+
   const img = async (p: Promo) => {
     setBusy('i' + p.id);
     try {
@@ -95,7 +126,13 @@ export default function AdminPromos() {
   return (
     <Screen wide>
       <PanelHeader kind="admin" />
-      <P small muted>{L('Aparecen en la pantalla de inicio del cliente. Úsalas para ofertas, temporadas o avisos.', 'They appear on the customer home screen. Use them for offers, seasons or notices.')}</P>
+      <P small muted>{L('Aparecen en Inicio, abajo de los accesos rápidos. Úsalas para ofertas, temporadas o avisos. También puedes publicarlas como historia.', 'They appear on Home below the quick actions. Use them for offers, seasons or notices. You can also publish them as a story.')}</P>
+      <Card style={{ gap: 6 }}>
+        <Text style={{ fontWeight: '900', color: C.ink }}>{L('Medidas de las imágenes', 'Image sizes')}</Text>
+        <P small>{L('• Tarjeta de promoción: horizontal, 1200 × 500 px (proporción 12:5). JPG o PNG, menos de 5 MB. El texto de la promoción va encima, abajo a la izquierda: deja esa zona sin letras.', '• Promotion card: landscape, 1200 × 500 px (12:5). JPG or PNG, under 5 MB. The promo text sits on top, bottom-left: keep that area free of text.')}</P>
+        <P small>{L('• Como historia: vertical, 1080 × 1920 px (9:16). Deja libres unos 250 px arriba y abajo: ahí van el nombre de la tienda y el texto.', '• As a story: portrait, 1080 × 1920 px (9:16). Keep about 250 px free at top and bottom for the store name and caption.')}</P>
+        <Pills label={L('Las historias de promoción duran', 'Promo stories last')} options={[{ v: '24h' as StoryDuration, label: L('24 horas', '24 hours') }, { v: '3d' as StoryDuration, label: L('3 días', '3 days') }, { v: '7d' as StoryDuration, label: L('7 días', '7 days') }, { v: 'featured' as StoryDuration, label: L('Fija', 'Pinned') }]} value={storyDur} onChange={setStoryDur} />
+      </Card>
       <Pressable accessibilityRole="button" onPress={add} disabled={busy === 'add'} style={st.add}>
         <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: C.brown, fontSize: 24, fontWeight: '900' }}>+</Text>
@@ -126,10 +163,11 @@ export default function AdminPromos() {
                   <View style={[st.box, p.activo && { backgroundColor: C.brown, borderColor: C.brown }]}>{p.activo ? <Icon n="check" size={14} color="#fff" sw={3} /> : null}</View>
                   <Text style={{ fontWeight: '700', color: C.ink }}>{L('Visible', 'Visible')}</Text>
                 </Pressable>
-                <Btn small kind="ghost" icon="image" title={L('Imagen', 'Image')} loading={busy === 'i' + p.id} onPress={() => img(p)} />
+                <Btn small kind="ghost" icon="image" title={p.img_url ? L('Cambiar imagen', 'Change image') : L('Imagen 1200×500', 'Image 1200×500')} loading={busy === 'i' + p.id} onPress={() => img(p)} />
+                <Btn small kind="ghost" icon="camera" title={L('Publicar como historia', 'Publish as story')} loading={busy === 'h' + p.id} onPress={() => asStory(p)} />
                 {p.img_url ? <Btn small kind="ghost" title={L('Sin imagen', 'No image')} onPress={() => edit(p.id, { img_url: null })} /> : null}
                 <Btn small kind="ghost" title={L('Quitar', 'Remove')} loading={busy === 'd' + p.id} onPress={() => quitar(p)} />
-                <Btn small title={L('Guardar', 'Save')} disabled={!dirty[p.id]} loading={busy === 's' + p.id} onPress={() => save(p)} />
+                <Btn small kind={dirty[p.id] ? 'primary' : 'ghost'} title={dirty[p.id] ? L('Guardar', 'Save') : L('✓ Guardado', '✓ Saved')} disabled={!dirty[p.id]} loading={busy === 's' + p.id} onPress={() => save(p)} />
               </Row>
             </View>
           </Row>
@@ -141,7 +179,7 @@ export default function AdminPromos() {
 
 const st = StyleSheet.create({
   card: { height: 118, borderRadius: 18, padding: 16, justifyContent: 'flex-end', overflow: 'hidden' },
-  add: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#E8A27A', borderRadius: 18, padding: 16, backgroundColor: '#FFF4EA' },
-  check: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#FBEBDD', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
+  add: { flexDirection: 'row', alignItems: 'center', gap: 14, borderWidth: 1.5, borderStyle: 'dashed', borderColor: '#8CB7E6', borderRadius: 18, padding: 16, backgroundColor: '#F1F6FD' },
+  check: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#E3EDF9', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 9 },
   box: { width: 20, height: 20, borderRadius: 5, borderWidth: 2, borderColor: C.line, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
 });

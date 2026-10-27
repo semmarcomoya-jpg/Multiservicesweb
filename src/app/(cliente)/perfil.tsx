@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { InstallCard } from '@/components/InstallCard';
-import { Btn, Card, Field, H1, Label, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
+import { Avatar, Btn, Card, Field, H1, Label, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
+import { pickImage, uploadImage } from '@/lib/upload';
 import { useAuth } from '@/lib/auth';
 import { useStores } from '@/lib/data';
 import { digits } from '@/lib/format';
@@ -19,6 +20,8 @@ export default function Perfil() {
   const [f, setF] = useState({ nombre: '', apellidos: '', telefono: '', fecha_nac: '', store_id: '' as string | null });
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [fotoBusy, setFotoBusy] = useState(false);
+  const [fotoErr, setFotoErr] = useState('');
 
   useEffect(() => {
     if (profile)
@@ -41,6 +44,28 @@ export default function Perfil() {
     refreshProfile();
   };
 
+  // Foto de perfil: se sube a tu carpeta y se guarda en tu perfil
+  const cambiarFoto = async (camera = false) => {
+    setFotoErr('');
+    const img = await pickImage(camera);
+    if (!img) return;
+    setFotoBusy(true);
+    try {
+      const path = await uploadImage('avatars', profile.id, img);
+      const url = supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+      const { error } = await supabase.from('profiles').update({ foto_url: url }).eq('id', profile.id);
+      if (error) throw error;
+      await refreshProfile();
+    } catch (e) {
+      setFotoErr(errMsg(e));
+    }
+    setFotoBusy(false);
+  };
+  const quitarFoto = async () => {
+    await supabase.from('profiles').update({ foto_url: null }).eq('id', profile.id);
+    refreshProfile();
+  };
+
   const idTxt = {
     ninguna: L('Sin verificar. Para enviar más, muestra tu identificación en la tienda.', 'Not verified. To send more, show your ID at the store.'),
     pendiente: L('En revisión', 'Under review'),
@@ -52,10 +77,26 @@ export default function Perfil() {
     <Screen wall="profile">
       <TopBar />
       <H1>{L('Mi perfil', 'My profile')}</H1>
+      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+        <Pressable accessibilityRole="button" accessibilityLabel={L('Cambiar foto de perfil', 'Change profile photo')} onPress={() => cambiarFoto()} disabled={fotoBusy}>
+          <Avatar name={`${profile.nombre} ${profile.apellidos}`} size={84} uri={profile.foto_url} />
+          <View style={{ position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: C.brown, borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, lineHeight: 18 }}>+</Text>
+          </View>
+        </Pressable>
+        <View style={{ flex: 1, gap: 6 }}>
+          <Text style={{ fontWeight: '900', fontSize: 18, color: C.ink }}>{`${profile.nombre} ${profile.apellidos}`.trim()}</Text>
+          <Row>
+            <Btn small icon="camera" title={fotoBusy ? L('Subiendo…', 'Uploading…') : profile.foto_url ? L('Cambiar foto', 'Change photo') : L('Subir foto', 'Add photo')} onPress={() => cambiarFoto()} loading={fotoBusy} />
+            {profile.foto_url ? <Btn small kind="ghost" title={L('Quitar', 'Remove')} onPress={quitarFoto} /> : null}
+          </Row>
+          {fotoErr ? <P small style={{ color: C.red }}>{fotoErr}</P> : <P small muted>{L('Así te reconocen en la tienda.', 'So the store recognizes you.')}</P>}
+        </View>
+      </Card>
       <View style={{ backgroundColor: C.brown, borderRadius: R.xl, padding: 18, gap: 4 }}>
         <Text style={{ color: C.goldSoft, fontWeight: '700' }}>{L('Tu número de cliente', 'Your member number')}</Text>
         <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: 1 }}>{profile.member_code}</Text>
-        <Text style={{ color: C.goldSoft, fontSize: 13 }}>{L('Escríbelo en la nota de Zelle o dilo en la tienda.', 'Write it in the Zelle memo or say it at the store.')}</Text>
+        <Text style={{ color: C.goldSoft, fontSize: 13 }}>{L('Dilo en la tienda para sumar tus puntos.', 'Say it at the store to earn your points.')}</Text>
       </View>
 
       <InstallCard />
@@ -90,7 +131,7 @@ export default function Perfil() {
 
       <Card>
         <Btn kind="ghost" icon="receipt" title={L('Mis pedidos', 'My orders')} onPress={() => router.push('/pedidos')} />
-        <Btn kind="ghost" icon="users" title={L('Mis beneficiarios', 'My recipients')} onPress={() => router.push('/beneficiarios')} />
+        <Btn kind="ghost" icon="users" title={L('Mis personas', 'My people')} onPress={() => router.push('/beneficiarios')} />
         <Btn
           kind="danger"
           icon="x"

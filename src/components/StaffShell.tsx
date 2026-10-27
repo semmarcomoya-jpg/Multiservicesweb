@@ -61,7 +61,7 @@ export function StaffShell({ kind, children }: { kind: 'tienda' | 'admin'; child
           {/* Celular del cliente: la app real en vivo */}
           <View style={{ gap: 8 }}>
             <Text style={{ fontSize: 12, fontWeight: '900', letterSpacing: 1, color: C.muted }}>{L('CLIENTE · WEB APP', 'CUSTOMER · WEB APP')}</Text>
-            <View style={{ width: 390, height: 844, maxHeight: '100%', borderRadius: 34, overflow: 'hidden', borderWidth: 1, borderColor: C.line2, backgroundColor: C.cream, shadowColor: '#7A3412', shadowOpacity: 0.18, shadowRadius: 60, shadowOffset: { width: 0, height: 24 } }}>
+            <View style={{ width: 390, height: 844, maxHeight: '100%', borderRadius: 34, overflow: 'hidden', borderWidth: 1, borderColor: C.line2, backgroundColor: C.cream, shadowColor: '#0B2E5E', shadowOpacity: 0.18, shadowRadius: 60, shadowOffset: { width: 0, height: 24 } }}>
               {React.createElement('iframe', { src: clientUrl(), title: L('Vista del cliente', 'Customer view'), style: { border: 0, width: '100%', height: '100%' } })}
             </View>
           </View>

@@ -61,7 +61,7 @@ export default function NuevoBeneficiario() {
 
   return (
     <Screen wall="send">
-      <BackBar title={L('Nuevo beneficiario', 'New recipient')} />
+      <BackBar title={L('Nueva persona', 'New person')} />
       <H1>{L('¿Quién recibe el dinero?', 'Who receives the money?')}</H1>
       <Card>
         <Row style={{ alignItems: 'flex-start' }}>
@@ -100,7 +100,7 @@ export default function NuevoBeneficiario() {
         )}
       </Card>
       {err ? <Note kind="red">{err}</Note> : null}
-      <Btn title={L('Guardar beneficiario', 'Save recipient')} onPress={save} loading={busy} />
+      <Btn title={L('Guardar persona', 'Save person')} onPress={save} loading={busy} />
     </Screen>
   );
 }

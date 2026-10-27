@@ -1,9 +1,9 @@
 import { router } from 'expo-router';
 import React from 'react';
-import { Image, ScrollView, View, useWindowDimensions } from 'react-native';
+import { ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Scenery } from '@/components/art';
+import { FramedImage, Scenery } from '@/components/art';
 import { InstallCard } from '@/components/InstallCard';
 import { Text } from '@/components/Text';
 import { BrandChip, Btn, Circ, LangToggle, P } from '@/components/ui';
@@ -22,11 +22,11 @@ export default function Bienvenida() {
     ['star', 'gold', L('Gana puntos', 'Earn points')],
   ];
   return (
-    <View style={{ flex: 1, backgroundColor: '#FFE1C4' }}>
+    <View style={{ flex: 1, backgroundColor: '#D3E7FA' }}>
       <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center' }} bounces={false}>
         <View style={{ width: '100%', maxWidth: 520, flexGrow: 1 }}>
           <View style={{ height: heroH, overflow: 'hidden' }}>
-            {brand.cover_url ? <Image source={{ uri: brand.cover_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" /> : <Scenery />}
+            {brand.cover_url ? <FramedImage uri={brand.cover_url} frame={brand.cover_pos} /> : <Scenery />}
             <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 16, right: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16 }}>
                 <BrandChip full />

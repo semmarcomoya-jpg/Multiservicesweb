@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Scenery, WALL_THEMES, Wallpaper, type WallTheme } from '@/components/art';
 import { PanelHeader } from '@/components/panel';
 import { Text } from '@/components/Text';
+import { FrameEditor } from '@/components/FrameEditor';
 import { Btn, Card, Field, H2, Note, P, Row, Screen } from '@/components/ui';
 import { DEFAULT_BRAND, useBranding } from '@/lib/branding';
 import { useLang } from '@/lib/i18n';
@@ -23,7 +24,7 @@ const SECTIONS: [WallTheme, string, string][] = [
 
 function Seg({ value, onChange, opts }: { value: string; onChange: (v: WallMode) => void; opts: [WallMode, string][] }) {
   return (
-    <View style={{ flexDirection: 'row', backgroundColor: '#F2DCC8', borderRadius: 999, padding: 3, alignSelf: 'flex-start' }}>
+    <View style={{ flexDirection: 'row', backgroundColor: '#D6E3F4', borderRadius: 999, padding: 3, alignSelf: 'flex-start' }}>
       {opts.map(([v, label]) => {
         const on = v === value;
         return (
@@ -41,10 +42,18 @@ export default function AdminApariencia() {
   const { L } = useLang();
   const { brand, reload } = useBranding();
   const [b, setB] = useState<Brand>(brand);
+  // Lo último guardado: así sabemos si hay cambios sin guardar
+  const [saved, setSaved] = useState(() => JSON.stringify(brand));
+  const dirty = JSON.stringify(b) !== saved;
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
-  useEffect(() => setB(brand), [brand]);
+  useEffect(() => {
+    // Tomamos lo del servidor solo si no hay cambios a medias
+    if (JSON.stringify(b) !== saved) return;
+    setB(brand);
+    setSaved(JSON.stringify(brand));
+  }, [brand]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const wall = (t: WallTheme): WallCfg => ({ mode: 'pattern', color: WALL_THEMES[t].color, img: null, ...(b.walls?.[t] || {}) });
   const setWall = (t: WallTheme, p: Partial<WallCfg>) => setB((x) => ({ ...x, walls: { ...(x.walls || {}), [t]: { ...wall(t), ...p } } }));
@@ -70,6 +79,7 @@ export default function AdminApariencia() {
     setBusy('');
     if (error) setErr(errMsg(error));
     else {
+      setSaved(JSON.stringify(b));
       setMsg(L('Guardado. Tus clientes ya ven la nueva apariencia.', 'Saved. Your customers now see the new look.'));
       reload();
     }
@@ -138,16 +148,21 @@ export default function AdminApariencia() {
       </Card>
 
       <Card>
-        <View style={{ height: 150, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: C.line }}>
-          {b.cover_url ? <Image source={{ uri: b.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <Scenery />}
-          <View style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 52, backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 10 }}>
-            <Text style={{ fontWeight: '900', fontSize: 13, color: C.ink }}>{b.cover_title_es || DEFAULT_BRAND.cover_title_es}</Text>
+        {b.cover_url ? (
+          <FrameEditor uri={b.cover_url} frame={b.cover_pos} onChange={(f) => setB((x) => ({ ...x, cover_pos: f }))} width={250} height={270}>
+            <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 34, backgroundColor: '#fff', borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 9 }}>
+              <Text style={{ fontWeight: '900', fontSize: 12, color: C.ink }}>{b.cover_title_es || DEFAULT_BRAND.cover_title_es}</Text>
+            </View>
+          </FrameEditor>
+        ) : (
+          <View style={{ width: 250, height: 270, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: C.line }}>
+            <Scenery />
           </View>
-        </View>
+        )}
         <H2>{L('Imagen de portada', 'Cover image')}</H2>
-        <P small muted>{L('Es lo primero que ven tus clientes. Usa una foto vertical y alegre (recomendado 1080 × 1350 px o más).', 'It is the first thing customers see. Use a cheerful vertical photo (1080 × 1350 px or more).')}</P>
+        <P small muted>{L('Es lo primero que ven tus clientes. Usa una foto vertical y alegre (recomendado 1080 × 1350 px o más).', 'It is the first thing customers see. Use a cheerful vertical photo (1080 × 1350 px or more).') + ' ' + L('Arrástrala para acomodarla y usa + / − para el zoom.', 'Drag it to adjust and use + / − to zoom.')}</P>
         <Row>
-          <Btn small icon="upload" title={L('Subir portada', 'Upload cover')} loading={busy === 'cover'} onPress={() => upload('cover', 'branding', (u) => setB((x) => ({ ...x, cover_url: u })))} />
+          <Btn small icon="upload" title={L('Subir portada', 'Upload cover')} loading={busy === 'cover'} onPress={() => upload('cover', 'branding', (u) => setB((x) => ({ ...x, cover_url: u, cover_pos: undefined })))} />
           <Btn small kind="ghost" title={L('Usar ilustración', 'Use illustration')} onPress={() => setB((x) => ({ ...x, cover_url: null }))} />
         </Row>
         <Row style={{ alignItems: 'flex-start' }}>
@@ -159,20 +174,32 @@ export default function AdminApariencia() {
       </Card>
 
       <Card>
-        <View style={{ height: 150, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: C.line }}>
-          {b.home_bg_url ? <Image source={{ uri: b.home_bg_url }} style={StyleSheet.absoluteFill} resizeMode="cover" /> : <Scenery mid />}
-        </View>
+        {b.home_bg_url ? (
+          <FrameEditor uri={b.home_bg_url} frame={b.home_pos} onChange={(f) => setB((x) => ({ ...x, home_pos: f }))} width={312} height={160} />
+        ) : (
+          <View style={{ width: 312, height: 160, borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: C.line }}>
+            <Scenery mid />
+          </View>
+        )}
         <H2>{L('Imagen del encabezado de inicio', 'Home header image')}</H2>
         <P small muted>{L('La foto que va arriba del saludo. Funciona mejor una imagen horizontal (1600 × 900 px).', 'The photo above the greeting. A horizontal image works best (1600 × 900 px).')}</P>
         <Row>
-          <Btn small icon="upload" title={L('Subir fondo', 'Upload background')} loading={busy === 'home'} onPress={() => upload('home', 'branding', (u) => setB((x) => ({ ...x, home_bg_url: u })))} />
+          <Btn small icon="upload" title={L('Subir fondo', 'Upload background')} loading={busy === 'home'} onPress={() => upload('home', 'branding', (u) => setB((x) => ({ ...x, home_bg_url: u, home_pos: undefined })))} />
           <Btn small kind="ghost" title={L('Usar ilustración', 'Use illustration')} onPress={() => setB((x) => ({ ...x, home_bg_url: null }))} />
         </Row>
       </Card>
 
       {err ? <Note kind="red">{err}</Note> : null}
-      {msg ? <Note kind="blue" icon="check">{msg}</Note> : null}
-      <Btn title={L('Guardar apariencia', 'Save appearance')} onPress={save} loading={busy === 'save'} style={{ alignSelf: 'flex-start' }} />
+      {msg && !dirty ? <Note kind="blue" icon="check">{msg}</Note> : null}
+      {/* Mientras no cambies nada, el botón dice "Guardado"; al cambiar algo vuelve a "Guardar" */}
+      <Btn
+        title={dirty ? L('Guardar apariencia', 'Save appearance') : L('✓ Guardado', '✓ Saved')}
+        kind={dirty ? 'primary' : 'ghost'}
+        disabled={!dirty}
+        onPress={save}
+        loading={busy === 'save'}
+        style={{ alignSelf: 'flex-start' }}
+      />
     </Screen>
   );
 }
@@ -184,7 +211,7 @@ function PreviewWall({ cfg, theme }: { cfg: WallCfg; theme: WallTheme }) {
     return (
       <View style={[StyleSheet.absoluteFill, { backgroundColor: cfg.color }]}>
         <Image source={{ uri: cfg.img }} style={StyleSheet.absoluteFill} resizeMode="cover" />
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,247,240,0.80)' }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(245,249,254,0.82)' }]} />
       </View>
     );
   return <Wallpaper theme={theme} override={{ mode: 'pattern', color: cfg.color, img: null }} />;
@@ -195,7 +222,7 @@ function ColorInput({ value, onChange }: { value: string; onChange: (v: string) 
   if (typeof document !== 'undefined')
     return React.createElement('input', {
       type: 'color',
-      value: /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#FFF3E6',
+      value: /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#EEF5FD',
       onChange: (e: { target: { value: string } }) => onChange(e.target.value.toUpperCase()),
       'aria-label': 'color',
       style: { width: 40, height: 30, border: `1px solid ${C.line}`, borderRadius: 8, padding: 2, background: '#fff', cursor: 'pointer' },

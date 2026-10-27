@@ -28,11 +28,12 @@ export default function Beneficiarios() {
 
   return (
     <Screen wall="send">
-      <BackBar title={L('Mis beneficiarios', 'My recipients')} />
+      <BackBar title={L('Mis personas', 'My people')} />
       <H1>{L('¿A quién le envías?', 'Who do you send to?')}</H1>
-      <Btn icon="users" title={L('Agregar beneficiario', 'Add recipient')} onPress={() => router.push('/beneficiarios/nuevo')} />
+      <P muted>{L('Las personas en México a quienes les envías. Las guardas una vez y listo.', 'The people in Mexico you send to. Save them once and you are set.')}</P>
+      <Btn icon="users" title={L('Agregar nueva persona', 'Add a new person')} onPress={() => router.push('/beneficiarios/nuevo')} />
       {!list ? <Loading /> : null}
-      {list && list.length === 0 ? <Empty>{L('Aún no tienes beneficiarios.', 'No recipients yet.')}</Empty> : null}
+      {list && list.length === 0 ? <Empty>{L('Aún no guardas a nadie.', 'No one saved yet.')}</Empty> : null}
       {(list || []).map((b) => (
         <Card key={b.id}>
           <Row gap={12} style={{ flexWrap: 'nowrap' }}>

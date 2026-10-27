@@ -83,7 +83,7 @@ export default function Productos() {
         value={q}
         onChangeText={setQ}
         placeholder={L('Busca marca, modelo o "funda A15"', 'Search brand, model or "A15 case"')}
-        placeholderTextColor="#B59A88"
+        placeholderTextColor="#93A5BD"
         style={{ minHeight: 48, borderRadius: R.pill, borderWidth: 1.5, borderColor: C.line2, backgroundColor: C.card, paddingHorizontal: 18, fontSize: 16, color: C.ink }}
       />
       <Pills options={[{ v: 'all', label: L('Todo', 'All') }, ...famsUsed.map((f) => ({ v: f.id, label: nm(f), icon: f.icon }))]} value={fam} onChange={(v) => { setFam(v); setBrand('all'); }} />

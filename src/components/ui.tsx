@@ -86,7 +86,8 @@ export function BrandMark({ size = 30, square = false }: { size?: number; square
   );
 }
 
-export function Avatar({ name, size = 44, me = true }: { name: string; size?: number; me?: boolean }) {
+export function Avatar({ name, size = 44, me = true, uri }: { name: string; size?: number; me?: boolean; uri?: string | null }) {
+  if (uri) return <Image source={{ uri }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: C.tint }} />;
   const ini = name.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: me ? C.brown : C.goldSoft, alignItems: 'center', justifyContent: 'center' }}>
@@ -206,7 +207,7 @@ export function Stepper({ steps, cur }: { steps: string[]; cur: number }) {
       {steps.map((x, i) => (
         <View key={x} style={{ flex: 1, gap: 5 }}>
           <View style={{ height: 6, borderRadius: 3, backgroundColor: i <= cur ? C.gold : C.line }} />
-          <Text style={{ fontSize: 11, fontWeight: '800', color: i < cur ? C.brown : i === cur ? C.ink : '#8C6E5C' }}>{x}</Text>
+          <Text style={{ fontSize: 11, fontWeight: '800', color: i < cur ? C.brown : i === cur ? C.ink : '#687B94' }}>{x}</Text>
         </View>
       ))}
     </View>
@@ -276,7 +277,7 @@ export function Field({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor="#B59A88"
+        placeholderTextColor="#93A5BD"
         keyboardType={keyboardType}
         secureTextEntry={secure}
         maxLength={maxLength}
@@ -443,16 +444,16 @@ export function TopBar({ subtitle }: { subtitle?: string }) {
 
 export const s = StyleSheet.create({
   inner: { width: '100%', alignSelf: 'center', paddingHorizontal: 20, paddingTop: 10, gap: 14 },
-  footer: { borderTopWidth: 1, borderTopColor: '#EFE8DD', backgroundColor: C.card },
+  footer: { borderTopWidth: 1, borderTopColor: '#E1E9F3', backgroundColor: C.card },
   h1: { fontSize: 26, fontWeight: '900', color: C.ink, lineHeight: 30 },
   h2: { fontSize: 18, fontWeight: '900', color: C.ink },
   p: { fontSize: 15, lineHeight: 22, color: C.softInk },
   label: { fontSize: 14, fontWeight: '800', color: C.ink },
-  card: { backgroundColor: C.card, borderRadius: 18, padding: 16, gap: 10, borderWidth: 1, borderColor: '#EFE8DD' },
+  card: { backgroundColor: C.card, borderRadius: 18, padding: 16, gap: 10, borderWidth: 1, borderColor: '#E1E9F3' },
   btn: { minHeight: 54, paddingHorizontal: 18, borderRadius: 16, borderWidth: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   btnSm: { minHeight: 42, paddingHorizontal: 14, borderRadius: 12 },
   btnTxt: { fontSize: 16, fontWeight: '800' },
-  back: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.card, borderWidth: 1, borderColor: '#EFE8DD', alignItems: 'center', justifyContent: 'center' },
+  back: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.card, borderWidth: 1, borderColor: '#E1E9F3', alignItems: 'center', justifyContent: 'center' },
   backPlain: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
   input: { minHeight: 50, borderRadius: 14, borderWidth: 1, borderColor: C.line2, backgroundColor: C.card, paddingHorizontal: 14, fontSize: 16, color: C.ink, fontWeight: '600' },
   err: { color: C.red, fontWeight: '700', fontSize: 13 },
@@ -460,7 +461,7 @@ export const s = StyleSheet.create({
   pillOn: { borderColor: C.brown, backgroundColor: C.brown },
   pillTxt: { fontWeight: '700', color: C.ink, fontSize: 14, whiteSpace: 'nowrap' } as TextStyle,
   toggle: { flexGrow: 1, minWidth: 240, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: R.md, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: C.cream },
-  sw: { width: 46, height: 26, borderRadius: 13, backgroundColor: '#D9C8B8', padding: 3 },
+  sw: { width: 46, height: 26, borderRadius: 13, backgroundColor: '#C8D4E4', padding: 3 },
   swDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
   note: { flexDirection: 'row', gap: 10, padding: 12, borderRadius: R.md, alignItems: 'flex-start' },
   chip: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: R.pill, alignSelf: 'flex-start' },
