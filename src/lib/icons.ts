@@ -26,6 +26,7 @@ export const ICONS: Record<string, IconDef> = {
     cash: [['rect', { x: 2, y: 6, width: 20, height: 12, rx: 2 }], ['circle', { cx: 12, cy: 12, r: 2.5 }], ['path', { d: 'M6 12h.01' }], ['path', { d: 'M18 12h.01' }]],
     clock: [['circle', { cx: 12, cy: 12, r: 9 }], ['path', { d: 'M12 7v5l3 2' }]],
     x: [['path', { d: 'M6 6l12 12' }], ['path', { d: 'M18 6L6 18' }]],
+    plus: [['path', { d: 'M12 5v14' }], ['path', { d: 'M5 12h14' }]],
     store: [['path', { d: 'M3 9l1.5-5h15L21 9' }], ['path', { d: 'M4 9v11h16V9' }], ['path', { d: 'M3 9h18' }], ['path', { d: 'M9 20v-6h6v6' }]],
     gift: [['rect', { x: 3, y: 8, width: 18, height: 13, rx: 2 }], ['path', { d: 'M3 12h18' }], ['path', { d: 'M12 8v13' }], ['path', { d: 'M12 8c-2-4-6-4-6-1.5S10 8 12 8z' }], ['path', { d: 'M12 8c2-4 6-4 6-1.5S14 8 12 8z' }]],
     star: [['path', { d: 'M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z' }]],

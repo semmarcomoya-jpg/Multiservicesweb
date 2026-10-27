@@ -20,6 +20,7 @@ export function useOrderText() {
     }
     if (o.kind === 'service') return nm(o.service_name) + (o.service_name?.opcion ? ' · ' + nm(o.service_name.opcion) : '');
     if (o.kind === 'shop' && o.items?.length) return o.items[0].name + (o.items.length > 1 ? ` +${o.items.length - 1}` : '');
+    if (o.kind === 'abono') return (o.inst ? L(`Abono ${o.inst}`, `Payment ${o.inst}`) : L('Enganche', 'Down payment')) + (o.folio_prov ? ' · ' + o.folio_prov : '') + (o.items?.length ? ' · ' + o.items[0].name : '');
     return o.kind;
   };
   const modeLabel = (m?: string | null) =>

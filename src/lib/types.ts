@@ -37,6 +37,7 @@ export interface Store {
   abierta: boolean;
   aviso_cerrada: string;
   orden: number;
+  loyalty?: Loyalty;
 }
 
 export interface Category { id: string; es: string; en: string; icon: string; orden: number }
@@ -77,7 +78,15 @@ export interface Settings {
   proveedor: string;
   brand: { nombre: string; corto: string };
   destacados_modo?: 'auto' | 'manual';
+  credit?: CreditCfg;
+  id_types?: Record<string, boolean>;
+  redes?: string;
+  terms_es?: string;
+  terms_en?: string;
+  help_wa?: string;
+  help_mail?: string;
 }
+export interface CreditCfg { on: boolean; layaway: boolean; freqs: Record<'semanal' | 'quincenal' | 'mensual', boolean>; nList: string; minDown: number; rate: number; lateFee: number; grace: number; minPrice: number; layDays: number }
 
 export interface Beneficiary {
   id: string;
@@ -102,6 +111,13 @@ export interface Order {
   user_id: string;
   store_id: string;
   kind: 'send' | 'service' | 'shop' | 'abono';
+  channel?: 'app' | 'store';
+  pay_method?: string;
+  discount?: number;
+  reward_name?: string;
+  reward_pts?: number;
+  plan_id?: string | null;
+  inst?: number | null;
   service_id: string | null;
   service_name: { es: string; en: string; icon: string; cat: string; opcion: { es: string; en: string } | null } | null;
   data: OrderDataItem[];
@@ -259,3 +275,18 @@ export interface Post {
 
 export interface Notif { id: string; user_id: string; kind: string; title: string; body: string; link: string; ref_id: string | null; read_at: string | null; created_at: string }
 export interface StoreScore { store_id: string; promedio: number; total: number }
+
+export interface Reward { id: string; es: string; en: string; pts: number; type: 'fee' | 'off'; value: number }
+export interface Loyalty { on: boolean; perTx: number; per100: number; bday: number; postPts?: number; rewards: Reward[] }
+export interface LedgerRow { id: number; user_id: string; store_id: string; pts: number; kind: string; motivo: string; order_id: string | null; by_name: string; created_at: string }
+export interface Member { user_id: string; nombre: string; member_code: string; telefono: string; foto_url: string | null; id_status: string; puntos: number; planes: number; credito_on: boolean; credito_limite: number }
+export interface PlanPayment { plan_id: string; i: number; due: string; amount: number; paid_at: string | null; method: string; by_name: string; order_id: string | null }
+export interface Plan {
+  id: string; folio: string; kind: 'credito' | 'apartado'; user_id: string; store_id: string; product_id: string | null; variant_id: string | null;
+  item_name: string; item_label: string; price: number; down: number; n: number; freq: 'semanal' | 'quincenal' | 'mensual'; rate: number; total_fin: number;
+  status: 'solicitado' | 'activo' | 'rechazado' | 'liquidado' | 'cancelado'; cliente_nombre: string; cliente_code: string; approved_by: string; reject_reason: string; created_at: string;
+  plan_payments?: PlanPayment[];
+}
+export interface CreditLine { user_id: string; store_id: string; on: boolean; limite: number; by_name: string }
+export interface Customer { user_id: string; nombre: string; member_code: string; telefono: string; foto_url: string | null; id_status: string; favorita: boolean; pedidos: number; gastado: number; ultimo: string | null; puntos: number; planes: number; credito_on: boolean; credito_limite: number }
+export interface IdDocRow { user_id: string; nombre: string; member_code: string; fecha_nac: string | null; id_status: string; tipo: string; front_path: string; back_path: string; submitted_at: string; reviewed_by: string; reviewed_at: string | null; note: string }

@@ -57,6 +57,7 @@ export function CalificacionesPanel({ stores, storeId }: { stores: Store[]; stor
     if (!o) return '';
     if (o.kind === 'send') return L('Envío a México', 'Transfer to Mexico');
     if (o.kind === 'shop') return (o.items || []).map((x) => x.name).join(', ');
+    if (o.kind === 'abono') return L('Abono de crédito', 'Credit payment');
     return (lang === 'es' ? o.service_name?.es : o.service_name?.en) || '';
   };
   const list = sel.filter((r) => (only === 'all' || (r.stars <= 2 && !r.followed_up)) && matches(q, r.employee_name, r.comment, r.tags.join(' '), r.orders?.folio, r.orders?.cliente_nombre, what(r)));

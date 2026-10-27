@@ -1,4 +1,4 @@
-import { router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,10 +8,12 @@ import { OrderRow } from '@/components/orders';
 import { ViewSwitch } from '@/components/panel';
 import { Destacados } from '@/components/Destacados';
 import { Stars } from '@/components/Stars';
+import { Tour, tourDone } from '@/components/Tour';
 import { NotifBell } from '@/components/NotifBell';
 import { usePostKinds } from '@/components/PostCard';
 import { StoriesRow } from '@/components/StoriesRow';
 import { useDestacados } from '@/lib/featured';
+import { useMyPoints } from '@/lib/points';
 import { Text } from '@/components/Text';
 import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Loading, Note, P } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -38,6 +40,16 @@ export default function Inicio() {
   const { orders } = useMyOrders(5);
   const { brand } = useBranding();
   const destacados = useDestacados();
+  const params = useLocalSearchParams<{ tour?: string }>();
+  const [tour, setTour] = useState(false);
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  const { balance } = useMyPoints(profile?.id);
   const { data: scores } = useStoreScores();
   const K = usePostKinds();
   // Lo más reciente de Boca a boca (de tu tienda y los avisos para todos)
@@ -90,6 +102,13 @@ export default function Inicio() {
     const t = setTimeout(() => setCovering(false), 3000);
     return () => clearTimeout(t);
   }, [covering]);
+  // Guía de bienvenida: la primera vez (o desde Perfil → "Ver la guía"), cuando Inicio ya está a la vista
+  useEffect(() => {
+    if (covering || !focused || !profile || inFrame) return undefined;
+    if (tourDone() && params.tour !== '1') return undefined;
+    const t = setTimeout(() => setTour(true), 700);
+    return () => clearTimeout(t);
+  }, [covering, focused, profile, params.tour]);
   useEffect(() => {
     if (stories === null) return undefined;
     if (!stories.length) {
@@ -112,6 +131,7 @@ export default function Inicio() {
   const any = (k: 'send' | 'svc' | 'shop') => (stores || []).some((st) => st.activo && modOn(st, k));
   const myStore = (stores || []).find((s) => s.id === profile?.store_id);
   const myScore = myStore ? scoreOf(scores, myStore.id) : undefined;
+  const ptsStore = (myStore && myStore.loyalty?.on ? myStore : (stores || []).find((s) => s.activo && s.loyalty?.on)) || null;
   const bday = profile?.fecha_nac && new Date(profile.fecha_nac + 'T12:00:00').getMonth() === new Date().getMonth();
   const minPhone = (products || []).filter((p) => p.activo && p.family_id === 'cel').map(prodFrom).filter((x) => Number.isFinite(x));
   const rate = cfg ? Number(cfg.exchange_rate) : 0;
@@ -135,7 +155,9 @@ export default function Inicio() {
     any('shop') && { ic: 'bag', tone: 'gold', label: L('Tienda', 'Shop'), go: '/productos?fam=all' },
     any('send') && { ic: 'send', tone: 'blue', label: L('Enviar dinero', 'Send money'), go: '/enviar' },
     { ic: 'users', tone: 'gold', label: L('Mis personas', 'My people'), go: '/beneficiarios' },
+    { ic: 'qr', tone: 'blue', label: L('Mi tarjeta', 'My card'), go: '/tarjeta' },
     { ic: 'receipt', tone: 'blue', label: L('Mis pedidos', 'My orders'), go: '/pedidos' },
+    cfg?.credit?.on !== false && (stores || []).some((st) => st.activo && (modOn(st, 'credit') || modOn(st, 'layaway'))) && { ic: 'wallet', tone: 'gold', label: L('Mi crédito', 'My credit'), go: '/credito' },
     (stores || []).some((st) => st.activo && modOn(st, 'comm')) && { ic: 'chat', tone: 'gold', label: L('Boca a boca', 'Word of mouth'), go: '/comunidad' },
   ].filter(Boolean) as { ic: string; tone: 'gold' | 'blue'; label: string; go: string }[];
 
@@ -183,11 +205,18 @@ export default function Inicio() {
                   {updated}
                 </Text>
               </View>
-              {profile?.member_code ? (
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.goldSoft }}>
+              {ptsStore ? (
+                <Pressable accessibilityRole="button" onPress={() => router.push('/puntos')}
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.goldSoft }}>
+                  <Text style={{ fontSize: 14, color: C.goldInk, flex: 1 }} numberOfLines={1}>{L('Tus puntos en ', 'Your points at ') + ptsStore.nombre.replace('Castillo · ', '')}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '900', color: C.goldInk }}>{balance(ptsStore.id)} pts</Text>
+                </Pressable>
+              ) : profile?.member_code ? (
+                <Pressable accessibilityRole="button" onPress={() => router.push('/tarjeta')}
+                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.goldSoft }}>
                   <Text style={{ fontSize: 14, color: C.goldInk }}>{L('Tu número de cliente', 'Your member number')}</Text>
                   <Text style={{ fontSize: 18, fontWeight: '900', color: C.goldInk }}>{profile.member_code}</Text>
-                </View>
+                </Pressable>
               ) : null}
             </View>
 
@@ -334,6 +363,7 @@ export default function Inicio() {
           <Loading />
         </View>
       ) : null}
+      <Tour visible={tour && focused} onClose={() => { setTour(false); if (params.tour) router.setParams({ tour: undefined }); }} />
     </View>
   );
 }

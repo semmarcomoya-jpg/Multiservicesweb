@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { Btn, Card, Field, H2, Note, P, Row, Toggle, Icon } from '@/components/ui';
+import { Btn, Card, Field, H2, Note, P, Row, Toggle, Icon, Pills } from '@/components/ui';
 import { useServices } from '@/lib/data';
 import { Image, Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
@@ -8,7 +8,8 @@ import { C } from '@/lib/theme';
 import { uploadPublic } from '@/lib/upload';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
-import type { Store, StoreDelivery, StoreMods } from '@/lib/types';
+import { DEFAULT_LOYALTY } from '@/lib/points';
+import type { Loyalty, Reward, Store, StoreDelivery, StoreMods } from '@/lib/types';
 
 const DEF_MODS: StoreMods = { send: true, svc: true, shop: true, credit: false, layaway: false, comm: true };
 const DEF_DEL: StoreDelivery = { pickup: true, curb: true, home: false, homeFee: 5, freeOver: 0, slots: '10:00, 12:00, 14:00, 16:00, 18:00', zips: '' };
@@ -39,6 +40,10 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
   const del = { ...DEF_DEL, ...(f.delivery || {}) };
   const set = (k: keyof Store) => (v: string) => setF((p) => ({ ...p, [k]: v }));
   const setMod = (k: keyof StoreMods, v: boolean) => setF((p) => ({ ...p, mods: { ...mods, [k]: v } }));
+  const ly: Loyalty = { ...DEFAULT_LOYALTY, ...(f.loyalty || {}) };
+  const setLy = (p: Partial<Loyalty>) => setF((x) => ({ ...x, loyalty: { ...ly, ...p } }));
+  const setRw = (i: number, p: Partial<Reward>) => setLy({ rewards: ly.rewards.map((r, j) => (j === i ? { ...r, ...p } : r)) });
+  const num = (v: string) => v.replace(/[^0-9.]/g, '');
   const setDel = (patch: Partial<StoreDelivery>) => setF((p) => ({ ...p, delivery: { ...del, ...patch } }));
 
   const save = async () => {
@@ -56,6 +61,14 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
       zelle_nombre: f.zelle_nombre,
       fotos: f.fotos || [],
       mods,
+      loyalty: {
+        on: !!ly.on,
+        perTx: Number(ly.perTx) || 0,
+        per100: Number(ly.per100) || 0,
+        bday: Number(ly.bday) || 0,
+        postPts: Number(ly.postPts) || 0,
+        rewards: ly.rewards.filter((r) => r.es.trim() && Number(r.pts) > 0).map((r) => ({ ...r, pts: Number(r.pts) || 0, value: Number(r.value) || 0 })),
+      },
       delivery: { ...del, homeFee: Number(del.homeFee) || 0, freeOver: Number(del.freeOver) || 0 },
       svc_off: f.svc_off || [],
       abierta: f.abierta !== false,
@@ -75,8 +88,8 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
     ['send', 'send', L('Envíos a México', 'Money to Mexico'), L('Depósito o retiro en efectivo', 'Deposit or cash pickup')],
     ['svc', 'tool', L('Pago de servicios y trámites', 'Bill pay & services'), L('Recargas, luz, agua, trámites…', 'Top-ups, utilities, paperwork…')],
     ['shop', 'bag', L('Productos', 'Products'), L('Catálogo, carrito y pago', 'Catalog, cart and payment')],
-    ['credit', 'wallet', L('Crédito', 'Credit'), L('Compras a plazos (fase 2)', 'Installments (phase 2)')],
-    ['layaway', 'calendar', L('Apartado', 'Layaway'), L('Fase 2', 'Phase 2')],
+    ['credit', 'wallet', L('Crédito', 'Credit'), L('Compras a plazos con abonos', 'Installment purchases')],
+    ['layaway', 'calendar', L('Apartado', 'Layaway'), L('Apartar con abonos y entregar al liquidar', 'Hold with payments, hand over when paid')],
     ['comm', 'chat', L('Boca a boca', 'Word of mouth'), L('Recomendaciones y reseñas de clientes', 'Customer recommendations and reviews')],
   ];
 
@@ -99,6 +112,40 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
             <Toggle key={k} icon={ic} label={t} sub={sub} value={!!mods[k]} onChange={(v) => setMod(k, v)} />
           ))}
         </Row>
+      </Card>
+
+      <Card>
+        <H2>{L('Programa de puntos', 'Points program')}</H2>
+        <Toggle icon="gift" label={ly.on ? L('Puntos activos en esta tienda', 'Points active at this store') : L('Puntos apagados', 'Points off')}
+          sub={L('El cliente junta puntos con cada compra (en la app o en mostrador) y los cambia por premios.', 'Customers earn points with every purchase (app or counter) and redeem them for rewards.')}
+          value={!!ly.on} onChange={(v) => setLy({ on: v })} />
+        {ly.on ? (
+          <>
+            <Row style={{ alignItems: 'flex-start' }}>
+              <Field label={L('Puntos por compra', 'Points per purchase')} value={String(ly.perTx ?? '')} onChangeText={(v) => setLy({ perTx: num(v) as unknown as number })} keyboardType="number-pad" />
+              <Field label={L('Puntos extra por cada $100', 'Extra points per $100')} value={String(ly.per100 ?? '')} onChangeText={(v) => setLy({ per100: num(v) as unknown as number })} keyboardType="number-pad" />
+              <Field label={L('Regalo de cumpleaños (pts)', 'Birthday gift (pts)')} value={String(ly.bday ?? '')} onChangeText={(v) => setLy({ bday: num(v) as unknown as number })} keyboardType="number-pad" />
+              <Field label={L('Por participar en Boca a boca (pts/semana)', 'For posting in Word of mouth (pts/week)')} value={String(ly.postPts ?? '')} onChangeText={(v) => setLy({ postPts: num(v) as unknown as number })} keyboardType="number-pad" />
+            </Row>
+            <H2>{L('Premios', 'Rewards')}</H2>
+            {ly.rewards.map((r, i) => (
+              <View key={r.id} style={{ gap: 8, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: C.line }}>
+                <Row style={{ alignItems: 'flex-start' }}>
+                  <Field label={L('Nombre (español)', 'Name (Spanish)')} value={r.es} onChangeText={(v) => setRw(i, { es: v })} />
+                  <Field label={L('Nombre (inglés)', 'Name (English)')} value={r.en} onChangeText={(v) => setRw(i, { en: v })} />
+                  <Field label={L('Cuesta (pts)', 'Costs (pts)')} value={String(r.pts ?? '')} onChangeText={(v) => setRw(i, { pts: num(v) as unknown as number })} keyboardType="number-pad" />
+                </Row>
+                <Row style={{ alignItems: 'flex-end' }}>
+                  <Pills options={[{ v: 'fee' as const, label: L('Sin comisión', 'No fee') }, { v: 'off' as const, label: L('Descuento en USD', 'USD off') }]} value={r.type} onChange={(v) => setRw(i, { type: v })} />
+                  {r.type === 'off' ? <Field label={L('Descuento (USD)', 'Discount (USD)')} value={String(r.value ?? '')} onChangeText={(v) => setRw(i, { value: num(v) as unknown as number })} keyboardType="decimal-pad" style={{ maxWidth: 160 }} /> : null}
+                  <Btn small kind="ghost" title={L('Quitar', 'Remove')} onPress={() => setLy({ rewards: ly.rewards.filter((_, j) => j !== i) })} />
+                </Row>
+              </View>
+            ))}
+            <Btn small kind="ghost" icon="plus" title={L('Agregar premio', 'Add reward')} style={{ alignSelf: 'flex-start' }}
+              onPress={() => setLy({ rewards: [...ly.rewards, { id: 'r' + Date.now().toString(36), es: '', en: '', pts: 0, type: 'off', value: 5 }] })} />
+          </>
+        ) : null}
       </Card>
 
       <Card>

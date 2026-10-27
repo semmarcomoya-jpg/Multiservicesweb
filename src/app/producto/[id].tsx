@@ -5,7 +5,7 @@ import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen } from '@/components/ui';
 import { addToCart, cartCount, useCart } from '@/lib/cart';
-import { prodName, useFamilies, useStores } from '@/lib/data';
+import { modOn, prodName, useFamilies, useSettings, useStores } from '@/lib/data';
 import { money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
@@ -17,6 +17,8 @@ export default function ProductoDetalle() {
   const { L } = useLang();
   const { data: stores } = useStores();
   const { data: fams } = useFamilies();
+  const { data: cfg } = useSettings();
+  const credCfg = cfg?.credit || ({} as Partial<NonNullable<typeof cfg>['credit'] & object>);
   const cart = useCart();
   const [p, setP] = useState<Product | null>(null);
   const [vid, setVid] = useState<string | null>(null);
@@ -118,6 +120,16 @@ export default function ProductoDetalle() {
         {v ? <P small muted>{v.stock > 0 ? L(`Quedan ${v.stock}`, `${v.stock} left`) : L('Se agotó esta opción', 'This option is sold out')}</P> : null}
         {p.compat ? <Note kind="blue">{L('Compatible con: ', 'Works with: ') + p.compat}</Note> : null}
       </Card>
+      {v && v.stock > 0 && st && credCfg.on !== false && ((modOn(st, 'credit') && Number(v.price) >= Number(credCfg.minPrice || 0)) || (credCfg.layaway !== false && modOn(st, 'layaway'))) ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/plan', params: { variant: v.id } })}
+          style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: R.lg, borderWidth: 1.5, borderColor: C.gold, backgroundColor: C.goldSoft, opacity: pressed ? 0.85 : 1 })}>
+          <IcoBox n="wallet" size={40} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '900', color: C.ink }}>{L('Ver planes de pago', 'See payment plans')}</Text>
+            <P small muted>{L('Llévatelo en abonos semanales, quincenales o mensuales, o apártalo.', 'Take it home with weekly, biweekly or monthly payments, or use layaway.')}</P>
+          </View>
+        </Pressable>
+      ) : null}
       {ask ? (
         <Note kind="gold" icon="cart">
           {L('Tu carrito tiene productos de otra tienda. Cada compra es de una sola tienda.', 'Your cart has products from another store. Each purchase is from one store.')}

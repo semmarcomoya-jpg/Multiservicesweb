@@ -111,12 +111,16 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
     kind === 'tienda'
       ? [
           ['/tienda', L('Pedidos', 'Orders'), 'receipt'],
+          ['/tienda/mostrador', L('Mostrador', 'Counter'), 'qr'],
+          ['/tienda/creditos', L('Créditos', 'Credits'), 'wallet'],
           ['/tienda/productos', L('Productos', 'Products'), 'bag'],
           ['/tienda/comunidad', L('Boca a boca', 'Word of mouth'), 'chat'],
           ['/tienda/calificaciones', L('Calificaciones', 'Ratings'), 'star'],
           ['/tienda/historias', L('Historias', 'Stories'), 'camera'],
           ['/tienda/corte', L('Ventas y corte', 'Sales & close-out'), 'chart'],
           ['/tienda/ajustes', L('Mi tienda', 'My store'), 'store'],
+          ['/tienda/identificaciones', L('Identificaciones', 'IDs'), 'id'],
+          ['/tienda/clientes', L('Clientes', 'Customers'), 'users'],
           ['/tienda/bitacora', L('Bitácora', 'Activity log'), 'clock'],
         ]
       : [
@@ -127,7 +131,9 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           ['/admin/historias', L('Historias', 'Stories'), 'camera'],
           ['/admin/servicios', L('Servicios', 'Services'), 'tool'],
           ['/admin/tiendas', L('Tiendas', 'Stores'), 'store'],
-          ['/admin/cambio', L('Tipo de cambio y reglas', 'Rate & rules'), 'cash'],
+          ['/admin/cambio', L('Tipo de cambio', 'Exchange rate'), 'cash'],
+          ['/admin/reglas', L('Reglas', 'Rules'), 'shield'],
+          ['/admin/textos', L('Textos y ayuda', 'Texts & help'), 'doc'],
           ['/admin/calificaciones', L('Calificaciones', 'Ratings'), 'star'],
           ['/admin/comunidad', L('Boca a boca', 'Word of mouth'), 'chat'],
           ['/admin/empleados', L('Empleados', 'Staff'), 'users'],

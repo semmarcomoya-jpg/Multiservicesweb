@@ -130,7 +130,7 @@ export default function Enviar() {
             {money(fee)}
           </P>
         </View>
-        <P small muted>{L(`Puedes enviar hasta ${money(limit)} por envío.`, `You can send up to ${money(limit)} per transfer.`)}{profile?.id_status !== 'verificada' ? L(' Para enviar más, muestra tu identificación en la tienda.', ' To send more, show your ID at the store.') : ''}</P>
+        <P small muted>{L(`Puedes enviar hasta ${money(limit)} por envío.`, `You can send up to ${money(limit)} per transfer.`)}{profile?.id_status !== 'verificada' ? L(' Para enviar más, ', ' To send more, ') : ''}{profile?.id_status !== 'verificada' ? <Text onPress={() => router.push('/identidad')} style={{ color: C.blue, fontWeight: '800', textDecorationLine: 'underline' }}>{L('verifica tu identidad', 'verify your identity')}</Text> : null}</P>
       </Card>
 
       <Card>

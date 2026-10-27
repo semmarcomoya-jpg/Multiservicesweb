@@ -5,6 +5,7 @@ import { Text } from '@/components/Text';
 
 import { BirthdayField } from '@/components/BirthdayField';
 import { InstallCard } from '@/components/InstallCard';
+import { resetTour } from '@/components/Tour';
 import { Avatar, Btn, Card, Field, H1, Label, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
 import { pickImage, uploadImage } from '@/lib/upload';
 import { useAuth } from '@/lib/auth';
@@ -108,7 +109,7 @@ export default function Perfil() {
   };
 
   const idTxt = {
-    ninguna: L('Sin verificar. Para enviar más, muestra tu identificación en la tienda.', 'Not verified. To send more, show your ID at the store.'),
+    ninguna: L('Sin verificar. Para enviar más, sube tu identificación o muéstrala en la tienda.', 'Not verified. To send more, upload your ID or show it at the store.'),
     pendiente: L('En revisión', 'Under review'),
     verificada: L('Identificación verificada', 'ID verified'),
     rechazada: L('No se pudo verificar. Pasa a la tienda.', 'Could not verify. Please visit the store.'),
@@ -169,12 +170,19 @@ export default function Perfil() {
       <Card>
         <Label>{L('Identificación', 'ID')}</Label>
         <P muted>{idTxt}</P>
+        {profile.id_status !== 'verificada' ? <Btn kind="ghost" icon="id" title={profile.id_status === 'pendiente' ? L('Ver estado', 'See status') : L('Verificar mi identidad', 'Verify my identity')} onPress={() => router.push('/identidad')} /> : null}
       </Card>
 
       <Card>
+        <Btn kind="ghost" icon="qr" title={L('Mi tarjeta', 'My card')} onPress={() => router.push('/tarjeta')} />
+        <Btn kind="ghost" icon="star" title={L('Mis puntos', 'My points')} onPress={() => router.push('/puntos')} />
+        <Btn kind="ghost" icon="wallet" title={L('Mi crédito y apartados', 'My credit & layaways')} onPress={() => router.push('/credito')} />
+        <Btn kind="ghost" icon="chart" title={L('Mis cuentas', 'My accounts')} onPress={() => router.push('/cuentas')} />
         <Btn kind="ghost" icon="receipt" title={L('Mis pedidos', 'My orders')} onPress={() => router.push('/pedidos')} />
         <Btn kind="ghost" icon="users" title={L('Mis personas', 'My people')} onPress={() => router.push('/beneficiarios')} />
         <Btn kind="ghost" icon="chat" title={L('Boca a boca', 'Word of mouth')} onPress={() => router.push('/comunidad')} />
+        <Btn kind="ghost" icon="doc" title={L('Ayuda y términos', 'Help & terms')} onPress={() => router.push('/ayuda')} />
+        <Btn kind="ghost" icon="star" title={L('Ver la guía de bienvenida', 'See the welcome guide')} onPress={() => { resetTour(); router.push({ pathname: '/inicio', params: { tour: '1' } }); }} />
         <Btn
           kind="danger"
           icon="x"

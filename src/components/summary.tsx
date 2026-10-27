@@ -144,9 +144,9 @@ function Desglose({ orders }: { orders: Order[] }) {
         prod.set(k, e);
       });
     } else {
-      const k = o.kind === 'send' ? 'send' : o.service_id || 'otro';
-      const label = o.kind === 'send' ? L('Envíos a México', 'Money to Mexico') : nm(o.service_name);
-      const e = svc.get(k) || { label, icon: o.kind === 'send' ? 'send' : o.service_name?.icon || 'tool', n: 0, total: 0 };
+      const k = o.kind === 'send' ? 'send' : o.kind === 'abono' ? 'abono' : o.service_id || 'otro';
+      const label = o.kind === 'send' ? L('Envíos a México', 'Money to Mexico') : o.kind === 'abono' ? L('Abonos de crédito y apartado', 'Credit & layaway payments') : nm(o.service_name);
+      const e = svc.get(k) || { label, icon: o.kind === 'send' ? 'send' : o.kind === 'abono' ? 'wallet' : o.service_name?.icon || 'tool', n: 0, total: 0 };
       e.n += 1;
       e.total += Number(o.total || 0);
       svc.set(k, e);

@@ -3,16 +3,19 @@ import React, { useState } from 'react';
 
 import { BackBar, Btn, Card, Field, H1, Note, Pills, Row, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { useSettings } from '@/lib/data';
 import { digits } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 
 const BANCOS = ['BBVA', 'Banorte', 'Santander', 'Banamex', 'Banco Azteca', 'Coppel', 'HSBC', 'Bancoppel', 'Otro'];
-const REDES = ['Elektra', 'Coppel', 'OXXO', 'Walmart', 'Soriana', 'Telecomm'];
+const REDES_DEF = ['Elektra', 'Coppel', 'Banco Azteca', 'Bodega Aurrera', 'Walmart', 'OXXO'];
 
 export default function NuevoBeneficiario() {
   const { L } = useLang();
   const { session } = useAuth();
+  const { data: cfg } = useSettings();
+  const REDES = cfg?.redes ? cfg.redes.split(',').map((x) => x.trim()).filter(Boolean) : REDES_DEF;
   const [f, setF] = useState({ nombre: '', apellidos: '', parentesco: '', telefono: '', estado: '', ciudad: '', metodo: 'cuenta' as 'cuenta' | 'efectivo', banco: '', cuenta: '', red: '' });
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);

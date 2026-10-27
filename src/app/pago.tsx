@@ -1,10 +1,11 @@
 import { Redirect, router } from 'expo-router';
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, Field, H1, IcoBox, Label, Loading, Note, P, Row, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { loyaltyOf, rewardDiscount, useMyPoints } from '@/lib/points';
 import { useStores } from '@/lib/data';
 import { clearCart } from '@/lib/cart';
 import { setDraft, useDraft } from '@/lib/draft';
@@ -15,12 +16,14 @@ import { C, R } from '@/lib/theme';
 import type { Order } from '@/lib/types';
 
 export default function Pago() {
-  const { L, nm } = useLang();
+  const { L, nm, lang } = useLang();
   const { session, profile } = useAuth();
   const d = useDraft();
   const { data: stores } = useStores();
   const [zelleName, setZelleName] = useState(profile ? `${profile.nombre} ${profile.apellidos}`.trim() : '');
   const [busy, setBusy] = useState(false);
+  const [reward, setReward] = useState('');
+  const { balance } = useMyPoints(session?.user.id);
   const [err, setErr] = useState('');
 
   if (!d) return <Redirect href="/inicio" />;
@@ -28,7 +31,15 @@ export default function Pago() {
   const st = stores.find((x) => x.id === d.storeId);
   if (!st) return <Loading />;
 
-  const total = d.kind === 'send' ? d.monto + d.fee : d.kind === 'shop' ? d.subtotal + d.fee : d.base + d.fee;
+  const gross = d.kind === 'send' ? d.monto + d.fee : d.kind === 'shop' ? d.subtotal + d.fee : d.base + d.fee;
+  // Puntos: lo que ganas con este pedido y los premios que ya puedes usar
+  const ly = loyaltyOf(st);
+  const bal = balance(st.id);
+  const usable = (ly?.rewards || []).filter((r) => bal >= r.pts && rewardDiscount(r, gross, d.fee) > 0);
+  const sel = usable.find((r) => r.id === reward);
+  const discount = sel ? rewardDiscount(sel, gross, d.fee) : 0;
+  const total = gross - discount;
+  const willEarn = ly ? ly.ptsFor(d.kind === 'send' ? d.monto : d.kind === 'shop' ? d.subtotal : d.base) : 0;
 
   const submit = async () => {
     if (!session) return;
@@ -61,6 +72,10 @@ export default function Pago() {
       if (error) throw error;
       if (d.kind === 'shop') clearCart();
       setDraft(null);
+      if (sel) {
+        const { error: rErr } = await supabase.rpc('apply_reward', { p_order: data.id, p_reward: sel.id });
+        if (rErr) setErr(errMsg(rErr));
+      }
       router.replace({ pathname: '/pedido/[id]', params: { id: data.id, nuevo: '1' } });
     } catch (e) {
       setErr(errMsg(e));
@@ -104,11 +119,34 @@ export default function Pago() {
           <Row style={{ justifyContent: 'space-between' }}><P>{L('Servicio', 'Service')}</P><P>{money(d.base)}</P></Row>
         )}
         {d.fee > 0 ? <Row style={{ justifyContent: 'space-between' }}><P>{L('Comisión y cargos', 'Fees')}</P><P>{money(d.fee)}</P></Row> : null}
+        {discount > 0 ? <Row style={{ justifyContent: 'space-between' }}><P style={{ color: '#1E5B35' }}>{L('Tu premio', 'Your reward')}</P><P style={{ color: '#1E5B35', fontWeight: '900' }}>−{money(discount)}</P></Row> : null}
         <Row style={{ justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: C.line, paddingTop: 10 }}>
           <Text style={{ fontWeight: '900', fontSize: 17, color: C.ink }}>{L('Total a pagar', 'Total to pay')}</Text>
           <Text style={{ fontWeight: '900', fontSize: 22, color: C.ink }}>{money(total)}</Text>
         </Row>
       </Card>
+
+      {ly ? (
+        usable.length ? (
+          <Card>
+            <Label>{L('¿Usas tus puntos?', 'Use your points?')}</Label>
+            <P small muted>{L(`Tienes ${bal} pts en ${st.nombre.replace('Castillo · ', '')}.`, `You have ${bal} pts at ${st.nombre.replace('Castillo · ', '')}.`)}</P>
+            {[...usable.map((r) => ({ id: r.id, t: (lang === 'es' ? r.es : r.en) || r.es, s: `${r.pts} pts · −${money(rewardDiscount(r, gross, d.fee))}` })), { id: '', t: L('No usar puntos esta vez', 'Not this time'), s: '' }].map((o) => (
+              <Pressable key={o.id || 'none'} accessibilityRole="radio" accessibilityState={{ checked: reward === o.id }} onPress={() => setReward(o.id)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: R.md, borderWidth: 1.5, borderColor: reward === o.id ? C.brown : C.line, backgroundColor: reward === o.id ? C.tint : C.card }}>
+                <View style={{ width: 20, height: 20, borderRadius: 10, borderWidth: reward === o.id ? 6 : 2, borderColor: reward === o.id ? C.brown : C.line2 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: '800', color: C.ink }}>{o.t}</Text>
+                  {o.s ? <P small muted>{o.s}</P> : null}
+                </View>
+              </Pressable>
+            ))}
+            {willEarn ? <P small style={{ color: C.goldInk, fontWeight: '800' }}>{L(`Con este pedido ganas +${willEarn} pts`, `This order earns you +${willEarn} pts`)}</P> : null}
+          </Card>
+        ) : willEarn ? (
+          <Note kind="gold" icon="star">{L(`Con este pedido ganas +${willEarn} pts`, `This order earns you +${willEarn} pts`) + (ly.rewards.find((r) => r.pts > bal) ? L(' · te faltan ', ' · ') + ((ly.rewards.find((r) => r.pts > bal)?.pts || 0) - bal) + L(' para tu próximo premio', ' pts to your next reward') : '')}</Note>
+        ) : null
+      ) : null}
 
       <Card>
         <Label>{L('¿Cómo vas a pagar?', 'How will you pay?')}</Label>
