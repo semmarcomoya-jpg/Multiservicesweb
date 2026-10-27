@@ -143,14 +143,14 @@ export default function TiendaPedido() {
       <Card>
         <H2>1 · {L('Verifica el pago en tu banco', 'Verify the payment in your bank')}</H2>
         <Row style={{ alignItems: 'flex-start' }}>
-          {captura ? <Image source={{ uri: captura }} style={{ width: 180, height: 260, borderRadius: R.md, backgroundColor: C.cream }} resizeMode="contain" /> : null}
+          {captura ? <Image source={{ uri: captura }} style={{ width: 180, height: 260, borderRadius: R.md, backgroundColor: C.cream }} resizeMode="contain" /> : o.status === 'verificar' ? <Note kind="gold" icon="clock">{L('El cliente no subió captura. Búscalo en tu banco por el monto y la nota.', 'No screenshot from the customer. Look it up in your bank by amount and memo.')}</Note> : null}
           <View style={{ flex: 1, minWidth: 220, gap: 8 }}>
             {o.status === 'verificar' ? (
               <>
                 {([
                   ['monto', L('Llegó el monto exacto: ', 'The exact amount arrived: ') + money(o.total)],
                   ['nombre', L('El remitente es ', 'The sender is ') + o.zelle_nombre],
-                  ['nota', L('La nota dice ', 'The memo says ') + o.cliente_code],
+                  ['nota', L('La nota dice ', 'The memo says ') + `"Pedido ${o.folio}"` + (o.cliente_code ? L(' (o el código ', ' (or the code ') + o.cliente_code + ')' : '')],
                 ] as const).map(([k, label]) => (
                   <Pressable key={k} accessibilityRole="checkbox" accessibilityState={{ checked: checks[k] }} onPress={() => setChecks((p) => ({ ...p, [k]: !p[k] }))}
                     style={{ flexDirection: 'row', gap: 10, alignItems: 'center', padding: 12, borderRadius: R.md, backgroundColor: checks[k] ? C.blueSoft : C.cream }}>
@@ -161,7 +161,7 @@ export default function TiendaPedido() {
                   </Pressable>
                 ))}
                 <Row>
-                  <Btn title={L('Confirmar pago recibido', 'Confirm payment received')} disabled={!o.attended_by || !(checks.monto && checks.nombre && checks.nota)} loading={busy === 'proceso'} onPress={() => advance('proceso')} />
+                  <Btn title={L('Pago recibido', 'Payment received')} icon="check" disabled={!o.attended_by || !(checks.monto && checks.nombre && checks.nota)} loading={busy === 'proceso'} onPress={() => advance('proceso')} />
                 </Row>
                 {!o.attended_by ? <P small muted>{L('Primero escribe tu clave de empleado.', 'Enter your employee code first.')}</P> : null}
               </>

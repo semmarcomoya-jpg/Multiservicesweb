@@ -94,7 +94,9 @@ export const cachedStories = () => cached;
 export async function fetchStories(): Promise<Story[]> {
   const { data, error } = await supabase.from('stories').select('*').order('sort_order').order('created_at', { ascending: false });
   if (error) return [];
-  cached = (data as Story[]) ?? [];
+  // El personal también recibe las vencidas (para administrarlas); en Inicio solo van las vigentes
+  const now = Date.now();
+  cached = ((data as Story[]) ?? []).filter((s) => new Date(s.starts_at).getTime() <= now + 5 * 60e3 && (!s.expires_at || new Date(s.expires_at).getTime() > now));
   return cached;
 }
 

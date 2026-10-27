@@ -4,7 +4,7 @@ import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { useInShell } from '@/components/StaffShell';
-import { Icon, LangToggle, Row } from '@/components/ui';
+import { Icon, LangToggle, Row, ChipScroll } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
@@ -157,19 +157,20 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
             </View>
           </Row>
           {kind === 'tienda' && profile?.role === 'admin' && stores ? (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+            <ChipScroll active={store?.id}>
               {stores.map((st) => (
                 <Pressable key={st.id} accessibilityRole="radio" accessibilityState={{ checked: store?.id === st.id }} onPress={() => setAdminStore(st.id)}
                   style={{ paddingHorizontal: 12, minHeight: 34, justifyContent: 'center', borderRadius: R.pill, backgroundColor: store?.id === st.id ? C.gold : 'rgba(255,255,255,0.12)' }}>
                   <Text style={{ fontWeight: '800', color: store?.id === st.id ? C.ink : '#fff' }}>{st.nombre.replace('Castillo · ', '') + (st.abierta === false ? ' · ' + L('cerrada', 'closed') : '')}</Text>
                 </Pressable>
               ))}
-            </ScrollView>
+            </ChipScroll>
           ) : null}
           {kind === 'tienda' && store ? <OpenSwitch store={store} onChanged={onStoreChange} /> : null}
         </View>
         {/* Pestañas en una sola fila que se desliza (cómodo en celular) */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: '#F6E2D0' }} contentContainerStyle={{ gap: 4, padding: 6 }}>
+        <View style={{ backgroundColor: '#F6E2D0', padding: 6 }}>
+        <ChipScroll active={path}>
           {links.map(([href, label, ic]) => {
             const on = path === href;
             return (
@@ -180,7 +181,8 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
               </Pressable>
             );
           })}
-        </ScrollView>
+        </ChipScroll>
+        </View>
       </View>
     </View>
   );

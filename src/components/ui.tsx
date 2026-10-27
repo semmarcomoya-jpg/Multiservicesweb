@@ -4,6 +4,7 @@ import {
   ActivityIndicator,
   Image,
   KeyboardTypeOptions,
+  Platform,
   Pressable,
   ScrollView,
   StyleProp,
@@ -288,6 +289,43 @@ export function Field({
   );
 }
 
+/** Filtros y pestañas como en Viva: una sola fila que se recorre a la derecha;
+ *  la opción elegida se queda a la vista. En compu, la rueda del mouse también la recorre. */
+export function ChipScroll({ children, active, style }: { children: React.ReactNode; active?: string | number | null; style?: StyleProp<ViewStyle> }) {
+  const ref = React.useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const xs = React.useRef<Record<string, number>>({});
+  React.useEffect(() => {
+    const x = active == null ? undefined : xs.current[String(active)];
+    if (x !== undefined) ref.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
+  }, [active]);
+  React.useEffect(() => {
+    if (Platform.OS !== 'web') return undefined;
+    const node = (ref.current as unknown as { getScrollableNode?: () => HTMLElement } | null)?.getScrollableNode?.();
+    if (!node) return undefined;
+    const onWheel = (e: WheelEvent) => {
+      if (node.scrollWidth <= node.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      const before = node.scrollLeft;
+      node.scrollLeft += e.deltaY;
+      if (node.scrollLeft !== before) e.preventDefault();
+    };
+    node.addEventListener('wheel', onWheel, { passive: false });
+    return () => node.removeEventListener('wheel', onWheel);
+  }, []);
+  const kids = React.Children.toArray(children);
+  return (
+    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={[{ flexGrow: 0 }, style]} contentContainerStyle={{ gap: 8, paddingRight: 16, alignItems: 'center' }}>
+      {kids.map((k) => {
+        const key = React.isValidElement(k) && k.key != null ? String(k.key).replace(/^\.\$/, '') : '';
+        return (
+          <View key={key} onLayout={(e) => { xs.current[key] = e.nativeEvent.layout.x; }}>
+            {k}
+          </View>
+        );
+      })}
+    </ScrollView>
+  );
+}
+
 export function Pills<T extends string | number>({
   options,
   value,
@@ -302,7 +340,7 @@ export function Pills<T extends string | number>({
   return (
     <View style={{ gap: 6 }}>
       {label ? <Label>{label}</Label> : null}
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
+      <ChipScroll active={value == null ? null : String(value)}>
         {options.map((o) => {
           const on = o.v === value;
           return (
@@ -312,14 +350,14 @@ export function Pills<T extends string | number>({
               accessibilityState={{ checked: on, disabled: !!o.disabled }}
               disabled={o.disabled}
               onPress={() => onChange(o.v)}
-              style={[s.pill, on && s.pillOn, o.disabled && { opacity: 0.45 }]}
+              style={({ pressed }) => [s.pill, on && s.pillOn, o.disabled && { opacity: 0.45 }, pressed && { opacity: 0.8 }]}
             >
-              {o.icon ? <Icon n={o.icon} size={16} color={on ? C.brown : C.softInk} /> : null}
-              <Text style={[s.pillTxt, on && { fontWeight: '800' }]}>{o.label}</Text>
+              {o.icon ? <Icon n={o.icon} size={16} color={on ? '#fff' : C.softInk} /> : null}
+              <Text style={[s.pillTxt, on && { fontWeight: '800', color: '#fff' }]}>{o.label}</Text>
             </Pressable>
           );
         })}
-      </View>
+      </ChipScroll>
     </View>
   );
 }
@@ -360,7 +398,7 @@ export function StatusChip({ status }: { status: string }) {
   const { L } = useLang();
   const c = STATUS_COLORS[status] || STATUS_COLORS.verificar;
   const label =
-    { verificar: L('Pago por verificar', 'Checking payment'), proceso: L('En proceso', 'In progress'), completado: L('Completado', 'Done'), rechazado: L('Rechazado', 'Rejected') }[status] || status;
+    { verificar: L('Pago por confirmar', 'Payment pending'), proceso: L('En proceso', 'In progress'), completado: L('Completado', 'Done'), rechazado: L('Rechazado', 'Rejected') }[status] || status;
   return (
     <View style={[s.chip, { backgroundColor: c.bg }]}>
       <Text style={{ color: c.fg, fontWeight: '800', fontSize: 12 }}>{label}</Text>
@@ -419,8 +457,8 @@ export const s = StyleSheet.create({
   input: { minHeight: 50, borderRadius: 14, borderWidth: 1, borderColor: C.line2, backgroundColor: C.card, paddingHorizontal: 14, fontSize: 16, color: C.ink, fontWeight: '600' },
   err: { color: C.red, fontWeight: '700', fontSize: 13 },
   pill: { minHeight: 42, paddingHorizontal: 14, borderRadius: R.pill, borderWidth: 1, borderColor: C.line2, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pillOn: { borderWidth: 2, borderColor: C.brown, backgroundColor: C.goldSoft },
-  pillTxt: { fontWeight: '700', color: C.ink, fontSize: 14 },
+  pillOn: { borderColor: C.brown, backgroundColor: C.brown },
+  pillTxt: { fontWeight: '700', color: C.ink, fontSize: 14, whiteSpace: 'nowrap' } as TextStyle,
   toggle: { flexGrow: 1, minWidth: 240, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: R.md, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: C.cream },
   sw: { width: 46, height: 26, borderRadius: 13, backgroundColor: '#D9C8B8', padding: 3 },
   swDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },

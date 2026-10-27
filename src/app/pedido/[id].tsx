@@ -4,6 +4,9 @@ import { Image, View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { orderIcon, useOrderText } from '@/components/orders';
+import { PayZelle } from '@/components/PayZelle';
+import { useAuth } from '@/lib/auth';
+import { useStores } from '@/lib/data';
 import { BackBar, Btn, Card, H1, IcoBox, Label, Loading, Note, P, Row, Screen, StatusChip } from '@/components/ui';
 import { money, mxn } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
@@ -19,6 +22,9 @@ export default function PedidoCliente() {
   const [o, setO] = useState<Order | null>(null);
   const [ev, setEv] = useState<OrderEvent[]>([]);
   const [ticket, setTicket] = useState<string | null>(null);
+  const [captura, setCaptura] = useState<string | null>(null);
+  const { session } = useAuth();
+  const { data: stores } = useStores();
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('orders').select('*').eq('id', id).single();
@@ -26,6 +32,7 @@ export default function PedidoCliente() {
     const { data: e } = await supabase.from('order_events').select('*').eq('order_id', id).order('id');
     setEv((e as OrderEvent[]) ?? []);
     if (data?.ticket_path) setTicket(await signedUrl('comprobantes', data.ticket_path));
+    setCaptura(data?.captura_path ? await signedUrl('capturas', data.captura_path) : null);
   }, [id]);
 
   useEffect(() => {
@@ -43,7 +50,7 @@ export default function PedidoCliente() {
   if (!o) return <Loading />;
   const mode = o.entrega?.mode;
   const steps = [
-    ['verificar', L('Recibimos tu pedido', 'We got your order')],
+    ['verificar', L('Pedido hecho · pago por confirmar', 'Order placed · payment pending')],
     ['proceso', L('Pago confirmado, lo estamos haciendo', 'Payment confirmed, working on it')],
     ['completado', L('¡Listo! Ya tienes tu comprobante', 'Done! Your receipt is ready')],
   ];
@@ -52,7 +59,7 @@ export default function PedidoCliente() {
   return (
     <Screen wall="send">
       <BackBar title={o.folio} />
-      {nuevo ? <Note kind="blue" icon="check">{L('¡Pedido enviado! Te avisamos aquí cuando la tienda confirme tu pago.', "Order sent! We'll update you here when the store confirms your payment.")}</Note> : null}
+      {nuevo && o.status === 'verificar' ? <Note kind="blue" icon="check">{L('¡Listo, tu pedido ' + o.folio + ' está hecho! Ahora mándale el Zelle a la tienda.', 'Your order ' + o.folio + ' is placed! Now send the Zelle to the store.')}</Note> : null}
       <Row gap={12} style={{ flexWrap: 'nowrap' }}>
         <IcoBox n={orderIcon(o)} size={52} />
         <View style={{ flex: 1 }}>
@@ -61,6 +68,8 @@ export default function PedidoCliente() {
         </View>
         <StatusChip status={o.status} />
       </Row>
+
+      {session ? <PayZelle order={o} store={(stores || []).find((s) => s.id === o.store_id)} userId={session.user.id} captura={captura} onChanged={load} /> : null}
 
       {o.attended_name ? (
         <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>

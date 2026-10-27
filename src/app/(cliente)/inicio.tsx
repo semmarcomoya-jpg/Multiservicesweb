@@ -1,5 +1,5 @@
-import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -38,9 +38,12 @@ export default function Inicio() {
   // Mientras se decide, Inicio queda tapado para que no parpadee; si tardan más de 3 s, se muestra igual.
   const [stories, setStories] = useState<Story[] | null>(null);
   const [covering, setCovering] = useState(() => !autoOpenDecided());
-  useEffect(() => {
-    void fetchStories().then(setStories);
-  }, []);
+  // Se vuelven a leer cada vez que regresas a Inicio (así aparecen las recién subidas)
+  useFocusEffect(
+    useCallback(() => {
+      void fetchStories().then(setStories);
+    }, []),
+  );
   useEffect(() => {
     if (!covering) return undefined;
     const t = setTimeout(() => setCovering(false), 3000);
@@ -77,7 +80,7 @@ export default function Inicio() {
   const PROMO_IC = { shop: 'phone', send: 'send', pts: 'star' } as const;
   const fromAdmin = (adminPromos || []).map((p) => ({ bg: PROMO_BG[p.theme] || C.brown, icon: PROMO_IC[p.theme] || 'star', t: lang === 'es' ? p.title_es : p.title_en || p.title_es, s: lang === 'es' ? p.sub_es : p.sub_en || p.sub_es, go: PROMO_GO[p.go] || '', img: p.img_url }));
   const computed = [
-    any('shop') && minPhone.length && { bg: C.brown, icon: 'phone', t: L(`Celulares desde ${money(Math.min(...minPhone))}`, `Phones from ${money(Math.min(...minPhone))}`), s: L('Recoge hoy en tu tienda', 'Pick up today at your store'), go: '/productos' },
+    any('shop') && minPhone.length && { bg: C.brown, icon: 'phone', t: L(`Celulares desde ${money(Math.min(...minPhone))}`, `Phones from ${money(Math.min(...minPhone))}`), s: L('Recoge hoy en tu tienda', 'Pick up today at your store'), go: '/productos?fam=cel' },
     any('send') && { bg: C.blue, icon: 'send', t: L(`Hoy tu dólar vale ${rate.toFixed(2)}`, `Today your dollar is worth ${rate.toFixed(2)}`), s: L('Envía a México en minutos', 'Send to Mexico in minutes'), go: '/enviar' },
     any('svc') && { bg: C.goldInk, icon: 'bolt', t: L('Paga tus recibos sin salir', 'Pay your bills from home'), s: L('Luz, agua, recargas y más', 'Power, water, top-ups and more'), go: '/servicios' },
   ].filter(Boolean) as { bg: string; icon: string; t: string; s: string; go: string; img?: string | null }[];
@@ -86,8 +89,8 @@ export default function Inicio() {
 
   const qa = [
     (any('svc') || any('send')) && { ic: 'tool', tone: 'gold', label: L('Servicios', 'Services'), go: '/servicios' },
-    any('shop') && { ic: 'phone', tone: 'blue', label: L('Celulares', 'Phones'), go: '/productos' },
-    any('shop') && { ic: 'bag', tone: 'gold', label: L('Tienda', 'Shop'), go: '/productos' },
+    any('shop') && { ic: 'phone', tone: 'blue', label: L('Celulares', 'Phones'), go: '/productos?fam=cel' },
+    any('shop') && { ic: 'bag', tone: 'gold', label: L('Tienda', 'Shop'), go: '/productos?fam=all' },
     any('send') && { ic: 'send', tone: 'blue', label: L('Enviar dinero', 'Send money'), go: '/enviar' },
     { ic: 'users', tone: 'gold', label: L('Beneficiarios', 'Recipients'), go: '/beneficiarios' },
     { ic: 'receipt', tone: 'blue', label: L('Mis pedidos', 'My orders'), go: '/pedidos' },
@@ -142,7 +145,9 @@ export default function Inicio() {
               ) : null}
             </View>
 
-            {stories && stories.length ? <StoriesRow stories={stories} /> : null}
+            {stories && (stories.length || (profile && profile.role !== 'cliente')) ? (
+              <StoriesRow stories={stories} addHref={profile?.role === 'admin' ? '/admin/historias' : profile?.role === 'tienda' ? '/tienda/historias' : undefined} />
+            ) : null}
 
             {bday ? (
               <Note kind="gold" icon="gift">

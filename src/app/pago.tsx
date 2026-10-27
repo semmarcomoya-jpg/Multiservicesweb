@@ -1,7 +1,6 @@
-import * as Clipboard from 'expo-clipboard';
 import { Redirect, router } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, Field, H1, IcoBox, Label, Loading, Note, P, Row, Screen } from '@/components/ui';
@@ -14,18 +13,15 @@ import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
 import type { Order } from '@/lib/types';
-import { pickImage, uploadImage, type Picked } from '@/lib/upload';
 
 export default function Pago() {
   const { L, nm } = useLang();
   const { session, profile } = useAuth();
   const d = useDraft();
   const { data: stores } = useStores();
-  const [shot, setShot] = useState<Picked | null>(null);
   const [zelleName, setZelleName] = useState(profile ? `${profile.nombre} ${profile.apellidos}`.trim() : '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const [copied, setCopied] = useState('');
 
   if (!d) return <Redirect href="/inicio" />;
   if (!stores) return <Loading />;
@@ -33,20 +29,13 @@ export default function Pago() {
   if (!st) return <Loading />;
 
   const total = d.kind === 'send' ? d.monto + d.fee : d.kind === 'shop' ? d.subtotal + d.fee : d.base + d.fee;
-  const memo = profile?.member_code || '';
-
-  const copy = async (label: string, txt: string) => {
-    await Clipboard.setStringAsync(txt);
-    setCopied(label);
-    setTimeout(() => setCopied(''), 1800);
-  };
 
   const submit = async () => {
-    if (!session || !shot) return;
+    if (!session) return;
     setErr('');
     setBusy(true);
     try {
-      const path = await uploadImage('capturas', session.user.id, shot);
+      const path = null;
       const rpc =
         d.kind === 'send'
           ? supabase.rpc('create_send_order', { p_store: d.storeId, p_beneficiary: d.beneficiaryId, p_monto: d.monto, p_captura: path, p_zelle_nombre: zelleName.trim() })
@@ -80,20 +69,10 @@ export default function Pago() {
     }
   };
 
-  const CopyRow = ({ label, value }: { label: string; value: string }) => (
-    <Pressable accessibilityRole="button" accessibilityHint={L('Toca para copiar', 'Tap to copy')} onPress={() => copy(label, value)} style={{ backgroundColor: C.cream, borderRadius: R.md, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <View style={{ flex: 1 }}>
-        <P small muted>{label}</P>
-        <Text style={{ fontWeight: '900', color: C.ink, fontSize: 17 }}>{value}</Text>
-      </View>
-      <Text style={{ fontWeight: '800', color: C.brown }}>{copied === label ? L('¡Copiado!', 'Copied!') : L('Copiar', 'Copy')}</Text>
-    </Pressable>
-  );
-
   return (
     <Screen wall="send">
       <BackBar steps={[d.kind === 'send' ? L('Envío', 'Transfer') : d.kind === 'shop' ? L('Carrito', 'Cart') : L('Servicio', 'Service'), L('Pago', 'Payment'), L('Listo', 'Done')]} cur={1} />
-      <H1>{L('Paga y sube tu captura', 'Pay and upload your screenshot')}</H1>
+      <H1>{L('Revisa y haz tu pedido', 'Review and place your order')}</H1>
 
       <Card>
         <Row gap={12} style={{ flexWrap: 'nowrap' }}>
@@ -132,29 +111,21 @@ export default function Pago() {
       </Card>
 
       <Card>
-        <Label>1 · {L('Envía el pago por Zelle desde la app de tu banco', 'Send the payment with Zelle from your bank app')}</Label>
-        <CopyRow label={L('Zelle de la tienda', 'Store Zelle')} value={st.zelle_dato || '—'} />
-        <CopyRow label={L('Monto exacto', 'Exact amount')} value={total.toFixed(2)} />
-        <CopyRow label={L('Escribe en la nota', 'Write in the memo')} value={memo} />
-        <P small muted>{L(`En Zelle debe aparecer como "${st.zelle_nombre}".`, `In Zelle it should show as "${st.zelle_nombre}".`)}</P>
-      </Card>
-
-      <Card>
-        <Label>2 · {L('Sube la captura de tu pago', 'Upload your payment screenshot')}</Label>
-        <Pressable
-          accessibilityRole="button"
-          onPress={async () => setShot((await pickImage()) || shot)}
-          style={{ borderWidth: 1.5, borderStyle: 'dashed', borderColor: C.line2, borderRadius: R.md, padding: 14, flexDirection: 'row', alignItems: 'center', gap: 12 }}
-        >
-          {shot ? <Image source={{ uri: shot.uri }} style={{ width: 72, height: 96, borderRadius: 10 }} /> : <IcoBox n="upload" size={48} />}
-          <Text style={{ fontWeight: '800', color: C.ink, flex: 1 }}>{shot ? L('Cambiar captura', 'Change screenshot') : L('Elegir captura', 'Choose screenshot')}</Text>
-        </Pressable>
-        <Field label={L('Nombre con el que pagaste en Zelle', 'Name you paid with on Zelle')} value={zelleName} onChangeText={setZelleName} hint={L('Así la tienda encuentra tu pago más rápido.', 'This helps the store find your payment faster.')} />
+        <Label>{L('¿Cómo vas a pagar?', 'How will you pay?')}</Label>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: R.md, borderWidth: 2, borderColor: C.brown, backgroundColor: C.cream }}>
+          <IcoBox n="phone" size={40} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '900', color: C.ink, fontSize: 16 }}>Zelle</Text>
+            <P small muted>{L('Al hacer tu pedido te damos el correo o teléfono de Zelle de la tienda, el monto exacto y la nota.', "When you place your order we show the store's Zelle email or phone, the exact amount and the memo.")}</P>
+          </View>
+          <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 6, borderColor: C.brown, backgroundColor: '#fff' }} />
+        </View>
+        <Field label={L('Nombre con el que vas a pagar en Zelle', 'Name you will pay with on Zelle')} value={zelleName} onChangeText={setZelleName} hint={L(`Así ${st.nombre} encuentra tu pago más rápido.`, `This helps ${st.nombre} find your payment faster.`)} />
       </Card>
 
       {err ? <Note kind="red">{err}</Note> : null}
-      <Btn title={L('Ya pagué, enviar a la tienda', 'I paid, send to the store')} onPress={submit} loading={busy} disabled={!shot} icon="check" />
-      <Note kind="blue" icon="shield">{L('La tienda revisa tu pago, hace tu trámite y te manda el comprobante aquí mismo.', 'The store checks your payment, does your service and sends the receipt right here.')}</Note>
+      <Btn title={L(`Hacer pedido · ${money(total)}`, `Place order · ${money(total)}`)} onPress={submit} loading={busy} icon="check" />
+      <Note kind="blue" icon="shield">{L('La tienda confirma tu pago, hace tu trámite y te manda el comprobante aquí mismo.', 'The store confirms your payment, does your service and sends the receipt right here.')}</Note>
     </Screen>
   );
 }

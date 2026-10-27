@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { Text, TextInput } from '@/components/Text';
@@ -22,6 +22,24 @@ export default function Productos() {
   const [fam, setFam] = useState('all');
   const [brand, setBrand] = useState('all');
   const [q, setQ] = useState('');
+  // Desde Inicio: "Celulares" abre con su filtro y "Tienda" con todo
+  const params = useLocalSearchParams<{ fam?: string }>();
+  useEffect(() => {
+    if (!params.fam) return;
+    setFam(params.fam);
+    setBrand('all');
+    setQ('');
+    router.setParams({ fam: undefined });
+  }, [params.fam]);
+  // Tocar la pestaña Tienda de abajo regresa a "Todo"
+  const navigation = useNavigation();
+  useEffect(() => {
+    const off = (navigation as unknown as { addListener: (e: string, cb: () => void) => () => void }).addListener('tabPress', () => {
+      setFam('all');
+      setBrand('all');
+    });
+    return off;
+  }, [navigation]);
   useEffect(() => {
     if (!storeId && shopStores.length) setStoreId(pickOpen(shopStores, profile?.store_id));
   }, [shopStores.length, storeId, profile]); // eslint-disable-line react-hooks/exhaustive-deps

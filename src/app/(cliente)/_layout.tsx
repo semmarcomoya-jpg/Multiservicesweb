@@ -34,7 +34,6 @@ export default function ClienteLayout() {
       <Tabs.Screen name="enviar" options={{ title: L('Enviar', 'Send'), tabBarIcon: tab('send') }} />
       <Tabs.Screen name="servicios" options={{ title: L('Servicios', 'Services'), tabBarIcon: tab('tool') }} />
       <Tabs.Screen name="productos" options={{ title: L('Tienda', 'Shop'), tabBarIcon: tab('bag'), href: shop ? undefined : null, tabBarBadge: n ? n : undefined }} />
-      <Tabs.Screen name="pedidos" options={{ title: L('Pedidos', 'Orders'), tabBarIcon: tab('receipt'), href: null }} />
       <Tabs.Screen name="perfil" options={{ title: L('Perfil', 'Profile'), tabBarIcon: tab('user') }} />
     </Tabs>
   );
