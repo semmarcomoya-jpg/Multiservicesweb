@@ -35,3 +35,11 @@ export async function signedUrl(bucket: string, path: string | null | undefined)
   const { data } = await supabase.storage.from(bucket).createSignedUrl(path, 60 * 30);
   return data?.signedUrl ?? null;
 }
+
+/** Sube a la carpeta pública y regresa la URL que cualquiera puede ver. */
+export async function uploadPublic(folder: string): Promise<string | null> {
+  const img = await pickImage();
+  if (!img) return null;
+  const path = await uploadImage('publico', folder, img);
+  return supabase.storage.from('publico').getPublicUrl(path).data.publicUrl;
+}

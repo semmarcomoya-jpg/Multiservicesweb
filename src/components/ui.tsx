@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import React from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardTypeOptions,
   Pressable,
   ScrollView,
@@ -16,6 +17,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Wallpaper, type WallTheme } from '@/components/art';
 import { Text, TextInput } from '@/components/Text';
+import { useBranding } from '@/lib/branding';
 import { useLang } from '@/lib/i18n';
 import { ICONS } from '@/lib/icons';
 import { C, R, STATUS_COLORS } from '@/lib/theme';
@@ -60,13 +62,25 @@ export const MiniChip = ({ children, icon }: { children: React.ReactNode; icon?:
   </View>
 );
 
-export function BrandChip({ name = 'Castillo' }: { name?: string }) {
+export function BrandChip({ full = false }: { full?: boolean; name?: string }) {
+  const { brand } = useBranding();
+  const name = full ? brand.nombre : brand.corto || brand.nombre;
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingLeft: 6, paddingRight: 12, borderRadius: R.pill, backgroundColor: 'rgba(255,255,255,0.92)' }}>
-      <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ color: C.goldSoft, fontWeight: '900', fontSize: 15 }}>C</Text>
-      </View>
+      <BrandMark size={30} />
       <Text style={{ fontWeight: '800', fontSize: 14, color: C.ink }}>{name}</Text>
+    </View>
+  );
+}
+
+/** Logo de la marca (o su inicial en el círculo café). */
+export function BrandMark({ size = 30, square = false }: { size?: number; square?: boolean }) {
+  const { brand } = useBranding();
+  const r = square ? size * 0.3 : size / 2;
+  if (brand.logo_url) return <Image source={{ uri: brand.logo_url }} style={{ width: size, height: size, borderRadius: r }} resizeMode="cover" />;
+  return (
+    <View style={{ width: size, height: size, borderRadius: r, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ color: C.goldSoft, fontWeight: '900', fontSize: size * 0.5 }}>{(brand.nombre || 'C').charAt(0).toUpperCase()}</Text>
     </View>
   );
 }

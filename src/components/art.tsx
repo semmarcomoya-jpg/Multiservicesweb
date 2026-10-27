@@ -1,8 +1,10 @@
 import React, { useId } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, G, Path, Pattern, Rect } from 'react-native-svg';
 
+import { useBranding } from '@/lib/branding';
 import { ICONS } from '@/lib/icons';
+import type { WallCfg } from '@/lib/types';
 
 // ---------- Fondos tipo WhatsApp: íconos del tema repetidos con poca opacidad
 export type WallTheme = 'home' | 'send' | 'shop' | 'pts' | 'profile' | 'community';
@@ -21,9 +23,19 @@ const SPOTS: [number, number, number][] = [
 ];
 const TAGS: Record<string, React.ComponentType<any>> = { path: Path, rect: Rect, circle: Circle };
 
-export function Wallpaper({ theme = 'home' }: { theme?: WallTheme }) {
+export function Wallpaper({ theme = 'home', override }: { theme?: WallTheme; override?: WallCfg }) {
   const id = 'wall' + useId().replace(/[^a-zA-Z0-9]/g, '');
-  const t = WALL_THEMES[theme] || WALL_THEMES.home;
+  const { brand } = useBranding();
+  const cfg = override || brand.walls?.[theme];
+  const t = { ...(WALL_THEMES[theme] || WALL_THEMES.home), ...(cfg?.color ? { color: cfg.color } : {}) };
+  if (cfg?.mode === 'color') return <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: t.color }]} />;
+  if (cfg?.mode === 'image' && cfg.img)
+    return (
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: t.color }]}>
+        <Image source={{ uri: cfg.img }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255,247,240,0.80)' }]} />
+      </View>
+    );
   return (
     <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: t.color }]}>
       <Svg width="100%" height="100%">

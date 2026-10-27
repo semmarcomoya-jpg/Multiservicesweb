@@ -181,3 +181,30 @@ export interface Story {
   views: number;
   created_at: string;
 }
+
+export type WallMode = 'pattern' | 'color' | 'image';
+export interface WallCfg { mode: WallMode; color: string; img: string | null }
+export interface Brand {
+  nombre: string;
+  corto: string;
+  logo_url?: string | null;
+  cover_url?: string | null;
+  cover_title_es?: string;
+  cover_title_en?: string;
+  cover_sub_es?: string;
+  cover_sub_en?: string;
+  home_bg_url?: string | null;
+  walls?: Partial<Record<'home' | 'send' | 'shop' | 'pts' | 'profile' | 'community', WallCfg>>;
+}
+export interface Promo {
+  id: string;
+  title_es: string;
+  title_en: string;
+  sub_es: string;
+  sub_en: string;
+  go: 'shop' | 'send' | 'services' | 'none';
+  theme: 'shop' | 'send' | 'pts';
+  img_url: string | null;
+  activo: boolean;
+  orden: number;
+}

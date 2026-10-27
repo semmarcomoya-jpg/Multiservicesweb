@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { InstallProvider } from '@/lib/install';
 import { AuthProvider } from '@/lib/auth';
+import { BrandingProvider } from '@/lib/branding';
 import { LangProvider } from '@/lib/i18n';
 import { C } from '@/lib/theme';
 
@@ -28,8 +29,10 @@ export default function RootLayout() {
       <LangProvider>
         <InstallProvider>
           <AuthProvider>
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.page } }} />
+            <BrandingProvider>
+              <StatusBar style="dark" />
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.page } }} />
+            </BrandingProvider>
           </AuthProvider>
         </InstallProvider>
       </LangProvider>

@@ -9,7 +9,8 @@ import { Platform, Pressable, View, useWindowDimensions } from 'react-native';
 
 import { ViewSwitch } from '@/components/panel';
 import { Text } from '@/components/Text';
-import { LangToggle } from '@/components/ui';
+import { BrandMark, LangToggle } from '@/components/ui';
+import { useBranding } from '@/lib/branding';
 import { useAuth } from '@/lib/auth';
 import { useLang } from '@/lib/i18n';
 import { C, R } from '@/lib/theme';
@@ -30,6 +31,7 @@ export function StaffShell({ kind, children }: { kind: 'tienda' | 'admin'; child
   const { width } = useWindowDimensions();
   const { L } = useLang();
   const { signOut } = useAuth();
+  const { brand } = useBranding();
   const wide = Platform.OS === 'web' && width >= 1100;
   if (!wide) return <ShellCtx.Provider value={false}>{children}</ShellCtx.Provider>;
 
@@ -39,11 +41,9 @@ export function StaffShell({ kind, children }: { kind: 'tienda' | 'admin'; child
         {/* Encabezado como la maqueta */}
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 24, paddingVertical: 14, gap: 12 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: C.goldSoft, fontWeight: '900', fontSize: 21 }}>C</Text>
-            </View>
+            <BrandMark size={40} square />
             <View>
-              <Text style={{ fontWeight: '900', fontSize: 18, color: C.ink }}>Castillo Multiservices</Text>
+              <Text style={{ fontWeight: '900', fontSize: 18, color: C.ink }}>{brand.nombre}</Text>
               <Text style={{ fontSize: 13, fontWeight: '600', color: C.muted }}>{L('Cliente, tienda y administrador', 'Customer, store and admin')}</Text>
             </View>
           </View>

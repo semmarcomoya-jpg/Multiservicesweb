@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Scenery, Wallpaper } from '@/components/art';
@@ -12,10 +12,13 @@ import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Loading, Note, P } fr
 import { useAuth } from '@/lib/auth';
 import { modOn, prodFrom, useProducts, useSettings, useStores } from '@/lib/data';
 import { money } from '@/lib/format';
+import { useBranding } from '@/lib/branding';
+import { useQuery } from '@/lib/data';
+import { supabase } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n';
 import { useMyOrders } from '@/lib/myorders';
 import { autoOpenDecided, fetchStories, takeAutoOpen } from '@/lib/stories';
-import type { Story } from '@/lib/types';
+import type { Promo, Story } from '@/lib/types';
 import { C } from '@/lib/theme';
 
 // Dentro del celular de la vista de escritorio del personal no se repite el selector
@@ -28,6 +31,8 @@ export default function Inicio() {
   const { data: stores } = useStores();
   const { data: products } = useProducts(null);
   const { orders } = useMyOrders(5);
+  const { brand } = useBranding();
+  const { data: adminPromos } = useQuery<Promo[]>(() => supabase.from('promos').select('*').eq('activo', true).order('orden'));
 
   // Historias: igual que en Viva, al entrar se abren solas una vez por visita (primero las nuevas).
   // Mientras se decide, Inicio queda tapado para que no parpadee; si tardan más de 3 s, se muestra igual.
@@ -67,11 +72,17 @@ export default function Inicio() {
   const rate = cfg ? Number(cfg.exchange_rate) : 0;
   const updated = cfg ? new Date(cfg.rate_updated_at).toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '';
 
-  const promos = [
+  const PROMO_BG = { shop: C.brown, send: '#7A3412', pts: C.goldInk } as const;
+  const PROMO_GO = { shop: '/productos', send: '/enviar', services: '/servicios', none: '' } as const;
+  const PROMO_IC = { shop: 'phone', send: 'send', pts: 'star' } as const;
+  const fromAdmin = (adminPromos || []).map((p) => ({ bg: PROMO_BG[p.theme] || C.brown, icon: PROMO_IC[p.theme] || 'star', t: lang === 'es' ? p.title_es : p.title_en || p.title_es, s: lang === 'es' ? p.sub_es : p.sub_en || p.sub_es, go: PROMO_GO[p.go] || '', img: p.img_url }));
+  const computed = [
     any('shop') && minPhone.length && { bg: C.brown, icon: 'phone', t: L(`Celulares desde ${money(Math.min(...minPhone))}`, `Phones from ${money(Math.min(...minPhone))}`), s: L('Recoge hoy en tu tienda', 'Pick up today at your store'), go: '/productos' },
     any('send') && { bg: C.blue, icon: 'send', t: L(`Hoy tu dólar vale ${rate.toFixed(2)}`, `Today your dollar is worth ${rate.toFixed(2)}`), s: L('Envía a México en minutos', 'Send to Mexico in minutes'), go: '/enviar' },
     any('svc') && { bg: C.goldInk, icon: 'bolt', t: L('Paga tus recibos sin salir', 'Pay your bills from home'), s: L('Luz, agua, recargas y más', 'Power, water, top-ups and more'), go: '/servicios' },
-  ].filter(Boolean) as { bg: string; icon: string; t: string; s: string; go: string }[];
+  ].filter(Boolean) as { bg: string; icon: string; t: string; s: string; go: string; img?: string | null }[];
+  // Las promociones que sube el administrador; si no hay, unas automáticas
+  const promos = fromAdmin.length ? fromAdmin : computed;
 
   const qa = [
     (any('svc') || any('send')) && { ic: 'tool', tone: 'gold', label: L('Servicios', 'Services'), go: '/servicios' },
@@ -89,7 +100,7 @@ export default function Inicio() {
         <View style={{ width: '100%', maxWidth: 520 }}>
           {/* Portada */}
           <View style={{ height: 200, overflow: 'hidden', backgroundColor: '#FFE1C4' }}>
-            <Scenery mid />
+            {brand.home_bg_url ? <Image source={{ uri: brand.home_bg_url }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" /> : <Scenery mid />}
             <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 16, right: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16 }}>
                 <BrandChip />
@@ -143,11 +154,18 @@ export default function Inicio() {
             {promos.length ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={292} decelerationRate="fast" contentContainerStyle={{ gap: 10, paddingRight: 16 }} style={{ marginHorizontal: -16, paddingLeft: 16 }}>
                 {promos.map((p) => (
-                  <Pressable key={p.go + p.t} accessibilityRole="button" onPress={() => router.push(p.go as never)}
+                  <Pressable key={p.go + p.t} accessibilityRole="button" onPress={() => p.go && router.push(p.go as never)}
                     style={{ width: 282, minHeight: 118, borderRadius: 20, backgroundColor: p.bg, padding: 16, justifyContent: 'flex-end', overflow: 'hidden' }}>
-                    <View style={{ position: 'absolute', right: -10, top: -10, opacity: 0.22 }}>
-                      <Icon n={p.icon} size={110} color="#fff" sw={1.4} />
-                    </View>
+                    {p.img ? (
+                      <>
+                        <Image source={{ uri: p.img }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(46,27,16,0.45)' }} />
+                      </>
+                    ) : (
+                      <View style={{ position: 'absolute', right: -10, top: -10, opacity: 0.22 }}>
+                        <Icon n={p.icon} size={110} color="#fff" sw={1.4} />
+                      </View>
+                    )}
                     <Text style={{ color: '#fff', fontSize: 19, fontWeight: '900', lineHeight: 22 }}>{p.t}</Text>
                     <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{p.s}</Text>
                   </Pressable>
