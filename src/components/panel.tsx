@@ -113,6 +113,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           ['/tienda/historias', L('Historias', 'Stories'), 'camera'],
           ['/tienda/corte', L('Ventas y corte', 'Sales & close-out'), 'chart'],
           ['/tienda/ajustes', L('Mi tienda', 'My store'), 'store'],
+          ['/tienda/bitacora', L('Bitácora', 'Activity log'), 'clock'],
         ]
       : [
           ['/admin', L('Ventas', 'Sales'), 'chart'],
@@ -125,6 +126,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           ['/admin/cambio', L('Tipo de cambio y reglas', 'Rate & rules'), 'cash'],
           ['/admin/empleados', L('Empleados', 'Staff'), 'users'],
           ['/admin/usuarios', L('Cuentas', 'Accounts'), 'id'],
+          ['/admin/bitacora', L('Bitácora', 'Activity log'), 'clock'],
         ];
   const inShell = useInShell();
   return (

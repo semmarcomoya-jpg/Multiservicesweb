@@ -333,7 +333,7 @@ export function Pills<T extends string | number>({
   onChange,
   label,
 }: {
-  options: { v: T; label: string; icon?: string; disabled?: boolean }[];
+  options: { v: T; label: string; icon?: string; img?: string | null; disabled?: boolean }[];
   value: T | null | undefined;
   onChange: (v: T) => void;
   label?: string;
@@ -353,7 +353,7 @@ export function Pills<T extends string | number>({
               onPress={() => onChange(o.v)}
               style={({ pressed }) => [s.pill, on && s.pillOn, o.disabled && { opacity: 0.45 }, pressed && { opacity: 0.8 }]}
             >
-              {o.icon ? <Icon n={o.icon} size={16} color={on ? '#fff' : C.softInk} /> : null}
+              {o.img ? <Image source={{ uri: o.img }} style={{ width: 26, height: 26, borderRadius: 13, marginLeft: -6, backgroundColor: C.tint }} /> : o.icon ? <Icon n={o.icon} size={16} color={on ? '#fff' : C.softInk} /> : null}
               <Text style={[s.pillTxt, on && { fontWeight: '800', color: '#fff' }]}>{o.label}</Text>
             </Pressable>
           );

@@ -22,8 +22,10 @@ export const useInShell = () => useContext(ShellCtx);
 function clientUrl() {
   if (typeof window === 'undefined') return '/inicio';
   const p = window.location.pathname;
-  const cut = Math.max(p.indexOf('/admin'), p.indexOf('/tienda'));
-  const base = cut > 0 ? p.slice(0, cut) : '';
+  // Lo que va antes de /admin o /tienda es la carpeta de la app (en GitHub Pages: /Multiservicesweb).
+  // Ojo: "/admin/tiendas" no debe confundirse con "/tienda".
+  const m = /^(.*?)\/(admin|tienda)(\/|$)/.exec(p);
+  const base = m ? m[1] : '';
   return `${window.location.origin}${base}/inicio`;
 }
 

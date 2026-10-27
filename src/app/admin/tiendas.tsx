@@ -33,11 +33,11 @@ export default function AdminTiendas() {
     <Screen wide>
       <PanelHeader kind="admin" />
       <Row style={{ justifyContent: 'space-between' }}>
-        <Pills options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', '') + (x.activo ? '' : L(' (oculta)', ' (hidden)')) + (x.abierta === false ? L(' · cerrada', ' · closed') : ''), icon: 'store' }))} value={st?.id} onChange={setSel} />
-        <Btn small kind="ghost" icon="store" title={L('Agregar tienda', 'Add store')} onPress={add} />
+        <Pills options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', '') + (x.activo ? '' : L(' (oculta)', ' (hidden)')) + (x.abierta === false ? L(' · cerrada', ' · closed') : ''), icon: 'store', img: x.fotos?.[0] || null }))} value={st?.id} onChange={setSel} />
+        <Btn small kind="ghost" icon="store" title={L('Agregar sucursal', 'Add branch')} onPress={add} />
       </Row>
       {err ? <Note kind="red">{err}</Note> : null}
-      <Note kind="blue">{L('Para que una tienda entre a su panel, crea su cuenta (Registro) y asígnale el rol de tienda en "Cuentas".', 'For a store to use its panel, create its account (Sign up) and give it the store role in "Accounts".')}</Note>
+      <Note kind="blue">{L('Aquí creas y cambias sucursales: datos, fotos, Zelle, qué ofrece y cómo entrega. Para que una tienda entre a su panel, crea su cuenta en "Cuentas" con el tipo "Tienda".', 'Create and edit branches here: details, photos, Zelle, what it offers and how it delivers. For a store to use its panel, create its account in "Accounts" with type "Store".')}</Note>
       {st ? <OpenSwitch store={st} onChanged={reload} /> : null}
       {st ? <StoreForm key={st.id} store={st} admin onSaved={reload} /> : null}
     </Screen>

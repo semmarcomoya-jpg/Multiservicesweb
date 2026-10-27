@@ -65,7 +65,7 @@ export const svcCatIcon = (cats: Category[], sv: Service) => sv.icon || cats.fin
 export const storeShort = (st: Store) => st.nombre.replace('Castillo · ', '');
 /** Opciones de tienda para el cliente: las cerradas aparecen pero no se pueden elegir. */
 export const storeOptions = (stores: Store[], closedLabel: string) =>
-  stores.map((st) => ({ v: st.id, label: storeShort(st) + (st.abierta === false ? ' · ' + closedLabel : ''), icon: 'store', disabled: st.abierta === false }));
+  stores.map((st) => ({ v: st.id, label: storeShort(st) + (st.abierta === false ? ' · ' + closedLabel : ''), icon: 'store', img: st.fotos?.[0] || null, disabled: st.abierta === false }));
 /** Tienda preferida: la favorita si está abierta, si no la primera abierta. */
 export const pickOpen = (stores: Store[], fav?: string | null) =>
   (stores.find((x) => x.id === fav && x.abierta !== false) || stores.find((x) => x.abierta !== false) || stores[0])?.id ?? null;

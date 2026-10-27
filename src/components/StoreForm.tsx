@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 
-import { Btn, Card, Field, H2, Note, P, Row, Toggle } from '@/components/ui';
+import { Btn, Card, Field, H2, Note, P, Row, Toggle, Icon } from '@/components/ui';
 import { useServices } from '@/lib/data';
+import { Image, Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
+import { C } from '@/lib/theme';
+import { uploadPublic } from '@/lib/upload';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 import type { Store, StoreDelivery, StoreMods } from '@/lib/types';
@@ -17,6 +21,18 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [fotoBusy, setFotoBusy] = useState(false);
+  const addFoto = async () => {
+    setErr('');
+    setFotoBusy(true);
+    try {
+      const url = await uploadPublic('tiendas/' + store.id);
+      if (url) setF((p) => ({ ...p, fotos: [...(p.fotos || []), url] }));
+    } catch (e) {
+      setErr(errMsg(e));
+    }
+    setFotoBusy(false);
+  };
   useEffect(() => setF(store), [store]);
 
   const mods = { ...DEF_MODS, ...(f.mods || {}) };
@@ -38,6 +54,7 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
       descripcion: f.descripcion,
       zelle_dato: f.zelle_dato,
       zelle_nombre: f.zelle_nombre,
+      fotos: f.fotos || [],
       mods,
       delivery: { ...del, homeFee: Number(del.homeFee) || 0, freeOver: Number(del.freeOver) || 0 },
       svc_off: f.svc_off || [],
@@ -90,6 +107,27 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
           <Field label={L('Correo o teléfono Zelle', 'Zelle email or phone')} value={f.zelle_dato} onChangeText={set('zelle_dato')} autoCapitalize="none" />
           <Field label={L('Nombre que ve el cliente en Zelle', 'Name the customer sees in Zelle')} value={f.zelle_nombre} onChangeText={set('zelle_nombre')} />
         </Row>
+      </Card>
+
+      <Card>
+        <H2>{L('Fotos de la sucursal', 'Branch photos')}</H2>
+        <P small muted>{L('La primera es la principal: la ven tus clientes en Inicio y al elegir tienda. Horizontal, 1200 × 800 px. Recuerda tocar "Guardar cambios".', 'The first one is the main photo customers see on Home and when choosing a store. Landscape, 1200 × 800 px. Remember to tap "Save changes".')}</P>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+          {(f.fotos || []).map((u, i) => (
+            <View key={u} style={{ width: 150, gap: 6 }}>
+              <Image source={{ uri: u }} style={{ width: 150, height: 100, borderRadius: 12, backgroundColor: C.tint, borderWidth: i === 0 ? 3 : 0, borderColor: C.brown }} />
+              <Row gap={4} style={{ flexWrap: 'nowrap' }}>
+                {i > 0 ? <Btn small kind="ghost" title={L('Principal', 'Main')} onPress={() => setF((p) => ({ ...p, fotos: [u, ...(p.fotos || []).filter((x) => x !== u)] }))} /> : <P small style={{ color: C.brown, fontWeight: '800' }}>{L('Principal', 'Main')}</P>}
+                <Btn small kind="ghost" title={L('Quitar', 'Remove')} onPress={() => setF((p) => ({ ...p, fotos: (p.fotos || []).filter((x) => x !== u) }))} />
+              </Row>
+            </View>
+          ))}
+          <Pressable accessibilityRole="button" onPress={addFoto} disabled={fotoBusy}
+            style={{ width: 150, height: 100, borderRadius: 12, borderWidth: 1.5, borderStyle: 'dashed', borderColor: C.line2, alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+            <Icon n="camera" size={22} color={C.brown} />
+            <Text style={{ fontWeight: '800', color: C.brown, fontSize: 12 }}>{fotoBusy ? L('Subiendo…', 'Uploading…') : L('Agregar foto', 'Add photo')}</Text>
+          </Pressable>
+        </View>
       </Card>
 
       <Card>

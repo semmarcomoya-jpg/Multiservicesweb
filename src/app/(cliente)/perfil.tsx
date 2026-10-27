@@ -146,7 +146,7 @@ export default function Perfil() {
         <Field label={L('Fecha de nacimiento (día/mes/año)', 'Date of birth (day/month/year)')} value={f.fecha_nac} onChangeText={set('fecha_nac')} placeholder="21/05/1990" error={dateOk ? '' : L('Escríbela como 21/05/1990', 'Type it like 21/05/1990')} hint={L('Opcional. Te consentimos en tu cumpleaños.', 'Optional. We treat you on your birthday.')} />
         <P small muted>{session?.user.email}</P>
         {profile.role === 'cliente' && stores ? (
-          <Pills label={L('Mi tienda favorita', 'My favorite store')} options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', ''), icon: 'store' }))} value={f.store_id} onChange={(v) => setF((p) => ({ ...p, store_id: v }))} />
+          <Pills label={L('Mi tienda favorita', 'My favorite store')} options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', ''), icon: 'store', img: x.fotos?.[0] || null }))} value={f.store_id} onChange={(v) => setF((p) => ({ ...p, store_id: v }))} />
         ) : null}
         {msg ? <Note kind={ok ? 'blue' : 'red'} icon={ok ? 'check' : 'x'}>{msg}</Note> : null}
         <Btn title={L('Guardar cambios', 'Save changes')} onPress={save} loading={busy} />

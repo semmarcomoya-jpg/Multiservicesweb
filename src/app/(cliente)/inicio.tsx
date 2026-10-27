@@ -225,9 +225,13 @@ export default function Inicio() {
             {/* Tu tienda */}
             <Pressable accessibilityRole="button" onPress={() => router.push('/perfil')}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#E1E9F3', backgroundColor: C.card }}>
-              <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: C.blueSoft, alignItems: 'center', justifyContent: 'center' }}>
-                <Icon n="store" size={24} color={C.blue} />
-              </View>
+              {myStore?.fotos?.[0] ? (
+                <Image source={{ uri: myStore.fotos[0] }} style={{ width: 72, height: 56, borderRadius: 14, backgroundColor: C.blueSoft }} />
+              ) : (
+                <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: C.blueSoft, alignItems: 'center', justifyContent: 'center' }}>
+                  <Icon n="store" size={24} color={C.blue} />
+                </View>
+              )}
               <View style={{ flex: 1 }}>
                 <P small>{L('Tu tienda', 'Your store')}</P>
                 <Text style={{ fontWeight: '900', fontSize: 15, color: C.ink }}>{myStore ? myStore.nombre : L('Elige tu tienda favorita', 'Choose your favorite store')}</Text>
