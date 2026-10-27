@@ -18,6 +18,9 @@ import { autoOpenDecided, fetchStories, takeAutoOpen } from '@/lib/stories';
 import type { Story } from '@/lib/types';
 import { C } from '@/lib/theme';
 
+// Dentro del celular de la vista de escritorio del personal no se repite el selector
+const inFrame = typeof window !== 'undefined' && window.self !== window.top;
+
 export default function Inicio() {
   const { L, lang } = useLang();
   const { profile } = useAuth();
@@ -96,7 +99,7 @@ export default function Inicio() {
           </View>
 
           <View style={{ marginTop: -58, marginHorizontal: 16, gap: 16 }}>
-            {profile && profile.role !== 'cliente' ? (
+            {profile && profile.role !== 'cliente' && !inFrame ? (
               <View style={{ alignItems: 'center' }}>
                 <ViewSwitch current="cliente" />
               </View>

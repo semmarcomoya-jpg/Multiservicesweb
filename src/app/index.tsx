@@ -1,5 +1,6 @@
 import { Redirect, router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
+import { Platform, useWindowDimensions } from 'react-native';
 
 import { Btn, H1, Loading, Note, P, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -11,6 +12,7 @@ export default function Index() {
   const { L } = useLang();
   const { session, profile, profileError, loading, refreshProfile, signOut } = useAuth();
   const [slow, setSlow] = useState(false);
+  const { width } = useWindowDimensions();
   useEffect(() => {
     const t = setTimeout(() => setSlow(true), 8000);
     return () => clearTimeout(t);
@@ -46,7 +48,8 @@ export default function Index() {
     }
     return <Loading />;
   }
-  // El superusuario entra a la app como cliente (igual que la maqueta) y cambia de vista con el selector de arriba
+  // Superusuario: en computadora ve la maqueta completa (celular + panel); en el celular entra a la app y cambia de vista arriba
+  if (profile.role === 'admin' && Platform.OS === 'web' && width >= 1100) return <Redirect href="/admin" />;
   if (profile.role === 'tienda') return <Redirect href="/tienda" />;
   return <Redirect href="/inicio" />;
 }

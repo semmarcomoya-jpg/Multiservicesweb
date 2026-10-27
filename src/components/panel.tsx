@@ -3,6 +3,7 @@ import React, { useState, useSyncExternalStore } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/Text';
 
+import { useInShell } from '@/components/StaffShell';
 import { Icon, LangToggle, Row } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useLang } from '@/lib/i18n';
@@ -122,8 +123,10 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           ['/admin/empleados', L('Empleados', 'Staff'), 'users'],
           ['/admin/usuarios', L('Cuentas', 'Accounts'), 'id'],
         ];
+  const inShell = useInShell();
   return (
     <View style={{ gap: 10 }}>
+      {inShell ? null : (
       <Row style={{ justifyContent: 'space-between' }}>
         <ViewSwitch current={kind} />
         <Row gap={8}>
@@ -140,6 +143,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           </Pressable>
         </Row>
       </Row>
+      )}
 
       <View style={{ borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: C.line, backgroundColor: C.card }}>
         {/* Encabezado café como la maqueta */}
