@@ -4,7 +4,7 @@ import { Image, Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, Field, H1, IcoBox, Label, Loading, MiniChip, Note, P, Pills, Row, Screen } from '@/components/ui';
-import { homeFee, modesFor, pickOpen, storeOptions, storesForService, svcCatIcon, useCategories, useServices, useStores } from '@/lib/data';
+import { homeFee, modesFor, pickOpen, storeOptions, storesForService, svcCatIcon, useCategories, useServices, useStores, useStoreScores } from '@/lib/data';
 import { setDraft } from '@/lib/draft';
 import { digits, money, num, splitList } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
@@ -22,6 +22,7 @@ export default function ServicioDetalle() {
   const { session, profile } = useAuth();
   const { data: services } = useServices();
   const { data: stores } = useStores();
+  const { data: scores } = useStoreScores();
   const { data: cats } = useCategories();
   const sv = (services || []).find((x) => x.id === id);
 
@@ -134,7 +135,7 @@ export default function ServicioDetalle() {
       {avail.length === 0 ? <Note kind="red">{L('Ninguna tienda ofrece este servicio por ahora.', 'No store offers this service right now.')}</Note> : null}
 
       <Card>
-        <Pills label={L('¿En qué tienda?', 'Which store?')} options={storeOptions(avail, L('Cerrada', 'Closed'))} value={storeId} onChange={setStoreId} />
+        <Pills label={L('¿En qué tienda?', 'Which store?')} options={storeOptions(avail, L('Cerrada', 'Closed'), scores)} value={storeId} onChange={setStoreId} />
         {st && st.abierta === false ? <Note kind="red" icon="clock">{st.aviso_cerrada || L('Esta tienda está cerrada en este momento. Elige otra o intenta más tarde.', 'This store is closed right now. Pick another or try later.')}</Note> : null}
       </Card>
 

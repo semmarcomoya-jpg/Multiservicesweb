@@ -6,7 +6,7 @@ import { Text, TextInput } from '@/components/Text';
 import { Btn, Empty, H1, IcoBox, Loading, Note, P, Pills, Row, Screen, TopBar, SearchBox, matches } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { cartCount, useCart } from '@/lib/cart';
-import { modOn, pickOpen, prodFrom, prodName, prodStock, storeOptions, useFamilies, useProducts, useStores } from '@/lib/data';
+import { modOn, pickOpen, prodFrom, prodName, prodStock, storeOptions, useFamilies, useProducts, useStores, useStoreScores } from '@/lib/data';
 import { money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { C, R } from '@/lib/theme';
@@ -15,6 +15,7 @@ export default function Productos() {
   const { L, nm } = useLang();
   const { profile } = useAuth();
   const { data: stores } = useStores();
+  const { data: scores } = useStoreScores();
   const { data: fams } = useFamilies();
   const cart = useCart();
   const shopStores = (stores || []).filter((st) => st.activo && modOn(st, 'shop'));
@@ -76,7 +77,7 @@ export default function Productos() {
     >
       <TopBar />
       <H1>{L('Tienda', 'Shop')}</H1>
-      <Pills options={storeOptions(shopStores, L('Cerrada', 'Closed'))} value={storeId} onChange={(v) => { setStoreId(v); setBrand('all'); }} />
+      <Pills options={storeOptions(shopStores, L('Cerrada', 'Closed'), scores)} value={storeId} onChange={(v) => { setStoreId(v); setBrand('all'); }} />
       {st && st.abierta === false ? <Note kind="red" icon="clock">{st.aviso_cerrada || L('Esta tienda está cerrada. Puedes ver sus productos, pero no comprar ahorita.', "This store is closed. You can browse, but can't buy right now.")}</Note> : null}
       <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca marca, modelo o "funda A15"', 'Search brand, model or "A15 case"')} count={qq ? list.length : undefined} />
       <Pills options={[{ v: 'all', label: L('Todo', 'All') }, ...famsUsed.map((f) => ({ v: f.id, label: nm(f), icon: f.icon }))]} value={fam} onChange={(v) => { setFam(v); setBrand('all'); }} />

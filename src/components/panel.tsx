@@ -3,6 +3,7 @@ import React, { useState, useSyncExternalStore } from 'react';
 import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/Text';
 
+import { NotifBell } from '@/components/NotifBell';
 import { useInShell } from '@/components/StaffShell';
 import { Icon, LangToggle, Row, ChipScroll } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -142,6 +143,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
       <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }} gap={6}>
         <ViewSwitch current={kind} compact={compact} />
         <Row gap={6} style={{ flexWrap: 'nowrap' }}>
+          <NotifBell />
           {compact ? null : <LangToggle />}
           <Pressable
             accessibilityRole="button"

@@ -9,6 +9,7 @@ import { Platform, Pressable, View, useWindowDimensions } from 'react-native';
 
 import { ViewSwitch } from '@/components/panel';
 import { Text } from '@/components/Text';
+import { NotifBell } from '@/components/NotifBell';
 import { BrandMark, LangToggle } from '@/components/ui';
 import { useBranding } from '@/lib/branding';
 import { useAuth } from '@/lib/auth';
@@ -51,6 +52,7 @@ export function StaffShell({ kind, children }: { kind: 'tienda' | 'admin'; child
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <ViewSwitch current={kind} />
+            <NotifBell />
             <LangToggle />
             <Pressable accessibilityRole="button" onPress={async () => { await signOut(); router.replace('/bienvenida'); }}
               style={{ paddingHorizontal: 16, minHeight: 44, justifyContent: 'center', borderRadius: 14, borderWidth: 2, borderColor: C.line, backgroundColor: C.card }}>

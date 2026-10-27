@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { supabase } from './supabase';
-import type { Category, Family, Mode, Product, Service, Settings, Store } from './types';
+import type { Category, Family, Mode, Product, Service, Settings, Store, StoreScore } from './types';
 
 /** Carga simple con recarga manual. */
 export function useQuery<T>(fn: () => PromiseLike<{ data: T | null; error: unknown }>, deps: unknown[] = []) {
@@ -64,8 +64,14 @@ export const svcCatIcon = (cats: Category[], sv: Service) => sv.icon || cats.fin
 
 export const storeShort = (st: Store) => st.nombre.replace('Castillo · ', '');
 /** Opciones de tienda para el cliente: las cerradas aparecen pero no se pueden elegir. */
-export const storeOptions = (stores: Store[], closedLabel: string) =>
-  stores.map((st) => ({ v: st.id, label: storeShort(st) + (st.abierta === false ? ' · ' + closedLabel : ''), icon: 'store', img: st.fotos?.[0] || null, disabled: st.abierta === false }));
+export const storeOptions = (stores: Store[], closedLabel: string, scores?: StoreScore[] | null) =>
+  stores.map((st) => ({ v: st.id, label: withStars(storeShort(st), scoreOf(scores, st.id)) + (st.abierta === false ? ' · ' + closedLabel : ''), icon: 'store', img: st.fotos?.[0] || null, disabled: st.abierta === false }));
 /** Tienda preferida: la favorita si está abierta, si no la primera abierta. */
 export const pickOpen = (stores: Store[], fav?: string | null) =>
   (stores.find((x) => x.id === fav && x.abierta !== false) || stores.find((x) => x.abierta !== false) || stores[0])?.id ?? null;
+
+/** Promedio de estrellas de cada tienda (recomendaciones de Boca a boca). */
+export const useStoreScores = () => useQuery<StoreScore[]>(() => supabase.rpc('store_scores'));
+export const scoreOf = (scores: StoreScore[] | null | undefined, storeId: string) => (Array.isArray(scores) ? scores.find((x) => x.store_id === storeId) : undefined);
+/** "Sucursal Centro ★4.6" */
+export const withStars = (label: string, sc?: StoreScore) => (sc && Number(sc.total) > 0 ? `${label} ★${Number(sc.promedio).toFixed(1)}` : label);

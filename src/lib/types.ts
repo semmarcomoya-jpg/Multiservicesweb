@@ -232,11 +232,11 @@ export interface Rating {
   followed_at: string | null;
   created_at: string;
 }
-export type PostKind = 'reco' | 'prod' | 'promo' | 'sug' | 'store';
-export interface PostReply { id: string; post_id: string; author_name: string; text: string; created_at: string }
+export type PostKind = 'reco' | 'prod' | 'promo' | 'sug' | 'store' | 'aviso';
+export interface PostReply { id: string; post_id: string; user_id: string | null; author_name: string; author_foto: string | null; is_store: boolean; hidden: boolean; hide_reason: string; text: string; created_at: string }
 export interface Post {
   id: string;
-  store_id: string;
+  store_id: string | null;
   user_id: string | null;
   author_name: string;
   author_foto: string | null;
@@ -250,6 +250,12 @@ export interface Post {
   hidden: boolean;
   hide_reason: '' | 'ofensivo' | 'spam' | 'datos' | 'otro';
   hidden_by: string;
+  photo_url: string | null;
+  verified: boolean;
+  reports: number;
   created_at: string;
   post_replies?: PostReply[];
 }
+
+export interface Notif { id: string; user_id: string; kind: string; title: string; body: string; link: string; ref_id: string | null; read_at: string | null; created_at: string }
+export interface StoreScore { store_id: string; promedio: number; total: number }

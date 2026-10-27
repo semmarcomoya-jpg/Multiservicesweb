@@ -8,12 +8,14 @@ import { OrderRow } from '@/components/orders';
 import { ViewSwitch } from '@/components/panel';
 import { Destacados } from '@/components/Destacados';
 import { Stars } from '@/components/Stars';
+import { NotifBell } from '@/components/NotifBell';
+import { usePostKinds } from '@/components/PostCard';
 import { StoriesRow } from '@/components/StoriesRow';
 import { useDestacados } from '@/lib/featured';
 import { Text } from '@/components/Text';
 import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Loading, Note, P } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { modOn, prodFrom, useProducts, useSettings, useStores } from '@/lib/data';
+import { modOn, prodFrom, useProducts, useSettings, useStores, scoreOf, useStoreScores } from '@/lib/data';
 import { money } from '@/lib/format';
 import { useBranding } from '@/lib/branding';
 import { useQuery } from '@/lib/data';
@@ -21,7 +23,7 @@ import { supabase } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n';
 import { useMyOrders } from '@/lib/myorders';
 import { autoOpenDecided, fetchStories, takeAutoOpen } from '@/lib/stories';
-import type { Promo, Story } from '@/lib/types';
+import type { Post, Promo, Story } from '@/lib/types';
 import { C } from '@/lib/theme';
 
 // Dentro del celular de la vista de escritorio del personal no se repite el selector
@@ -36,6 +38,26 @@ export default function Inicio() {
   const { orders } = useMyOrders(5);
   const { brand } = useBranding();
   const destacados = useDestacados();
+  const { data: scores } = useStoreScores();
+  const K = usePostKinds();
+  // Lo más reciente de Boca a boca (de tu tienda y los avisos para todos)
+  const [feed, setFeed] = useState<Post[]>([]);
+  useFocusEffect(
+    useCallback(() => {
+      supabase
+        .from('posts')
+        .select('*, post_replies(id)')
+        .eq('hidden', false)
+        .order('created_at', { ascending: false })
+        .limit(12)
+        .then(({ data }) => {
+          const all = (data as Post[]) ?? [];
+          const fav = profile?.store_id;
+          const mine = fav ? all.filter((p) => p.store_id === fav || p.store_id === null) : all;
+          setFeed((mine.length ? mine : all).slice(0, 3));
+        });
+    }, [profile?.store_id]),
+  );
   // Recordatorio: el pedido completado más reciente que aún no calificas (de los últimos 14 días)
   const [toRate, setToRate] = useState<{ id: string; folio: string; who: string } | null>(null);
   useEffect(() => {
@@ -89,6 +111,7 @@ export default function Inicio() {
   }, [stories]);
   const any = (k: 'send' | 'svc' | 'shop') => (stores || []).some((st) => st.activo && modOn(st, k));
   const myStore = (stores || []).find((s) => s.id === profile?.store_id);
+  const myScore = myStore ? scoreOf(scores, myStore.id) : undefined;
   const bday = profile?.fecha_nac && new Date(profile.fecha_nac + 'T12:00:00').getMonth() === new Date().getMonth();
   const minPhone = (products || []).filter((p) => p.activo && p.family_id === 'cel').map(prodFrom).filter((x) => Number.isFinite(x));
   const rate = cfg ? Number(cfg.exchange_rate) : 0;
@@ -127,7 +150,10 @@ export default function Inicio() {
             <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 16, right: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16 }}>
                 <BrandChip />
-                <LangToggle glass />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <NotifBell glass />
+                  <LangToggle glass />
+                </View>
               </View>
             </SafeAreaView>
           </View>
@@ -237,6 +263,30 @@ export default function Inicio() {
               </ScrollView>
             ) : null}
 
+            {/* Boca a boca: lo más reciente de la comunidad */}
+            {feed.length ? (
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Boca a boca', 'Word of mouth')}</Text>
+                  <Pressable accessibilityRole="button" onPress={() => router.push('/comunidad')}>
+                    <Text style={{ fontWeight: '900', color: C.blue }}>{L('Ver todo', 'See all')}</Text>
+                  </Pressable>
+                </View>
+                {feed.map((p) => (
+                  <Pressable key={p.id} accessibilityRole="button" onPress={() => router.push({ pathname: '/comunidad', params: { post: p.id } })}
+                    style={({ pressed }) => ({ padding: 14, borderRadius: 18, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, gap: 6, opacity: pressed ? 0.85 : 1 })}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                      <Avatar name={p.author_name} size={28} uri={p.author_foto} me={p.kind === 'store' || p.kind === 'aviso'} />
+                      <Text style={{ flex: 1, fontWeight: '900', color: C.ink }} numberOfLines={1}>{p.author_name}</Text>
+                      {p.kind === 'reco' && p.stars ? <Stars value={p.stars} size={13} /> : <Text style={{ fontSize: 11, fontWeight: '900', color: C.brown }}>{K[p.kind].label}</Text>}
+                    </View>
+                    <Text style={{ color: C.ink }} numberOfLines={2}>{p.text}</Text>
+                    {(p.post_replies || []).length ? <P small muted>{L(`${(p.post_replies || []).length} comentarios`, `${(p.post_replies || []).length} comments`)}</P> : null}
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
             {/* Pedidos recientes */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Tus pedidos recientes', 'Your recent orders')}</Text>
@@ -262,7 +312,15 @@ export default function Inicio() {
                 </View>
               )}
               <View style={{ flex: 1 }}>
-                <P small>{L('Tu tienda', 'Your store')}</P>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <P small>{L('Tu tienda', 'Your store')}</P>
+                  {myScore && Number(myScore.total) ? (
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                      <Stars value={Number(myScore.promedio)} size={12} />
+                      <Text style={{ fontSize: 12, fontWeight: '900', color: C.ink }}>{Number(myScore.promedio).toFixed(1)}</Text>
+                    </View>
+                  ) : null}
+                </View>
                 <Text style={{ fontWeight: '900', fontSize: 15, color: C.ink }}>{myStore ? myStore.nombre : L('Elige tu tienda favorita', 'Choose your favorite store')}</Text>
                 {myStore ? <P small>{[myStore.direccion, myStore.ciudad].filter(Boolean).join(' · ')}{myStore.abierta === false ? ' · ' + L('Cerrada ahora', 'Closed now') : ''}</P> : null}
               </View>

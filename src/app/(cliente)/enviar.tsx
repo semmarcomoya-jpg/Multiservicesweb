@@ -5,7 +5,7 @@ import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, Empty, Field, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen, TopBar, SearchBox, matches } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { modOn, pickOpen, storeOptions, useSettings, useStores } from '@/lib/data';
+import { modOn, pickOpen, storeOptions, useSettings, useStores, useStoreScores } from '@/lib/data';
 import { setDraft } from '@/lib/draft';
 import { money, mxn, num } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
@@ -18,6 +18,7 @@ export default function Enviar() {
   const { session, profile } = useAuth();
   const { data: cfg } = useSettings();
   const { data: stores } = useStores();
+  const { data: scores } = useStoreScores();
   const [benefs, setBenefs] = useState<Beneficiary[] | null>(null);
   const [sel, setSel] = useState<string | null>(null);
   const [storeId, setStoreId] = useState<string | null>(null);
@@ -133,7 +134,7 @@ export default function Enviar() {
       </Card>
 
       <Card>
-        <Pills label={L('¿Qué tienda hace tu envío?', 'Which store handles your transfer?')} options={storeOptions(sendStores, L('Cerrada', 'Closed'))} value={storeId} onChange={setStoreId} />
+        <Pills label={L('¿Qué tienda hace tu envío?', 'Which store handles your transfer?')} options={storeOptions(sendStores, L('Cerrada', 'Closed'), scores)} value={storeId} onChange={setStoreId} />
         {tried && errs.store ? <Note kind="red">{errs.store}</Note> : null}
         <P small muted>{L('Esa tienda recibe tu pago por Zelle y realiza tu envío.', 'That store receives your Zelle payment and makes your transfer.')}</P>
       </Card>
