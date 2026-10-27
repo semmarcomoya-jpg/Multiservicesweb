@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen } from '@/components/ui';
 import { addToCart, cartCount, useCart } from '@/lib/cart';
@@ -44,7 +45,7 @@ export default function ProductoDetalle() {
 
   if (missing)
     return (
-      <Screen>
+      <Screen wall="shop">
         <BackBar />
         <Note kind="gold">{L('Este producto ya no está disponible.', 'This product is no longer available.')}</Note>
       </Screen>
@@ -68,6 +69,7 @@ export default function ProductoDetalle() {
 
   return (
     <Screen
+      wall="shop"
       footer={
         <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
           <View>

@@ -1,8 +1,9 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
 
-import { BackBar, Btn, Card, Field, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen } from '@/components/ui';
+import { BackBar, Btn, Card, Field, H1, IcoBox, Label, Loading, MiniChip, Note, P, Pills, Row, Screen } from '@/components/ui';
 import { homeFee, modesFor, pickOpen, storeOptions, storesForService, svcCatIcon, useCategories, useServices, useStores } from '@/lib/data';
 import { setDraft } from '@/lib/draft';
 import { digits, money, num, splitList } from '@/lib/format';
@@ -115,24 +116,21 @@ export default function ServicioDetalle() {
 
   return (
     <Screen
+      wall="shop"
       footer={
-        <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
-          <View>
-            <P small muted>{L('Total a pagar', 'Total to pay')}</P>
-            <Text style={{ fontSize: 22, fontWeight: '900', color: C.ink }}>{money(base > 0 ? base + fee : 0)}</Text>
-          </View>
-          <Btn title={L('Continuar al pago', 'Continue to payment')} onPress={next} icon="arrow" />
-        </Row>
+        <Btn title={base > 0 ? L(`Ir a pagar · ${money(base + fee)}`, `Go to payment · ${money(base + fee)}`) : L('Ir a pagar', 'Go to payment')} onPress={next} />
       }
     >
-      <BackBar />
-      <Row gap={12} style={{ flexWrap: 'nowrap' }}>
-        <IcoBox n={svcCatIcon(cats || [], sv)} size={52} />
-        <View style={{ flex: 1 }}>
-          <H1>{nm(sv)}</H1>
-          <P muted>{lang === 'es' ? sv.desc_es : sv.desc_en}</P>
+      <BackBar steps={[L('Servicio', 'Service'), L('Pago', 'Payment'), L('Listo', 'Done')]} cur={0} />
+      <View style={{ gap: 4 }}>
+        <H1>{nm(sv)}</H1>
+        <P>{lang === 'es' ? sv.desc_es : sv.desc_en}</P>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+          {(lang === 'es' ? sv.eta_es : sv.eta_en) ? <MiniChip icon="clock">{lang === 'es' ? sv.eta_es : sv.eta_en}</MiniChip> : null}
+          {num(sv.fee) > 0 ? <MiniChip>{L('Comisión ', 'Fee ') + money(sv.fee)}</MiniChip> : null}
+          <MiniChip icon={svcCatIcon(cats || [], sv)}>{L('Pago con Zelle', 'Pay with Zelle')}</MiniChip>
         </View>
-      </Row>
+      </View>
       {avail.length === 0 ? <Note kind="red">{L('Ninguna tienda ofrece este servicio por ahora.', 'No store offers this service right now.')}</Note> : null}
 
       <Card>

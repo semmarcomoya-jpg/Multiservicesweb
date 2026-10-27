@@ -1,6 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Image, Text, View } from 'react-native';
+import { Image, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { orderIcon, useOrderText } from '@/components/orders';
 import { BackBar, Btn, Card, H1, IcoBox, Label, Loading, Note, P, Row, Screen, StatusChip } from '@/components/ui';
@@ -49,7 +50,7 @@ export default function PedidoCliente() {
   const idx = o.status === 'rechazado' ? -1 : steps.findIndex((x) => x[0] === o.status);
 
   return (
-    <Screen>
+    <Screen wall="send">
       <BackBar title={o.folio} />
       {nuevo ? <Note kind="blue" icon="check">{L('¡Pedido enviado! Te avisamos aquí cuando la tienda confirme tu pago.', "Order sent! We'll update you here when the store confirms your payment.")}</Note> : null}
       <Row gap={12} style={{ flexWrap: 'nowrap' }}>

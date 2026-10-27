@@ -1,5 +1,6 @@
 import React from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { Card, H2, IcoBox, P, Pills, Row } from '@/components/ui';
 import { money } from '@/lib/format';

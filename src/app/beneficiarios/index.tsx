@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, Empty, H1, IcoBox, Loading, P, Row, Screen } from '@/components/ui';
 import { useLang } from '@/lib/i18n';
@@ -26,7 +27,7 @@ export default function Beneficiarios() {
   };
 
   return (
-    <Screen>
+    <Screen wall="send">
       <BackBar title={L('Mis beneficiarios', 'My recipients')} />
       <H1>{L('¿A quién le envías?', 'Who do you send to?')}</H1>
       <Btn icon="users" title={L('Agregar beneficiario', 'Add recipient')} onPress={() => router.push('/beneficiarios/nuevo')} />

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Text } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { PanelHeader } from '@/components/panel';
 import { Btn, Card, Field, H2, Loading, Note, P, Row, Screen } from '@/components/ui';

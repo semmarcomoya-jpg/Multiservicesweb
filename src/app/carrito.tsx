@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, Empty, Field, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen } from '@/components/ui';
 import { cartTotal, setQty, useCart } from '@/lib/cart';
@@ -31,7 +32,7 @@ export default function Carrito() {
   if (!stores) return <Loading />;
   if (!cart.items.length || !st) {
     return (
-      <Screen>
+      <Screen wall="shop">
         <BackBar title={L('Carrito', 'Cart')} />
         <Empty>{L('Tu carrito está vacío.', 'Your cart is empty.')}</Empty>
         <Btn title={L('Ver productos', 'See products')} onPress={() => router.replace('/productos')} />
@@ -66,6 +67,7 @@ export default function Carrito() {
 
   return (
     <Screen
+      wall="shop"
       footer={
         <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
           <View>
@@ -76,7 +78,7 @@ export default function Carrito() {
         </Row>
       }
     >
-      <BackBar title={L('Carrito', 'Cart')} />
+      <BackBar steps={[L('Carrito', 'Cart'), L('Pago', 'Payment'), L('Listo', 'Done')]} cur={0} />
       <H1>{L('Tu compra', 'Your purchase')}</H1>
       <P muted>{st.nombre}</P>
       {errs.closed ? <Note kind="red" icon="clock">{errs.closed}</Note> : null}

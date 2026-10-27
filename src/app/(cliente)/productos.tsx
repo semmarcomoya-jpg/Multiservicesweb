@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Image, Pressable, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
+import { Text, TextInput } from '@/components/Text';
 
 import { Btn, Empty, H1, IcoBox, Loading, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -30,7 +31,7 @@ export default function Productos() {
   if (!stores || !fams) return <Loading />;
   if (!shopStores.length) {
     return (
-      <Screen>
+      <Screen wall="shop">
         <TopBar />
         <H1>{L('Tienda', 'Shop')}</H1>
         <Empty>{L('Por ahora ninguna tienda vende productos por la app.', 'No store sells products in the app right now.')}</Empty>
@@ -48,6 +49,7 @@ export default function Productos() {
 
   return (
     <Screen
+      wall="shop"
       footer={
         n > 0 ? (
           <Btn icon="cart" title={L(`Ver carrito (${n})`, `View cart (${n})`)} onPress={() => router.push('/carrito')} />

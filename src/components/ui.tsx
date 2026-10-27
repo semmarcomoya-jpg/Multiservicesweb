@@ -7,8 +7,6 @@ import {
   ScrollView,
   StyleProp,
   StyleSheet,
-  Text,
-  TextInput,
   TextStyle,
   View,
   ViewStyle,
@@ -16,6 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { Wallpaper, type WallTheme } from '@/components/art';
+import { Text, TextInput } from '@/components/Text';
 import { useLang } from '@/lib/i18n';
 import { ICONS } from '@/lib/icons';
 import { C, R, STATUS_COLORS } from '@/lib/theme';
@@ -38,6 +38,44 @@ export function IcoBox({ n, size = 36, bg = C.icoBg, color = C.brown }: { n: str
   return (
     <View style={{ width: size, height: size, borderRadius: size * 0.3, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
       <Icon n={n} size={size * 0.52} color={color} />
+    </View>
+  );
+}
+
+/** Círculo de color con ícono (c-gold / c-blue de la maqueta) */
+export function Circ({ n, tone = 'gold', size = 48 }: { n: string; tone?: 'gold' | 'blue' | 'white' | 'sun'; size?: number }) {
+  const bg = { gold: C.goldSoft, blue: C.blueSoft, white: C.card, sun: C.gold }[tone];
+  const fg = { gold: C.brown, blue: C.blue, white: C.brown, sun: C.ink }[tone];
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
+      <Icon n={n} size={Math.round(size * 0.46)} color={fg} sw={tone === 'sun' ? 2.4 : 2} />
+    </View>
+  );
+}
+
+export const MiniChip = ({ children, icon }: { children: React.ReactNode; icon?: string }) => (
+  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: R.pill, backgroundColor: C.cream }}>
+    {icon ? <Icon n={icon} size={12} color={C.softInk} /> : null}
+    <Text style={{ fontSize: 11, fontWeight: '800', color: C.softInk }}>{children}</Text>
+  </View>
+);
+
+export function BrandChip({ name = 'Castillo' }: { name?: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingLeft: 6, paddingRight: 12, borderRadius: R.pill, backgroundColor: 'rgba(255,255,255,0.92)' }}>
+      <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center' }}>
+        <Text style={{ color: C.goldSoft, fontWeight: '900', fontSize: 15 }}>C</Text>
+      </View>
+      <Text style={{ fontWeight: '800', fontSize: 14, color: C.ink }}>{name}</Text>
+    </View>
+  );
+}
+
+export function Avatar({ name, size = 44, me = true }: { name: string; size?: number; me?: boolean }) {
+  const ini = name.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]).join('').toUpperCase();
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: me ? C.brown : C.goldSoft, alignItems: 'center', justifyContent: 'center' }}>
+      <Text style={{ fontWeight: '900', fontSize: size * 0.36, color: me ? C.goldSoft : C.goldInk }}>{ini || '·'}</Text>
     </View>
   );
 }
@@ -65,16 +103,24 @@ export function Screen({
   wide = false,
   footer,
   bg = C.page,
+  wall,
+  flush = false,
 }: {
   children: React.ReactNode;
   scroll?: boolean;
   wide?: boolean;
   footer?: React.ReactNode;
   bg?: string;
+  /** Fondo tipo WhatsApp del tema de la sección */
+  wall?: WallTheme;
+  /** Sin márgenes ni espacio arriba (para portadas) */
+  flush?: boolean;
 }) {
-  const inner = <View style={[s.inner, { maxWidth: wide ? 1100 : 560 }]}>{children}</View>;
+  const max = wide ? 1100 : 520;
+  const inner = <View style={[s.inner, { maxWidth: max }, flush && { paddingHorizontal: 0, paddingTop: 0, gap: 0 }]}>{children}</View>;
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: wall ? undefined : bg }} edges={flush ? ['left', 'right'] : ['top', 'left', 'right']}>
+      {wall ? <Wallpaper theme={wall} /> : null}
       {scroll ? (
         <ScrollView contentContainerStyle={{ paddingBottom: 32 }} keyboardShouldPersistTaps="handled">
           {inner}
@@ -82,7 +128,7 @@ export function Screen({
       ) : (
         inner
       )}
-      {footer ? <View style={s.footer}><View style={[s.inner, { maxWidth: wide ? 1100 : 560, paddingVertical: 12 }]}>{footer}</View></View> : null}
+      {footer ? <View style={s.footer}><View style={[s.inner, { maxWidth: max, paddingVertical: 12, paddingBottom: 18 }]}>{footer}</View></View> : null}
     </SafeAreaView>
   );
 }
@@ -118,7 +164,7 @@ export function Btn({
 }) {
   const bg = { primary: C.brown, ghost: C.card, danger: C.card, blue: C.blue, soft: C.goldSoft }[kind];
   const fg = { primary: '#fff', ghost: C.ink, danger: C.red, blue: '#fff', soft: C.goldInk }[kind];
-  const border = kind === 'ghost' ? C.line2 : kind === 'danger' ? C.red : bg;
+  const border = kind === 'ghost' ? C.line : kind === 'danger' ? C.redSoft : bg;
   return (
     <Pressable
       accessibilityRole="button"
@@ -138,8 +184,31 @@ export function Btn({
   );
 }
 
-export function BackBar({ title, right }: { title?: string; right?: React.ReactNode }) {
+/** Pasos del trámite, como en la maqueta: Servicio · Pago · Listo */
+export function Stepper({ steps, cur }: { steps: string[]; cur: number }) {
+  return (
+    <View style={{ flex: 1, flexDirection: 'row', gap: 6 }} accessibilityRole="progressbar" accessibilityValue={{ min: 1, max: steps.length, now: cur + 1 }}>
+      {steps.map((x, i) => (
+        <View key={x} style={{ flex: 1, gap: 5 }}>
+          <View style={{ height: 6, borderRadius: 3, backgroundColor: i <= cur ? C.gold : C.line }} />
+          <Text style={{ fontSize: 11, fontWeight: '800', color: i < cur ? C.brown : i === cur ? C.ink : '#8C6E5C' }}>{x}</Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+export function BackBar({ title, right, steps, cur = 0 }: { title?: string; right?: React.ReactNode; steps?: string[]; cur?: number }) {
   const { L } = useLang();
+  if (steps)
+    return (
+      <Row style={{ flexWrap: 'nowrap', paddingTop: 4 }} gap={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel={L('Regresar', 'Back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} style={s.backPlain}>
+          <Icon n="back" size={24} color={C.ink} sw={2.4} />
+        </Pressable>
+        <Stepper steps={steps} cur={cur} />
+      </Row>
+    );
   return (
     <Row style={{ justifyContent: 'space-between', marginBottom: 4 }}>
       <Pressable
@@ -231,8 +300,8 @@ export function Pills<T extends string | number>({
               onPress={() => onChange(o.v)}
               style={[s.pill, on && s.pillOn, o.disabled && { opacity: 0.45 }]}
             >
-              {o.icon ? <Icon n={o.icon} size={16} color={on ? C.brownDark : C.softInk} /> : null}
-              <Text style={[s.pillTxt, on && { color: C.brownDark }]}>{o.label}</Text>
+              {o.icon ? <Icon n={o.icon} size={16} color={on ? C.brown : C.softInk} /> : null}
+              <Text style={[s.pillTxt, on && { fontWeight: '800' }]}>{o.label}</Text>
             </Pressable>
           );
         })}
@@ -268,7 +337,7 @@ export function Note({ children, kind = 'gold', icon }: { children: React.ReactN
   return (
     <View style={[s.note, { backgroundColor: bg }]}>
       {icon ? <Icon n={icon} size={20} color={fg} /> : null}
-      <Text style={{ flex: 1, color: fg, fontSize: 14, lineHeight: 20, fontWeight: '600' }}>{children}</Text>
+      <Text style={{ flex: 1, color: fg, fontSize: 14, lineHeight: 20, fontWeight: '700' }}>{children}</Text>
     </View>
   );
 }
@@ -297,10 +366,10 @@ export const Loading = () => (
   </View>
 );
 
-export function LangToggle() {
+export function LangToggle({ glass = false }: { glass?: boolean }) {
   const { lang, setLang } = useLang();
   return (
-    <View style={s.seg} accessibilityRole="radiogroup" accessibilityLabel="Idioma / Language">
+    <View style={[s.seg, glass && { backgroundColor: 'rgba(255,255,255,0.85)' }]} accessibilityRole="radiogroup" accessibilityLabel="Idioma / Language">
       {(['es', 'en'] as const).map((l) => (
         <Pressable key={l} accessibilityRole="radio" accessibilityState={{ checked: lang === l }} onPress={() => setLang(l)} style={[s.segBtn, lang === l && { backgroundColor: C.ink }]}>
           <Text style={{ fontWeight: '900', color: lang === l ? '#fff' : C.segInk }}>{l.toUpperCase()}</Text>
@@ -312,38 +381,32 @@ export function LangToggle() {
 
 export function TopBar({ subtitle }: { subtitle?: string }) {
   return (
-    <Row style={{ justifyContent: 'space-between', paddingVertical: 6 }}>
-      <Row gap={10}>
-        <View style={s.logo}>
-          <Text style={{ color: C.goldSoft, fontWeight: '900', fontSize: 20 }}>C</Text>
-        </View>
-        <View>
-          <Text style={{ fontWeight: '900', fontSize: 17, color: C.ink }}>Castillo</Text>
-          {subtitle ? <P small muted>{subtitle}</P> : null}
-        </View>
-      </Row>
-      <LangToggle />
+    <Row style={{ justifyContent: 'space-between', paddingTop: 6 }}>
+      <BrandChip />
+      {subtitle ? <P small muted style={{ flex: 1 }}>{subtitle}</P> : null}
+      <LangToggle glass />
     </Row>
   );
 }
 
 export const s = StyleSheet.create({
-  inner: { width: '100%', alignSelf: 'center', paddingHorizontal: 16, paddingTop: 8, gap: 16 },
-  footer: { borderTopWidth: 1, borderTopColor: C.line, backgroundColor: C.card },
-  h1: { fontSize: 26, fontWeight: '900', color: C.ink, letterSpacing: -0.3 },
+  inner: { width: '100%', alignSelf: 'center', paddingHorizontal: 20, paddingTop: 10, gap: 14 },
+  footer: { borderTopWidth: 1, borderTopColor: '#EFE8DD', backgroundColor: C.card },
+  h1: { fontSize: 26, fontWeight: '900', color: C.ink, lineHeight: 30 },
   h2: { fontSize: 18, fontWeight: '900', color: C.ink },
-  p: { fontSize: 15, lineHeight: 21, color: C.ink },
+  p: { fontSize: 15, lineHeight: 22, color: C.softInk },
   label: { fontSize: 14, fontWeight: '800', color: C.ink },
-  card: { backgroundColor: C.card, borderRadius: R.lg, padding: 16, gap: 12, borderWidth: 1, borderColor: C.line },
-  btn: { minHeight: 50, paddingHorizontal: 18, borderRadius: R.md, borderWidth: 1.5, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  btnSm: { minHeight: 40, paddingHorizontal: 14 },
-  btnTxt: { fontSize: 16, fontWeight: '900' },
-  back: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, alignItems: 'center', justifyContent: 'center' },
-  input: { minHeight: 50, borderRadius: R.md, borderWidth: 1.5, borderColor: C.line2, backgroundColor: C.card, paddingHorizontal: 14, fontSize: 16, color: C.ink },
+  card: { backgroundColor: C.card, borderRadius: 18, padding: 16, gap: 10, borderWidth: 1, borderColor: '#EFE8DD' },
+  btn: { minHeight: 54, paddingHorizontal: 18, borderRadius: 16, borderWidth: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  btnSm: { minHeight: 42, paddingHorizontal: 14, borderRadius: 12 },
+  btnTxt: { fontSize: 16, fontWeight: '800' },
+  back: { width: 44, height: 44, borderRadius: 14, backgroundColor: C.card, borderWidth: 1, borderColor: '#EFE8DD', alignItems: 'center', justifyContent: 'center' },
+  backPlain: { width: 36, height: 44, alignItems: 'center', justifyContent: 'center' },
+  input: { minHeight: 50, borderRadius: 14, borderWidth: 1, borderColor: C.line2, backgroundColor: C.card, paddingHorizontal: 14, fontSize: 16, color: C.ink, fontWeight: '600' },
   err: { color: C.red, fontWeight: '700', fontSize: 13 },
-  pill: { minHeight: 42, paddingHorizontal: 14, borderRadius: R.pill, borderWidth: 1.5, borderColor: C.line2, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pillOn: { borderColor: C.brown, backgroundColor: C.tint },
-  pillTxt: { fontWeight: '800', color: C.softInk, fontSize: 14 },
+  pill: { minHeight: 42, paddingHorizontal: 14, borderRadius: R.pill, borderWidth: 1, borderColor: C.line2, backgroundColor: C.card, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pillOn: { borderWidth: 2, borderColor: C.brown, backgroundColor: C.goldSoft },
+  pillTxt: { fontWeight: '700', color: C.ink, fontSize: 14 },
   toggle: { flexGrow: 1, minWidth: 240, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: R.md, borderWidth: 1.5, borderColor: 'transparent', backgroundColor: C.cream },
   sw: { width: 46, height: 26, borderRadius: 13, backgroundColor: '#D9C8B8', padding: 3 },
   swDot: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },

@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Share, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { useOrderText } from '@/components/orders';
 import { PanelHeader, usePanelStore } from '@/components/panel';

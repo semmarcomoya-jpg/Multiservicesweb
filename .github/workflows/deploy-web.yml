@@ -32,8 +32,10 @@ jobs:
           # La anon key es pública (la seguridad la dan las reglas RLS de la base de datos)
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZlamVtZWF1eXdpbHN2aHJ6ZmZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMwNTM1NTAsImV4cCI6MjEwODYyOTU1MH0.8oo6Kq13VEezXJkias5xz3Rv8ANgMyNn7UX8TWuMTHY' }}
           EXPO_BASE_URL: /${{ github.event.repository.name }}
-      - name: Rutas directas (SPA)
-        run: cp dist/index.html dist/404.html && touch dist/.nojekyll
+      - name: Rutas directas (SPA) e instalación en el celular (PWA)
+        run: cp dist/index.html dist/404.html && touch dist/.nojekyll && node scripts/pwa.mjs
+        env:
+          EXPO_BASE_URL: /${{ github.event.repository.name }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -60,7 +60,7 @@ export default function NuevoBeneficiario() {
   };
 
   return (
-    <Screen>
+    <Screen wall="send">
       <BackBar title={L('Nuevo beneficiario', 'New recipient')} />
       <H1>{L('¿Quién recibe el dinero?', 'Who receives the money?')}</H1>
       <Card>

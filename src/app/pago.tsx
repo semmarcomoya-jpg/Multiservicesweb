@@ -1,7 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
 import { Redirect, router } from 'expo-router';
 import React, { useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, Field, H1, IcoBox, Label, Loading, Note, P, Row, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -90,8 +91,8 @@ export default function Pago() {
   );
 
   return (
-    <Screen>
-      <BackBar title={L('Pago con Zelle', 'Pay with Zelle')} />
+    <Screen wall="send">
+      <BackBar steps={[d.kind === 'send' ? L('Envío', 'Transfer') : d.kind === 'shop' ? L('Carrito', 'Cart') : L('Servicio', 'Service'), L('Pago', 'Payment'), L('Listo', 'Done')]} cur={1} />
       <H1>{L('Paga y sube tu captura', 'Pay and upload your screenshot')}</H1>
 
       <Card>

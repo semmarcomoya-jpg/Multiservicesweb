@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { PanelHeader } from '@/components/panel';
 import { Btn, Card, Field, H2, Note, P, Pills, Row, Screen } from '@/components/ui';

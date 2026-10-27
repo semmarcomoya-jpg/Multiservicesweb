@@ -1,6 +1,7 @@
 import { router, usePathname } from 'expo-router';
 import React, { useState, useSyncExternalStore } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { Icon, LangToggle, Row } from '@/components/ui';
 import { useAuth } from '@/lib/auth';

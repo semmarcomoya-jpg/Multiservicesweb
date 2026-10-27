@@ -35,7 +35,7 @@ export default function Entrar() {
   };
 
   return (
-    <Screen>
+    <Screen wall="profile">
       <BackBar />
       <H1>{L('Entrar', 'Sign in')}</H1>
       <Card>

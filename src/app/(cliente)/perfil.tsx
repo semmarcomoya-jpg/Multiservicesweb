@@ -1,7 +1,9 @@
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
+import { Text } from '@/components/Text';
 
+import { InstallCard } from '@/components/InstallCard';
 import { Btn, Card, Field, H1, Label, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useStores } from '@/lib/data';
@@ -47,7 +49,7 @@ export default function Perfil() {
   }[profile.id_status];
 
   return (
-    <Screen>
+    <Screen wall="profile">
       <TopBar />
       <H1>{L('Mi perfil', 'My profile')}</H1>
       <View style={{ backgroundColor: C.brown, borderRadius: R.xl, padding: 18, gap: 4 }}>
@@ -55,6 +57,8 @@ export default function Perfil() {
         <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: 1 }}>{profile.member_code}</Text>
         <Text style={{ color: C.goldSoft, fontSize: 13 }}>{L('Escríbelo en la nota de Zelle o dilo en la tienda.', 'Write it in the Zelle memo or say it at the store.')}</Text>
       </View>
+
+      <InstallCard />
 
       {profile.role !== 'cliente' ? (
         <Card>

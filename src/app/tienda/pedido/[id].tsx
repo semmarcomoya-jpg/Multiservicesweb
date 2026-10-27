@@ -1,7 +1,8 @@
 import * as Clipboard from 'expo-clipboard';
 import { useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, Text, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { orderIcon, useOrderText } from '@/components/orders';
 import { BackBar, Btn, Card, Field, H1, H2, IcoBox, Label, Loading, Note, P, Row, Screen, StatusChip } from '@/components/ui';

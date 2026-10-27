@@ -1,8 +1,9 @@
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
 
-import { Btn, Card, Empty, Field, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
+import { BackBar, Btn, Card, Empty, Field, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { modOn, pickOpen, storeOptions, useSettings, useStores } from '@/lib/data';
 import { setDraft } from '@/lib/draft';
@@ -65,7 +66,7 @@ export default function Enviar() {
 
   if (!sendStores.length) {
     return (
-      <Screen>
+      <Screen wall="send">
         <TopBar />
         <H1>{L('Enviar dinero', 'Send money')}</H1>
         <Empty>{L('Por ahora ninguna tienda ofrece envíos.', 'No store offers transfers right now.')}</Empty>
@@ -75,6 +76,7 @@ export default function Enviar() {
 
   return (
     <Screen
+      wall="send"
       footer={
         <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
           <View>
@@ -85,7 +87,7 @@ export default function Enviar() {
         </Row>
       }
     >
-      <TopBar />
+      <BackBar steps={[L('Envío', 'Transfer'), L('Pago', 'Payment'), L('Listo', 'Done')]} cur={0} />
       <H1>{L('Enviar dinero a México', 'Send money to Mexico')}</H1>
 
       <Card>

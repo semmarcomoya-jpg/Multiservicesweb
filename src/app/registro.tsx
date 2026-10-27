@@ -49,7 +49,7 @@ export default function Registro() {
 
   if (confirm) {
     return (
-      <Screen>
+      <Screen wall="profile">
         <BackBar />
         <H1>{L('Revisa tu correo', 'Check your email')}</H1>
         <Note kind="blue" icon="check">
@@ -61,7 +61,7 @@ export default function Registro() {
   }
 
   return (
-    <Screen>
+    <Screen wall="profile">
       <BackBar />
       <H1>{L('Crea tu cuenta', 'Create your account')}</H1>
       <P muted>{L('Solo lo necesario para atenderte. Puedes completar tu perfil después.', 'Just what we need to serve you. You can complete your profile later.')}</P>

@@ -1,6 +1,7 @@
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { PanelHeader } from '@/components/panel';
 import { Btn, Card, H2, IcoBox, Loading, P, Row, Screen } from '@/components/ui';

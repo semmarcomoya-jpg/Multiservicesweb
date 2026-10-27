@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
+import { Text } from '@/components/Text';
 
 import { PanelHeader } from '@/components/panel';
 import { inPeriod, orderGroup, Summary, useGroups, type Period } from '@/components/summary';
