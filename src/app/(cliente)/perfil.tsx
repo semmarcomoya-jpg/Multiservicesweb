@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
+import { BirthdayField } from '@/components/BirthdayField';
 import { InstallCard } from '@/components/InstallCard';
 import { Avatar, Btn, Card, Field, H1, Label, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
 import { pickImage, uploadImage } from '@/lib/upload';
@@ -30,7 +31,11 @@ export default function Perfil() {
   }, [profile]);
 
   if (!profile) return null;
-  const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
+  const set = (k: keyof typeof f) => (v: string) => {
+    setOk(false);
+    setMsg('');
+    setF((p) => ({ ...p, [k]: v }));
+  };
   // Acepta 21/05/1990, 21-5-1990 o 1990-05-21; se guarda como 1990-05-21
   const toIso = (t: string): string | null => {
     const v = t.trim();
@@ -45,11 +50,19 @@ export default function Perfil() {
     return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
   };
   const iso = toIso(f.fecha_nac);
+  // ¿Hay algo distinto a lo guardado?
+  const dirty =
+    !profile ||
+    (f.nombre || '').trim() !== (profile.nombre || '') ||
+    (f.apellidos || '').trim() !== (profile.apellidos || '') ||
+    digits(f.telefono || '') !== (profile.telefono || '') ||
+    (iso === null ? true : (iso || null) !== (profile.fecha_nac || null)) ||
+    (profile.role === 'cliente' && (f.store_id || null) !== (profile.store_id || null));
   const dateOk = iso !== null;
 
   const save = async () => {
     setOk(false);
-    if (!dateOk) return setMsg(L('Revisa tu fecha de nacimiento: escríbela como 21/05/1990.', 'Check your date of birth: type it as day/month/year, like 21/05/1990.'));
+    if (!dateOk) return setMsg(L('Revisa tu fecha de nacimiento: elige día, mes y año, o déjala vacía.', 'Check your date of birth: pick day, month and year, or leave it empty.'));
     if (!(f.nombre || '').trim()) return setMsg(L('Escribe tu nombre.', 'Enter your first name.'));
     setBusy(true);
     setMsg('');
@@ -143,13 +156,14 @@ export default function Perfil() {
           <Field label={L('Apellidos', 'Last name')} value={f.apellidos} onChangeText={set('apellidos')} />
         </Row>
         <Field label={L('Teléfono', 'Phone')} value={f.telefono} onChangeText={(v) => set('telefono')(digits(v))} keyboardType="phone-pad" maxLength={10} />
-        <Field label={L('Fecha de nacimiento (día/mes/año)', 'Date of birth (day/month/year)')} value={f.fecha_nac} onChangeText={set('fecha_nac')} placeholder="21/05/1990" error={dateOk ? '' : L('Escríbela como 21/05/1990', 'Type it like 21/05/1990')} hint={L('Opcional. Te consentimos en tu cumpleaños.', 'Optional. We treat you on your birthday.')} />
+        <BirthdayField value={f.fecha_nac} onChange={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, fecha_nac: v })); }} />
         <P small muted>{session?.user.email}</P>
         {profile.role === 'cliente' && stores ? (
-          <Pills label={L('Mi tienda favorita', 'My favorite store')} options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', ''), icon: 'store', img: x.fotos?.[0] || null }))} value={f.store_id} onChange={(v) => setF((p) => ({ ...p, store_id: v }))} />
+          <Pills label={L('Mi tienda favorita', 'My favorite store')} options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', ''), icon: 'store', img: x.fotos?.[0] || null }))} value={f.store_id} onChange={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, store_id: v })); }} />
         ) : null}
         {msg ? <Note kind={ok ? 'blue' : 'red'} icon={ok ? 'check' : 'x'}>{msg}</Note> : null}
-        <Btn title={L('Guardar cambios', 'Save changes')} onPress={save} loading={busy} />
+        {/* Después de guardar el botón dice "✓ Guardado" hasta que cambies algo */}
+        <Btn title={dirty ? L('Guardar cambios', 'Save changes') : L('✓ Guardado', '✓ Saved')} kind={dirty ? 'primary' : 'ghost'} disabled={!dirty && !busy} onPress={save} loading={busy} />
       </Card>
 
       <Card>
