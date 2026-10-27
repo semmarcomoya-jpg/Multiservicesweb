@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
+import { ActionSheet } from '@/components/ActionSheet';
 import { PostCard, useHideReasons, usePostKinds } from '@/components/PostCard';
 import { Btn, Card, Empty, Field, H2, Loading, Note, Pills, Row, SearchBox, matches } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -22,9 +23,10 @@ export function ComunidadPanel({ stores, storeId }: { stores: Store[]; storeId?:
   const [draft, setDraft] = useState('');
   const [pubStore, setPubStore] = useState<string | null>(storeId || stores[0]?.id || null);
   const [reply, setReply] = useState<Record<string, string>>({});
-  const [reason, setReason] = useState<Record<string, Post['hide_reason']>>({});
   const [busy, setBusy] = useState('');
-  const [armed, setArmed] = useState<string | null>(null);
+  const [menu, setMenu] = useState<Post | null>(null);
+  const [step, setStep] = useState<'main' | 'hide' | 'delete'>('main');
+  const [replyOpen, setReplyOpen] = useState<string | null>(null);
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin';
   const [err, setErr] = useState('');
@@ -105,44 +107,85 @@ export function ComunidadPanel({ stores, storeId }: { stores: Store[]; storeId?:
           key={p.id}
           p={p}
           storeName={name(p.store_id)}
+          onMenu={() => {
+            setMenu(p);
+            setStep('main');
+          }}
           footer={
-            <View style={{ gap: 8, marginTop: 4 }}>
-              {p.kind !== 'store' ? (
-                <Row style={{ alignItems: 'flex-end' }}>
-                  <Field label={L('Responder públicamente', 'Reply publicly')} value={reply[p.id] || ''} onChangeText={(v) => setReply((r) => ({ ...r, [p.id]: v }))} maxLength={500} />
+            replyOpen === p.id ? (
+              <View style={{ gap: 8, marginTop: 4 }}>
+                <Field label={L('Tu respuesta pública', 'Your public reply')} value={reply[p.id] || ''} onChangeText={(v) => setReply((r) => ({ ...r, [p.id]: v }))} multiline maxLength={500} />
+                <Row>
                   <Btn
-                    title={L('Responder', 'Reply')}
+                    small
+                    title={L('Publicar respuesta', 'Post reply')}
                     disabled={!(reply[p.id] || '').trim()}
                     loading={busy === 'r' + p.id}
-                    onPress={() => run('r' + p.id, () => supabase.rpc('reply_post', { p_post: p.id, p_text: (reply[p.id] || '').trim() }), () => setReply((r) => ({ ...r, [p.id]: '' })))}
+                    onPress={() => run('r' + p.id, () => supabase.rpc('reply_post', { p_post: p.id, p_text: (reply[p.id] || '').trim() }), () => { setReply((r) => ({ ...r, [p.id]: '' })); setReplyOpen(null); })}
                   />
+                  <Btn small kind="ghost" title={L('Cancelar', 'Cancel')} onPress={() => setReplyOpen(null)} />
                 </Row>
-              ) : null}
-              {isAdmin ? (
-                <Row>
-                  {armed === p.id ? (
-                    <>
-                      <Btn small kind="danger" icon="x" title={L('Sí, borrar para siempre', 'Yes, delete forever')} loading={busy === 'd' + p.id}
-                        onPress={() => run('d' + p.id, () => supabase.rpc('admin_delete_post', { p_post: p.id, p_reason: reason[p.id] || p.hide_reason || 'otro' }), () => setArmed(null))} />
-                      <Btn small kind="ghost" title={L('Cancelar', 'Cancel')} onPress={() => setArmed(null)} />
-                    </>
-                  ) : (
-                    <Btn small kind="ghost" icon="x" title={L('Borrar definitivamente', 'Delete permanently')} onPress={() => setArmed(p.id)} />
-                  )}
-                </Row>
-              ) : null}
-              {p.hidden ? (
-                <Btn small kind="ghost" title={L('Mostrar de nuevo', 'Show again')} loading={busy === 'h' + p.id} onPress={() => run('h' + p.id, () => supabase.rpc('moderate_post', { p_post: p.id, p_hide: false, p_reason: '' }))} style={{ alignSelf: 'flex-start' }} />
-              ) : (
-                <View style={{ gap: 6 }}>
-                  <Pills label={L('Motivo para ocultar', 'Reason to hide')} options={reasons} value={reason[p.id] || null} onChange={(v) => setReason((r) => ({ ...r, [p.id]: v }))} />
-                  <Btn small kind="danger" title={L('Ocultar', 'Hide')} disabled={!reason[p.id]} loading={busy === 'h' + p.id} onPress={() => run('h' + p.id, () => supabase.rpc('moderate_post', { p_post: p.id, p_hide: true, p_reason: reason[p.id] }))} style={{ alignSelf: 'flex-start' }} />
-                </View>
-              )}
-            </View>
+              </View>
+            ) : null
           }
         />
       ))}
+
+      {/* Menú ⋮ de cada publicación */}
+      <ActionSheet
+        visible={!!menu}
+        onClose={() => setMenu(null)}
+        title={
+          !menu ? '' : step === 'hide' ? L('¿Por qué la ocultas?', 'Why are you hiding it?') : step === 'delete' ? L('¿Borrar para siempre?', 'Delete forever?') : `${menu.author_name}: ${menu.text}`
+        }
+        items={
+          !menu
+            ? []
+            : step === 'hide'
+              ? reasons.map((r) => ({
+                  key: r.v,
+                  label: r.label,
+                  onPress: () => {
+                    const p = menu;
+                    setMenu(null);
+                    run('h' + p.id, () => supabase.rpc('moderate_post', { p_post: p.id, p_hide: true, p_reason: r.v }));
+                  },
+                }))
+              : step === 'delete'
+                ? [
+                    {
+                      key: 'yes',
+                      label: L('Sí, borrar para siempre', 'Yes, delete forever'),
+                      sub: L('No se puede deshacer. Queda registrado en la Bitácora.', 'This cannot be undone. It is recorded in the activity log.'),
+                      icon: 'x',
+                      danger: true,
+                      onPress: () => {
+                        const p = menu;
+                        setMenu(null);
+                        run('d' + p.id, () => supabase.rpc('admin_delete_post', { p_post: p.id, p_reason: p.hide_reason || 'otro' }));
+                      },
+                    },
+                  ]
+                : [
+                    ...(menu.kind !== 'store'
+                      ? [{ key: 'reply', label: L('Responder', 'Reply'), icon: 'chat', onPress: () => { setReplyOpen(menu.id); setMenu(null); } }]
+                      : []),
+                    menu.hidden
+                      ? {
+                          key: 'show',
+                          label: L('Mostrar de nuevo', 'Show again'),
+                          icon: 'eye',
+                          onPress: () => {
+                            const p = menu;
+                            setMenu(null);
+                            run('h' + p.id, () => supabase.rpc('moderate_post', { p_post: p.id, p_hide: false, p_reason: '' }));
+                          },
+                        }
+                      : { key: 'hide', label: L('Ocultar…', 'Hide…'), sub: L('Ofensivo, spam o datos personales', 'Offensive, spam or personal info'), icon: 'lock', onPress: () => setStep('hide') },
+                    ...(isAdmin ? [{ key: 'del', label: L('Borrar definitivamente…', 'Delete permanently…'), icon: 'x', danger: true, onPress: () => setStep('delete') }] : []),
+                  ]
+        }
+      />
     </>
   );
 }

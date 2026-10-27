@@ -39,6 +39,7 @@ export function PostCard({
   liked,
   onLike,
   footer,
+  onMenu,
   mine,
 }: {
   p: Post;
@@ -46,6 +47,8 @@ export function PostCard({
   liked?: boolean;
   onLike?: () => void;
   footer?: React.ReactNode;
+  /** Si viene, se muestra el botón ⋮ con las opciones */
+  onMenu?: () => void;
   mine?: boolean;
 }) {
   const { L, lang } = useLang();
@@ -64,6 +67,12 @@ export function PostCard({
         <View style={{ backgroundColor: k.bg, borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 }}>
           <Text style={{ fontSize: 11, fontWeight: '900', color: k.fg }}>{k.label}</Text>
         </View>
+        {onMenu ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={L('Opciones', 'Options')} onPress={onMenu} hitSlop={10}
+            style={({ pressed }) => ({ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', marginRight: -6, backgroundColor: pressed ? C.tint : 'transparent' })}>
+            <Icon n="dots" size={22} color={C.ink} sw={2.6} />
+          </Pressable>
+        ) : null}
       </View>
       {p.hidden ? (
         <View style={{ alignSelf: 'flex-start', backgroundColor: '#F7DCD6', borderRadius: 999, paddingHorizontal: 9, paddingVertical: 3 }}>

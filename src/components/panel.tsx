@@ -214,7 +214,7 @@ export function PanelFrame({ kind, children }: { kind: 'tienda' | 'admin'; child
   const st = usePanelStore(stores);
   return (
     <View style={{ flex: 1, backgroundColor: C.page }}>
-      <View style={{ width: '100%', maxWidth: 1100, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 10, zIndex: 2 }}>
+      <View style={{ width: '100%', maxWidth: 1100, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 4, zIndex: 2, backgroundColor: C.page }}>
         {kind === 'tienda' ? <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reload} /> : <PanelHeader kind="admin" />}
       </View>
       <View style={{ flex: 1 }}>{children}</View>
