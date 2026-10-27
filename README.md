@@ -7,6 +7,7 @@ App web y móvil (Expo) para las tiendas multiservicios Castillo: envíos de din
 - Clientes: registro, perfil con número de cliente, beneficiarios, envíos a México con tipo de cambio, catálogo de servicios con datos dinámicos (sin texto libre), entrega digital / en tienda / sin bajar del carro / a domicilio, pago con captura de Zelle, seguimiento del pedido en tiempo real y comprobante.
 - Productos: catálogo por tienda (familia, marca, modelo, variantes con precio y existencias), carrito, entrega y pago con Zelle. La tienda **prende o apaga** cada producto y cada variante; si se rechaza un pago, las existencias regresan solas.
 - Tienda: interruptor para **abrir o cerrar la tienda** (cerrada no recibe pedidos nuevos y muestra un aviso), pedidos en tiempo real, resumen por tipo con totales, clave de empleado para tomar cada pedido, verificación del pago, código de entrega, comprobante, bitácora. "Mi tienda": Zelle, funciones que se prenden o apagan, formas de entrega y servicios que ofrece.
+- **Historias tipo TikTok** (igual que Viva): el administrador (para todas las tiendas) o cada tienda (para la suya) sube fotos o videos verticales con texto en español/inglés, botón de acción (producto, servicio, enviar dinero o tienda) y duración de 24 h, 3 días, 7 días o destacada. Los clientes las ven en Inicio con aro de color si no las han visto y se abren solas al entrar, una vez por visita. Cuenta vistas.
 - **Ventas y corte:** informe de lo cobrado por la app desde el último corte (por tipo, por empleado, productos vendidos y detalle por folio), descarga para Excel (CSV) e impresión. "Hacer corte" con la clave del empleado guarda el corte y su historial.
 - Administrador: abrir o cerrar cualquier tienda, ventas por tienda y tipo, catálogo de servicios con ícono y campos, tiendas, tipo de cambio y límites, empleados con clave cifrada, cuentas y roles, verificación de identificación.
 
@@ -24,6 +25,7 @@ App web y móvil (Expo) para las tiendas multiservicios Castillo: envíos de din
    - `supabase/migrations/20261026000001_fase1_esquema.sql`
    - `supabase/migrations/20261026000002_fase1_datos_iniciales.sql`
    - `supabase/migrations/20261026000003_productos_y_corte.sql`
+   - `supabase/migrations/20261027000004_historias.sql`
    (o con la CLI: `supabase link` y `supabase db push`).
 2. **Authentication → URL Configuration:** pon como *Site URL* la dirección donde publicarás la app (por ejemplo `https://semmarcomoya-jpg.github.io/Multiservicesweb/`) y agrégala también en *Redirect URLs*.
 3. Crea tu cuenta desde la app ("Crear mi cuenta") y conviértete en administrador ejecutando en SQL Editor:

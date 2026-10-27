@@ -19,7 +19,7 @@ export async function pickImage(camera = false): Promise<Picked | null> {
   return { uri: a.uri, mime, ext };
 }
 
-/** Sube una imagen a un bucket y regresa la ruta guardada. */
+/** Sube una imagen o video a un bucket y regresa la ruta guardada. */
 export async function uploadImage(bucket: string, folder: string, img: Picked): Promise<string> {
   const res = await fetch(img.uri);
   const buf = await res.arrayBuffer();

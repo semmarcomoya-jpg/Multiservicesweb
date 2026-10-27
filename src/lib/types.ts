@@ -164,3 +164,20 @@ export interface Corte {
   notas: string;
   created_at: string;
 }
+
+export type StoryLink = 'none' | 'product' | 'service' | 'send' | 'shop';
+export interface Story {
+  id: string;
+  store_id: string | null;
+  media_url: string;
+  media_type: 'image' | 'video';
+  caption_es: string | null;
+  caption_en: string | null;
+  link_type: StoryLink;
+  link_id: string | null;
+  starts_at: string;
+  expires_at: string | null;
+  sort_order: number;
+  views: number;
+  created_at: string;
+}

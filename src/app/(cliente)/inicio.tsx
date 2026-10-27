@@ -1,17 +1,20 @@
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Scenery, Wallpaper } from '@/components/art';
 import { OrderRow } from '@/components/orders';
+import { StoriesRow } from '@/components/StoriesRow';
 import { Text } from '@/components/Text';
-import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Note, P } from '@/components/ui';
+import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Loading, Note, P } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { modOn, prodFrom, useProducts, useSettings, useStores } from '@/lib/data';
 import { money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { useMyOrders } from '@/lib/myorders';
+import { autoOpenDecided, fetchStories, takeAutoOpen } from '@/lib/stories';
+import type { Story } from '@/lib/types';
 import { C } from '@/lib/theme';
 
 export default function Inicio() {
@@ -21,6 +24,38 @@ export default function Inicio() {
   const { data: stores } = useStores();
   const { data: products } = useProducts(null);
   const { orders } = useMyOrders(5);
+
+  // Historias: igual que en Viva, al entrar se abren solas una vez por visita (primero las nuevas).
+  // Mientras se decide, Inicio queda tapado para que no parpadee; si tardan más de 3 s, se muestra igual.
+  const [stories, setStories] = useState<Story[] | null>(null);
+  const [covering, setCovering] = useState(() => !autoOpenDecided());
+  useEffect(() => {
+    void fetchStories().then(setStories);
+  }, []);
+  useEffect(() => {
+    if (!covering) return undefined;
+    const t = setTimeout(() => setCovering(false), 3000);
+    return () => clearTimeout(t);
+  }, [covering]);
+  useEffect(() => {
+    if (stories === null) return undefined;
+    if (!stories.length) {
+      setCovering(false);
+      return undefined;
+    }
+    let alive = true;
+    let reveal: ReturnType<typeof setTimeout> | undefined;
+    void takeAutoOpen(stories).then((id) => {
+      if (!alive) return;
+      if (!id) return setCovering(false);
+      router.push({ pathname: '/historias', params: { id } });
+      reveal = setTimeout(() => setCovering(false), 600);
+    });
+    return () => {
+      alive = false;
+      if (reveal) clearTimeout(reveal);
+    };
+  }, [stories]);
   const any = (k: 'send' | 'svc' | 'shop') => (stores || []).some((st) => st.activo && modOn(st, k));
   const myStore = (stores || []).find((s) => s.id === profile?.store_id);
   const bday = profile?.fecha_nac && new Date(profile.fecha_nac + 'T12:00:00').getMonth() === new Date().getMonth();
@@ -86,6 +121,8 @@ export default function Inicio() {
                 </View>
               ) : null}
             </View>
+
+            {stories && stories.length ? <StoriesRow stories={stories} /> : null}
 
             {bday ? (
               <Note kind="gold" icon="gift">
@@ -162,6 +199,11 @@ export default function Inicio() {
           </View>
         </View>
       </ScrollView>
+      {covering ? (
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: C.page, justifyContent: 'center' }}>
+          <Loading />
+        </View>
+      ) : null}
     </View>
   );
 }

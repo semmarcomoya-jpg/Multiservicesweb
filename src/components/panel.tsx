@@ -83,11 +83,13 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
       ? [
           ['/tienda', L('Pedidos', 'Orders'), 'receipt'],
           ['/tienda/productos', L('Productos', 'Products'), 'bag'],
+          ['/tienda/historias', L('Historias', 'Stories'), 'camera'],
           ['/tienda/corte', L('Ventas y corte', 'Sales & close-out'), 'chart'],
           ['/tienda/ajustes', L('Mi tienda', 'My store'), 'store'],
         ]
       : [
           ['/admin', L('Ventas', 'Sales'), 'chart'],
+          ['/admin/historias', L('Historias', 'Stories'), 'camera'],
           ['/admin/servicios', L('Servicios', 'Services'), 'tool'],
           ['/admin/tiendas', L('Tiendas', 'Stores'), 'store'],
           ['/admin/cambio', L('Tipo de cambio y reglas', 'Rate & rules'), 'cash'],
