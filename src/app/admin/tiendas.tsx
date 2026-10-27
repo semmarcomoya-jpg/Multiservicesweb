@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { PanelHeader } from '@/components/panel';
+import { OpenSwitch, PanelHeader } from '@/components/panel';
 import { StoreForm } from '@/components/StoreForm';
 import { Btn, Loading, Note, Pills, Row, Screen } from '@/components/ui';
 import { useStores } from '@/lib/data';
@@ -33,11 +33,12 @@ export default function AdminTiendas() {
     <Screen wide>
       <PanelHeader kind="admin" />
       <Row style={{ justifyContent: 'space-between' }}>
-        <Pills options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', '') + (x.activo ? '' : L(' (oculta)', ' (hidden)')), icon: 'store' }))} value={st?.id} onChange={setSel} />
+        <Pills options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', '') + (x.activo ? '' : L(' (oculta)', ' (hidden)')) + (x.abierta === false ? L(' · cerrada', ' · closed') : ''), icon: 'store' }))} value={st?.id} onChange={setSel} />
         <Btn small kind="ghost" icon="store" title={L('Agregar tienda', 'Add store')} onPress={add} />
       </Row>
       {err ? <Note kind="red">{err}</Note> : null}
       <Note kind="blue">{L('Para que una tienda entre a su panel, crea su cuenta (Registro) y asígnale el rol de tienda en "Cuentas".', 'For a store to use its panel, create its account (Sign up) and give it the store role in "Accounts".')}</Note>
+      {st ? <OpenSwitch store={st} onChanged={reload} /> : null}
       {st ? <StoreForm key={st.id} store={st} admin onSaved={reload} /> : null}
     </Screen>
   );

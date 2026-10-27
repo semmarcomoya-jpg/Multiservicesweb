@@ -99,6 +99,7 @@ export default function TiendaPedido() {
     datos.push([L('Monto', 'Amount'), Number(o.monto).toFixed(2)]);
     for (const x of o.data || []) if (x.type !== 'photo') datos.push([lang === 'es' ? x.es : x.en, x.value || '—']);
   }
+  if (o.kind === 'shop') for (const x of o.items || []) datos.push([`${x.qty} × ${x.name}`, `${x.label} · ${money(x.qty * x.price)}`]);
   if (mode !== 'digital') datos.push([L('Entrega', 'Delivery'), modeLabel(mode) + (o.entrega?.time ? ' ' + o.entrega.time : '') + (o.entrega?.address ? ' · ' + o.entrega.address + ' ' + (o.entrega.zip || '') : '')]);
 
   return (
@@ -171,7 +172,7 @@ export default function TiendaPedido() {
       </Card>
 
       <Card>
-        <H2>2 · {o.kind === 'send' ? L('Haz el envío en el portal', 'Send it in the provider portal') : L('Realiza el servicio', 'Do the service')}</H2>
+        <H2>2 · {o.kind === 'send' ? L('Haz el envío en el portal', 'Send it in the provider portal') : o.kind === 'shop' ? L('Prepara el pedido', 'Prepare the order') : L('Realiza el servicio', 'Do the service')}</H2>
         <P small muted>{L('Toca un dato para copiarlo.', 'Tap a field to copy it.')}</P>
         <Row gap={8} style={{ alignItems: 'stretch' }}>
           {datos.map(([k, v]) => (

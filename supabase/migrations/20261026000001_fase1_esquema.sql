@@ -25,7 +25,9 @@ create table if not exists public.stores (
   -- formas de entrega
   delivery      jsonb not null default '{"pickup":true,"curb":true,"home":false,"homeFee":5,"freeOver":0,"slots":"10:00, 12:00, 14:00, 16:00, 18:00","zips":""}',
   svc_off       uuid[] not null default '{}',      -- servicios del catálogo que esta tienda NO ofrece
-  activo        boolean not null default true,
+  activo        boolean not null default true,      -- false = oculta (solo el admin la ve)
+  abierta       boolean not null default true,      -- la tienda abre o cierra (no recibe pedidos nuevos)
+  aviso_cerrada text not null default '',           -- mensaje para el cliente cuando está cerrada
   orden         int not null default 0,
   created_at    timestamptz not null default now()
 );
@@ -162,6 +164,9 @@ create table if not exists public.orders (
   cliente_code   text not null default '',
   zelle_nombre   text not null default '',
   reject_reason  text not null default '',
+  items          jsonb,                -- productos [{product_id, variant_id, name, label, qty, price}]
+  paid_at        timestamptz,          -- cuándo la tienda confirmó el pago
+  corte_id       uuid,                 -- corte de caja en el que se contó
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -322,6 +327,7 @@ begin
   if auth.uid() is null then raise exception 'Inicia sesión'; end if;
   select * into st from public.stores where id = p_store and activo;
   if st.id is null or coalesce((st.mods->>'send')::boolean, true) = false then raise exception 'Esta tienda no ofrece envíos'; end if;
+  if not st.abierta then raise exception 'La tienda está cerrada en este momento'; end if;
   select * into b from public.beneficiaries where id = p_beneficiary and user_id = auth.uid();
   if b.id is null then raise exception 'Beneficiario no encontrado'; end if;
   select * into cfg from public.settings where id = 1;
@@ -354,6 +360,7 @@ begin
   if auth.uid() is null then raise exception 'Inicia sesión'; end if;
   select * into st from public.stores where id = p_store and activo;
   if st.id is null or coalesce((st.mods->>'svc')::boolean, true) = false then raise exception 'Esta tienda no ofrece servicios'; end if;
+  if not st.abierta then raise exception 'La tienda está cerrada en este momento'; end if;
   select * into sv from public.services where id = p_service and activo;
   if sv.id is null or sv.id = any(st.svc_off) then raise exception 'Servicio no disponible en esta tienda'; end if;
   select * into pr from public.profiles where id = auth.uid();

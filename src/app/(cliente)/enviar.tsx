@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { Btn, Card, Empty, Field, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import { modOn, useSettings, useStores } from '@/lib/data';
+import { modOn, pickOpen, storeOptions, useSettings, useStores } from '@/lib/data';
 import { setDraft } from '@/lib/draft';
 import { money, mxn, num } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
@@ -39,7 +39,7 @@ export default function Enviar() {
 
   const sendStores = (stores || []).filter((st) => st.activo && modOn(st, 'send'));
   useEffect(() => {
-    if (!storeId && sendStores.length) setStoreId((sendStores.find((x) => x.id === profile?.store_id) || sendStores[0]).id);
+    if (!storeId && sendStores.length) setStoreId(pickOpen(sendStores, profile?.store_id));
   }, [sendStores.length, storeId, profile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!cfg || !benefs) return <Loading />;
@@ -52,7 +52,7 @@ export default function Enviar() {
   const errs = {
     b: b ? '' : L('Elige a quién le envías', 'Choose who you are sending to'),
     monto: amt <= 0 ? L('Escribe cuánto envías', 'Enter the amount') : amt > limit ? L(`Tu límite por envío es ${money(limit)}`, `Your limit per transfer is ${money(limit)}`) : '',
-    store: storeId ? '' : L('Elige la tienda', 'Choose the store'),
+    store: !storeId ? L('Elige la tienda', 'Choose the store') : sendStores.find((x) => x.id === storeId)?.abierta === false ? L('Esa tienda está cerrada en este momento', 'That store is closed right now') : '',
   };
   const ok = !errs.b && !errs.monto && !errs.store;
 
@@ -129,7 +129,8 @@ export default function Enviar() {
       </Card>
 
       <Card>
-        <Pills label={L('¿Qué tienda hace tu envío?', 'Which store handles your transfer?')} options={sendStores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', ''), icon: 'store' }))} value={storeId} onChange={setStoreId} />
+        <Pills label={L('¿Qué tienda hace tu envío?', 'Which store handles your transfer?')} options={storeOptions(sendStores, L('Cerrada', 'Closed'))} value={storeId} onChange={setStoreId} />
+        {tried && errs.store ? <Note kind="red">{errs.store}</Note> : null}
         <P small muted>{L('Esa tienda recibe tu pago por Zelle y realiza tu envío.', 'That store receives your Zelle payment and makes your transfer.')}</P>
       </Card>
       <Note kind="gold" icon="shield">{L('El tipo de cambio queda fijo en el momento en que mandas tu pedido.', 'The rate is locked in when you send your order.')}</Note>

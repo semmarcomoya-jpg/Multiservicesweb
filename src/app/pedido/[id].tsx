@@ -118,6 +118,9 @@ export default function PedidoCliente() {
             <P small muted>1 USD = {Number(o.rate).toFixed(2)} MXN</P>
           </>
         ) : null}
+        {o.kind === 'shop'
+          ? (o.items || []).map((x) => <P key={x.variant_id}>{`${x.qty} × ${x.name} · ${x.label} — ${money(x.qty * x.price)}`}</P>)
+          : null}
         {o.kind === 'service'
           ? (o.data || []).filter((x) => x.type !== 'photo' && x.value).map((x) => <P key={x.k}>{(lang === 'es' ? x.es : x.en) + ': ' + x.value}</P>)
           : null}

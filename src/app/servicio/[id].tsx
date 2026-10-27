@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Image, Pressable, Text, View } from 'react-native';
 
 import { BackBar, Btn, Card, Field, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen } from '@/components/ui';
-import { homeFee, modesFor, storesForService, svcCatIcon, useCategories, useServices, useStores } from '@/lib/data';
+import { homeFee, modesFor, pickOpen, storeOptions, storesForService, svcCatIcon, useCategories, useServices, useStores } from '@/lib/data';
 import { setDraft } from '@/lib/draft';
 import { digits, money, num, splitList } from '@/lib/format';
 import { useAuth } from '@/lib/auth';
@@ -38,10 +38,7 @@ export default function ServicioDetalle() {
 
   const avail = useMemo(() => (sv && stores ? storesForService(stores, sv) : []), [sv, stores]);
   useEffect(() => {
-    if (!storeId && avail.length) {
-      const fav = avail.find((x) => x.id === profile?.store_id);
-      setStoreId((fav || avail[0]).id);
-    }
+    if (!storeId && avail.length) setStoreId(pickOpen(avail, profile?.store_id));
   }, [avail, storeId, profile]);
   const st = avail.find((x) => x.id === storeId) || null;
   const modes = sv ? modesFor(st, sv.modes) : [];
@@ -62,6 +59,7 @@ export default function ServicioDetalle() {
     if (!v && !f.optional) errs[f.k] = f.type === 'photo' ? L('Sube la foto', 'Upload the photo') : f.type === 'select' ? L('Elige una opción', 'Choose one') : L('Este dato es necesario', 'This is required');
     else if (v && f.type === 'tel' && f.digits && digits(v).length !== Number(f.digits)) errs[f.k] = L(`Debe tener ${f.digits} dígitos`, `Must be ${f.digits} digits`);
   }
+  if (st && st.abierta === false) errs._closed = L('Esta tienda está cerrada en este momento', 'This store is closed right now');
   if (!mode) errs._mode = L('Esta tienda no tiene formas de entrega para este servicio', 'This store has no delivery options for this service');
   if ((mode === 'store' || mode === 'curb') && slots.length && !time) errs._time = L('Elige un horario', 'Pick a time');
   if (mode === 'home' && !address.trim()) errs._addr = L('Escribe la dirección', 'Enter the address');
@@ -138,7 +136,8 @@ export default function ServicioDetalle() {
       {avail.length === 0 ? <Note kind="red">{L('Ninguna tienda ofrece este servicio por ahora.', 'No store offers this service right now.')}</Note> : null}
 
       <Card>
-        <Pills label={L('¿En qué tienda?', 'Which store?')} options={avail.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', ''), icon: 'store' }))} value={storeId} onChange={setStoreId} />
+        <Pills label={L('¿En qué tienda?', 'Which store?')} options={storeOptions(avail, L('Cerrada', 'Closed'))} value={storeId} onChange={setStoreId} />
+        {st && st.abierta === false ? <Note kind="red" icon="clock">{st.aviso_cerrada || L('Esta tienda está cerrada en este momento. Elige otra o intenta más tarde.', 'This store is closed right now. Pick another or try later.')}</Note> : null}
       </Card>
 
       <Card>

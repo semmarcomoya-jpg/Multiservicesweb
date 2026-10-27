@@ -34,6 +34,8 @@ export interface Store {
   delivery: StoreDelivery;
   svc_off: string[];
   activo: boolean;
+  abierta: boolean;
+  aviso_cerrada: string;
   orden: number;
 }
 
@@ -120,6 +122,9 @@ export interface Order {
   cliente_code: string;
   zelle_nombre: string;
   reject_reason: string;
+  items: OrderItem[] | null;
+  paid_at: string | null;
+  corte_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -127,3 +132,35 @@ export interface Order {
 export interface OrderEvent { id: number; order_id: string; act: string; by_name: string; created_at: string }
 
 export interface Employee { id: string; store_id: string | null; nombre: string; rol: 'tienda' | 'admin'; activo: boolean }
+
+export interface OrderItem { product_id: string; variant_id: string; name: string; label: string; qty: number; price: number }
+
+export interface Family { id: string; es: string; en: string; icon: string; orden: number }
+export interface Variant { id: string; product_id: string; label: string; price: number; stock: number; activo: boolean; orden: number }
+export interface Product {
+  id: string;
+  store_id: string;
+  family_id: string;
+  marca: string;
+  modelo: string;
+  descripcion: string;
+  compat: string;
+  foto_url: string | null;
+  activo: boolean;
+  orden: number;
+  product_variants: Variant[];
+}
+
+export interface Corte {
+  id: string;
+  store_id: string;
+  desde: string | null;
+  hasta: string;
+  employee_name: string;
+  n_orders: number;
+  total: number;
+  fees: number;
+  resumen: { por_tipo: Record<string, { n: number; total: number }>; por_empleado: Record<string, { n: number; total: number }> };
+  notas: string;
+  created_at: string;
+}

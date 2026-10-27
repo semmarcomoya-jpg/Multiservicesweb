@@ -1,10 +1,11 @@
 import { router, usePathname } from 'expo-router';
-import React, { useSyncExternalStore } from 'react';
+import React, { useState, useSyncExternalStore } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { Icon, LangToggle, Row } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useLang } from '@/lib/i18n';
+import { errMsg, supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
 import type { Store } from '@/lib/types';
 
@@ -34,7 +35,45 @@ export function usePanelStore(stores: Store[] | null) {
   return stores.find((s) => s.id === sel) || stores[0] || null;
 }
 
-export function PanelHeader({ kind, store, stores }: { kind: 'tienda' | 'admin'; store?: Store | null; stores?: Store[] | null }) {
+/** Interruptor grande para abrir o cerrar la tienda (no recibe pedidos nuevos mientras está cerrada). */
+export function OpenSwitch({ store, onChanged }: { store: Store; onChanged?: () => void }) {
+  const { L } = useLang();
+  const [open, setOpen] = useState(store.abierta !== false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  React.useEffect(() => setOpen(store.abierta !== false), [store.abierta, store.id]);
+  const toggle = async () => {
+    const next = !open;
+    setBusy(true);
+    setErr('');
+    setOpen(next);
+    const { error } = await supabase.from('stores').update({ abierta: next }).eq('id', store.id);
+    setBusy(false);
+    if (error) {
+      setOpen(!next);
+      setErr(errMsg(error));
+    } else onChanged?.();
+  };
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: open, busy }}
+      accessibilityLabel={L('Tienda abierta', 'Store open')}
+      onPress={toggle}
+      disabled={busy}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, minHeight: 40, borderRadius: R.pill, backgroundColor: open ? '#DDF1E4' : C.redSoft }}
+    >
+      <View style={{ width: 42, height: 24, borderRadius: 12, padding: 3, backgroundColor: open ? '#2E8B57' : '#B9A08E' }}>
+        <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff', transform: [{ translateX: open ? 18 : 0 }] }} />
+      </View>
+      <Text style={{ fontWeight: '900', color: open ? '#1E5B35' : C.red }}>
+        {err ? err : open ? L('Abierta · recibe pedidos', 'Open · taking orders') : L('Cerrada · no recibe pedidos', 'Closed · no new orders')}
+      </Text>
+    </Pressable>
+  );
+}
+
+export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tienda' | 'admin'; store?: Store | null; stores?: Store[] | null; onStoreChange?: () => void }) {
   const { L } = useLang();
   const { profile, signOut } = useAuth();
   const path = usePathname();
@@ -42,6 +81,8 @@ export function PanelHeader({ kind, store, stores }: { kind: 'tienda' | 'admin';
     kind === 'tienda'
       ? [
           ['/tienda', L('Pedidos', 'Orders'), 'receipt'],
+          ['/tienda/productos', L('Productos', 'Products'), 'bag'],
+          ['/tienda/corte', L('Ventas y corte', 'Sales & close-out'), 'chart'],
           ['/tienda/ajustes', L('Mi tienda', 'My store'), 'store'],
         ]
       : [
@@ -78,12 +119,13 @@ export function PanelHeader({ kind, store, stores }: { kind: 'tienda' | 'admin';
             </Pressable>
           </Row>
         </Row>
+        {kind === 'tienda' && store ? <OpenSwitch store={store} onChanged={onStoreChange} /> : null}
         {kind === 'tienda' && profile?.role === 'admin' && stores ? (
           <Row gap={6}>
             {stores.map((st) => (
               <Pressable key={st.id} accessibilityRole="radio" accessibilityState={{ checked: store?.id === st.id }} onPress={() => setAdminStore(st.id)}
                 style={{ paddingHorizontal: 12, minHeight: 34, justifyContent: 'center', borderRadius: R.pill, backgroundColor: store?.id === st.id ? C.gold : 'rgba(255,255,255,0.12)' }}>
-                <Text style={{ fontWeight: '800', color: store?.id === st.id ? C.ink : '#fff' }}>{st.nombre.replace('Castillo · ', '')}</Text>
+                <Text style={{ fontWeight: '800', color: store?.id === st.id ? C.ink : '#fff' }}>{st.nombre.replace('Castillo · ', '') + (st.abierta === false ? ' · ' + L('cerrada', 'closed') : '')}</Text>
               </Pressable>
             ))}
           </Row>

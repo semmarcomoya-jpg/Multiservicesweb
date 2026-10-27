@@ -211,7 +211,7 @@ export function Pills<T extends string | number>({
   onChange,
   label,
 }: {
-  options: { v: T; label: string; icon?: string }[];
+  options: { v: T; label: string; icon?: string; disabled?: boolean }[];
   value: T | null | undefined;
   onChange: (v: T) => void;
   label?: string;
@@ -226,9 +226,10 @@ export function Pills<T extends string | number>({
             <Pressable
               key={String(o.v)}
               accessibilityRole="radio"
-              accessibilityState={{ checked: on }}
+              accessibilityState={{ checked: on, disabled: !!o.disabled }}
+              disabled={o.disabled}
               onPress={() => onChange(o.v)}
-              style={[s.pill, on && s.pillOn]}
+              style={[s.pill, on && s.pillOn, o.disabled && { opacity: 0.45 }]}
             >
               {o.icon ? <Icon n={o.icon} size={16} color={on ? C.brownDark : C.softInk} /> : null}
               <Text style={[s.pillTxt, on && { color: C.brownDark }]}>{o.label}</Text>

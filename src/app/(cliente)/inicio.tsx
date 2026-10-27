@@ -16,11 +16,12 @@ export default function Inicio() {
   const { data: cfg } = useSettings();
   const { data: stores } = useStores();
   const { orders } = useMyOrders(5);
-  const any = (k: 'send' | 'svc') => (stores || []).some((st) => st.activo && modOn(st, k));
+  const any = (k: 'send' | 'svc' | 'shop') => (stores || []).some((st) => st.activo && modOn(st, k));
 
   const actions = [
     any('send') && { ic: 'send', label: L('Enviar dinero', 'Send money'), go: '/enviar' },
     any('svc') && { ic: 'tool', label: L('Servicios', 'Services'), go: '/servicios' },
+    any('shop') && { ic: 'bag', label: L('Celulares y más', 'Phones & more'), go: '/productos' },
     { ic: 'users', label: L('Mis beneficiarios', 'My recipients'), go: '/beneficiarios' },
     { ic: 'receipt', label: L('Mis pedidos', 'My orders'), go: '/pedidos' },
   ].filter(Boolean) as { ic: string; label: string; go: string }[];

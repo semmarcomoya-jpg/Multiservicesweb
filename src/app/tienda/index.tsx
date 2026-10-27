@@ -12,7 +12,7 @@ import type { Order } from '@/lib/types';
 
 export default function TiendaPedidos() {
   const { L } = useLang();
-  const { data: stores } = useStores();
+  const { data: stores, reload } = useStores();
   const { data: cats } = useCategories();
   const st = usePanelStore(stores);
   const [orders, setOrders] = useState<Order[] | null>(null);
@@ -52,7 +52,7 @@ export default function TiendaPedidos() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="tienda" store={st} stores={stores} />
+      <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reload} />
       {!orders ? (
         <Loading />
       ) : (

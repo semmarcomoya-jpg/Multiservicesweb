@@ -85,6 +85,7 @@ export default function Perfil() {
       </Card>
 
       <Card>
+        <Btn kind="ghost" icon="receipt" title={L('Mis pedidos', 'My orders')} onPress={() => router.push('/pedidos')} />
         <Btn kind="ghost" icon="users" title={L('Mis beneficiarios', 'My recipients')} onPress={() => router.push('/beneficiarios')} />
         <Btn
           kind="danger"

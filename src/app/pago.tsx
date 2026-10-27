@@ -6,6 +6,7 @@ import { Image, Pressable, Text, View } from 'react-native';
 import { BackBar, Btn, Card, Field, H1, IcoBox, Label, Loading, Note, P, Row, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useStores } from '@/lib/data';
+import { clearCart } from '@/lib/cart';
 import { setDraft, useDraft } from '@/lib/draft';
 import { money, mxn } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
@@ -30,7 +31,7 @@ export default function Pago() {
   const st = stores.find((x) => x.id === d.storeId);
   if (!st) return <Loading />;
 
-  const total = d.kind === 'send' ? d.monto + d.fee : d.base + d.fee;
+  const total = d.kind === 'send' ? d.monto + d.fee : d.kind === 'shop' ? d.subtotal + d.fee : d.base + d.fee;
   const memo = profile?.member_code || '';
 
   const copy = async (label: string, txt: string) => {
@@ -48,6 +49,14 @@ export default function Pago() {
       const rpc =
         d.kind === 'send'
           ? supabase.rpc('create_send_order', { p_store: d.storeId, p_beneficiary: d.beneficiaryId, p_monto: d.monto, p_captura: path, p_zelle_nombre: zelleName.trim() })
+          : d.kind === 'shop'
+          ? supabase.rpc('create_shop_order', {
+              p_store: d.storeId,
+              p_items: d.items.map((x) => ({ variant_id: x.variant_id, qty: x.qty })),
+              p_entrega: d.entrega,
+              p_captura: path,
+              p_zelle_nombre: zelleName.trim(),
+            })
           : supabase.rpc('create_service_order', {
               p_store: d.storeId,
               p_service: d.serviceId,
@@ -60,6 +69,7 @@ export default function Pago() {
             });
       const { data, error } = await rpc.single<Order>();
       if (error) throw error;
+      if (d.kind === 'shop') clearCart();
       setDraft(null);
       router.replace({ pathname: '/pedido/[id]', params: { id: data.id, nuevo: '1' } });
     } catch (e) {
@@ -86,10 +96,14 @@ export default function Pago() {
 
       <Card>
         <Row gap={12} style={{ flexWrap: 'nowrap' }}>
-          <IcoBox n={d.kind === 'send' ? 'send' : d.icon} size={44} />
+          <IcoBox n={d.kind === 'send' ? 'send' : d.kind === 'shop' ? 'bag' : d.icon} size={44} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontWeight: '900', color: C.ink, fontSize: 16 }}>
-              {d.kind === 'send' ? L('Envío a ', 'Transfer to ') + d.beneficiaryName : nm(d.serviceName) + (d.optionLabel ? ' · ' + d.optionLabel : '')}
+              {d.kind === 'send'
+                ? L('Envío a ', 'Transfer to ') + d.beneficiaryName
+                : d.kind === 'shop'
+                  ? L('Tu compra', 'Your purchase')
+                  : nm(d.serviceName) + (d.optionLabel ? ' · ' + d.optionLabel : '')}
             </Text>
             <P small muted>{st.nombre}</P>
           </View>
@@ -99,6 +113,13 @@ export default function Pago() {
             <Row style={{ justifyContent: 'space-between' }}><P>{L('Envías', 'You send')}</P><P>{money(d.monto)}</P></Row>
             <Row style={{ justifyContent: 'space-between' }}><P>{L('Recibe aprox.', 'They receive approx.')}</P><P>{mxn(d.mxn)}</P></Row>
           </>
+        ) : d.kind === 'shop' ? (
+          d.items.map((x) => (
+            <Row key={x.variant_id} style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
+              <P style={{ flex: 1 }}>{`${x.qty} × ${x.name} · ${x.label}`}</P>
+              <P>{money(x.qty * x.price)}</P>
+            </Row>
+          ))
         ) : (
           <Row style={{ justifyContent: 'space-between' }}><P>{L('Servicio', 'Service')}</P><P>{money(d.base)}</P></Row>
         )}

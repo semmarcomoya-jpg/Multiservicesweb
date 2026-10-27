@@ -13,7 +13,7 @@ export default function MiTienda() {
   if (!stores) return <Loading />;
   return (
     <Screen wide>
-      <PanelHeader kind="tienda" store={st} stores={stores} />
+      <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reload} />
       {st ? <StoreForm key={st.id} store={st} onSaved={reload} /> : <Empty>{L('Esta cuenta no tiene tienda asignada. Pide al administrador que la asigne.', 'This account has no store assigned. Ask the administrator.')}</Empty>}
     </Screen>
   );

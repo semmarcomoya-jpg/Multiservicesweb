@@ -22,7 +22,11 @@ const agg = (arr: Order[]) => ({
 
 export function useGroups(cats: Category[]) {
   const { L, nm } = useLang();
-  return [['send', L('Envíos a México', 'Money to Mexico'), 'send'] as const, ...cats.map((c) => ['cat:' + c.id, nm(c), c.icon] as const)];
+  return [
+    ['send', L('Envíos a México', 'Money to Mexico'), 'send'] as const,
+    ...cats.map((c) => ['cat:' + c.id, nm(c), c.icon] as const),
+    ['shop', L('Productos', 'Products'), 'bag'] as const,
+  ];
 }
 
 /** Tarjetas con número de pedidos y total por tipo; tocar una filtra la lista. */

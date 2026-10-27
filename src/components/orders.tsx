@@ -18,6 +18,7 @@ export function useOrderText() {
       return b ? `${L('Envío a', 'Transfer to')} ${b.nombre} ${b.apellidos}`.trim() : L('Envío a México', 'Money to Mexico');
     }
     if (o.kind === 'service') return nm(o.service_name) + (o.service_name?.opcion ? ' · ' + nm(o.service_name.opcion) : '');
+    if (o.kind === 'shop' && o.items?.length) return o.items[0].name + (o.items.length > 1 ? ` +${o.items.length - 1}` : '');
     return o.kind;
   };
   const modeLabel = (m?: string | null) =>

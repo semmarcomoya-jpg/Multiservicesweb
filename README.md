@@ -5,10 +5,12 @@ App web y móvil (Expo) para las tiendas multiservicios Castillo: envíos de din
 **Fase 1 (este repositorio):**
 
 - Clientes: registro, perfil con número de cliente, beneficiarios, envíos a México con tipo de cambio, catálogo de servicios con datos dinámicos (sin texto libre), entrega digital / en tienda / sin bajar del carro / a domicilio, pago con captura de Zelle, seguimiento del pedido en tiempo real y comprobante.
-- Tienda: pedidos en tiempo real, resumen por tipo con totales, clave de empleado para tomar cada pedido, verificación del pago, código de entrega, comprobante, bitácora. "Mi tienda": Zelle, funciones que se prenden o apagan, formas de entrega y servicios que ofrece.
-- Administrador: ventas por tienda y tipo, catálogo de servicios con ícono y campos, tiendas, tipo de cambio y límites, empleados con clave cifrada, cuentas y roles, verificación de identificación.
+- Productos: catálogo por tienda (familia, marca, modelo, variantes con precio y existencias), carrito, entrega y pago con Zelle. La tienda **prende o apaga** cada producto y cada variante; si se rechaza un pago, las existencias regresan solas.
+- Tienda: interruptor para **abrir o cerrar la tienda** (cerrada no recibe pedidos nuevos y muestra un aviso), pedidos en tiempo real, resumen por tipo con totales, clave de empleado para tomar cada pedido, verificación del pago, código de entrega, comprobante, bitácora. "Mi tienda": Zelle, funciones que se prenden o apagan, formas de entrega y servicios que ofrece.
+- **Ventas y corte:** informe de lo cobrado por la app desde el último corte (por tipo, por empleado, productos vendidos y detalle por folio), descarga para Excel (CSV) e impresión. "Hacer corte" con la clave del empleado guarda el corte y su historial.
+- Administrador: abrir o cerrar cualquier tienda, ventas por tienda y tipo, catálogo de servicios con ícono y campos, tiendas, tipo de cambio y límites, empleados con clave cifrada, cuentas y roles, verificación de identificación.
 
-**Fase 2 (pendiente):** productos y carrito, crédito y apartado, mostrador con tarjeta QR, puntos de lealtad, boca a boca, calificaciones por empleado.
+**Fase 2 (pendiente):** crédito y apartado, mostrador con tarjeta QR (ventas en efectivo y tarjeta en el corte), puntos de lealtad, boca a boca, calificaciones por empleado.
 
 ## Tecnología
 
@@ -21,6 +23,7 @@ App web y móvil (Expo) para las tiendas multiservicios Castillo: envíos de din
 1. En tu proyecto de Supabase abre **SQL Editor** y ejecuta, en orden:
    - `supabase/migrations/20261026000001_fase1_esquema.sql`
    - `supabase/migrations/20261026000002_fase1_datos_iniciales.sql`
+   - `supabase/migrations/20261026000003_productos_y_corte.sql`
    (o con la CLI: `supabase link` y `supabase db push`).
 2. **Authentication → URL Configuration:** pon como *Site URL* la dirección donde publicarás la app (por ejemplo `https://semmarcomoya-jpg.github.io/Multiservicesweb/`) y agrégala también en *Redirect URLs*.
 3. Crea tu cuenta desde la app ("Crear mi cuenta") y conviértete en administrador ejecutando en SQL Editor:

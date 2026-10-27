@@ -41,6 +41,8 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
       mods,
       delivery: { ...del, homeFee: Number(del.homeFee) || 0, freeOver: Number(del.freeOver) || 0 },
       svc_off: f.svc_off || [],
+      abierta: f.abierta !== false,
+      aviso_cerrada: f.aviso_cerrada || '',
       ...(admin ? { activo: f.activo, orden: Number(f.orden) || 0 } : {}),
     };
     const { error } = await supabase.from('stores').update(payload).eq('id', store.id);
@@ -55,7 +57,7 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
   const MODS: [keyof StoreMods, string, string, string][] = [
     ['send', 'send', L('Envíos a México', 'Money to Mexico'), L('Depósito o retiro en efectivo', 'Deposit or cash pickup')],
     ['svc', 'tool', L('Pago de servicios y trámites', 'Bill pay & services'), L('Recargas, luz, agua, trámites…', 'Top-ups, utilities, paperwork…')],
-    ['shop', 'bag', L('Productos', 'Products'), L('Catálogo y carrito (fase 2)', 'Catalog and cart (phase 2)')],
+    ['shop', 'bag', L('Productos', 'Products'), L('Catálogo, carrito y pago', 'Catalog, cart and payment')],
     ['credit', 'wallet', L('Crédito', 'Credit'), L('Compras a plazos (fase 2)', 'Installments (phase 2)')],
     ['layaway', 'calendar', L('Apartado', 'Layaway'), L('Fase 2', 'Phase 2')],
     ['comm', 'chat', L('Boca a boca', 'Word of mouth'), L('Reseñas (fase 2)', 'Reviews (phase 2)')],
@@ -63,6 +65,15 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
 
   return (
     <>
+      <Card>
+        <H2>{L('Abrir o cerrar la tienda', 'Open or close the store')}</H2>
+        <Toggle icon="store" label={f.abierta !== false ? L('Abierta: recibe pedidos', 'Open: taking orders') : L('Cerrada: no recibe pedidos nuevos', 'Closed: no new orders')}
+          sub={L('Los pedidos que ya tienes siguen igual. Guarda para aplicar.', 'Existing orders stay as they are. Save to apply.')}
+          value={f.abierta !== false} onChange={(v) => setF((p) => ({ ...p, abierta: v }))} />
+        <Field label={L('Aviso para clientes cuando está cerrada (opcional)', 'Message for customers when closed (optional)')} value={f.aviso_cerrada || ''} onChangeText={set('aviso_cerrada')}
+          placeholder={L('Ej. Cerramos por inventario, abrimos mañana a las 9:00', 'E.g. Closed for inventory, open tomorrow at 9:00')} />
+      </Card>
+
       <Card>
         <H2>{L('¿Qué ofrece esta tienda?', 'What does this store offer?')}</H2>
         <P small muted>{L('Lo que apagues desaparece para los clientes de esta tienda.', 'What you turn off disappears for this store’s customers.')}</P>

@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react';
 
-import type { Mode, OrderDataItem } from './types';
+import type { Mode, OrderDataItem, OrderItem } from './types';
 
 /** Lo que el cliente armó antes de pagar (envío o servicio). Vive solo en memoria. */
 export type PayDraft =
@@ -18,7 +18,8 @@ export type PayDraft =
       fee: number;
       data: OrderDataItem[];
       entrega: { mode: Mode; time?: string; address?: string; zip?: string };
-    };
+    }
+  | { kind: 'shop'; storeId: string; items: OrderItem[]; subtotal: number; fee: number; entrega: { mode: Mode; time?: string; address?: string; zip?: string } };
 
 let current: PayDraft | null = null;
 const subs = new Set<() => void>();
