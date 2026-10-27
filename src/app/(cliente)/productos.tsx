@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
 import { Text, TextInput } from '@/components/Text';
 
-import { Btn, Empty, H1, IcoBox, Loading, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
+import { Btn, Empty, H1, IcoBox, Loading, Note, P, Pills, Row, Screen, TopBar, SearchBox, matches } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { cartCount, useCart } from '@/lib/cart';
 import { modOn, pickOpen, prodFrom, prodName, prodStock, storeOptions, useFamilies, useProducts, useStores } from '@/lib/data';
@@ -62,7 +62,7 @@ export default function Productos() {
   const inFam = visible.filter((p) => fam === 'all' || p.family_id === fam);
   const brands = [...new Set(inFam.map((p) => p.marca).filter(Boolean))];
   const qq = q.trim().toLowerCase();
-  const list = inFam.filter((p) => (brand === 'all' || p.marca === brand) && (!qq || `${p.marca} ${p.modelo} ${p.compat}`.toLowerCase().includes(qq)));
+  const list = inFam.filter((p) => (brand === 'all' || p.marca === brand) && matches(q, p.marca, p.modelo, p.compat, p.descripcion));
   const n = cartCount(cart);
 
   return (
@@ -78,14 +78,7 @@ export default function Productos() {
       <H1>{L('Tienda', 'Shop')}</H1>
       <Pills options={storeOptions(shopStores, L('Cerrada', 'Closed'))} value={storeId} onChange={(v) => { setStoreId(v); setBrand('all'); }} />
       {st && st.abierta === false ? <Note kind="red" icon="clock">{st.aviso_cerrada || L('Esta tienda está cerrada. Puedes ver sus productos, pero no comprar ahorita.', "This store is closed. You can browse, but can't buy right now.")}</Note> : null}
-      <TextInput
-        accessibilityLabel={L('Buscar', 'Search')}
-        value={q}
-        onChangeText={setQ}
-        placeholder={L('Busca marca, modelo o "funda A15"', 'Search brand, model or "A15 case"')}
-        placeholderTextColor="#93A5BD"
-        style={{ minHeight: 48, borderRadius: R.pill, borderWidth: 1.5, borderColor: C.line2, backgroundColor: C.card, paddingHorizontal: 18, fontSize: 16, color: C.ink }}
-      />
+      <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca marca, modelo o "funda A15"', 'Search brand, model or "A15 case"')} count={qq ? list.length : undefined} />
       <Pills options={[{ v: 'all', label: L('Todo', 'All') }, ...famsUsed.map((f) => ({ v: f.id, label: nm(f), icon: f.icon }))]} value={fam} onChange={(v) => { setFam(v); setBrand('all'); }} />
       {brands.length > 1 ? <Pills options={[{ v: 'all', label: L('Todas las marcas', 'All brands') }, ...brands.map((b) => ({ v: b, label: b }))]} value={brand} onChange={setBrand} /> : null}
       {loading ? <Loading /> : null}

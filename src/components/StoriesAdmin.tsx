@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Image, Pressable, View } from 'react-native';
 
 import { Text } from '@/components/Text';
-import { Btn, Card, Empty, Field, H2, Icon, Label, Loading, Note, P, Pills, Row } from '@/components/ui';
+import { Btn, Card, Empty, Field, H2, Icon, Label, Loading, Note, P, Pills, Row, SearchBox, matches } from '@/components/ui';
 import { prodName, useProducts, useServices } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
 import { expiresFor, hoursLeft, MAX_STORY_BYTES, mediaTypeOf, storyStatus, type StoryDuration } from '@/lib/stories';
@@ -34,6 +34,7 @@ async function pickStoryMedia(): Promise<Picked | null> {
 export function StoriesAdmin({ storeId, admin, stores }: { storeId: string | null; admin: boolean; stores: Store[] }) {
   const { L, lang } = useLang();
   const [list, setList] = useState<Story[] | null>(null);
+  const [q, setQ] = useState('');
 
   const load = useCallback(async () => {
     let q = supabase.from('stories').select('*').order('created_at', { ascending: false }).limit(60);
@@ -53,10 +54,11 @@ export function StoriesAdmin({ storeId, admin, stores }: { storeId: string | nul
       <View style={{ flexGrow: 2, flexBasis: 420, minWidth: 0 }}>
         <Card>
           <H2>{L('Tus historias', 'Your stories')}</H2>
+          {list && list.length > 6 ? <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca por texto o tienda', 'Search by text or store')} /> : null}
           {!list ? <Loading /> : null}
           {list && !list.length ? <Empty>{L('Aún no publicas historias. Sube una foto o video de tus promociones.', 'No stories yet. Upload a photo or video of your deals.')}</Empty> : null}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-            {(list || []).map((s) => (
+            {(list || []).filter((s) => matches(q, s.caption_es, s.caption_en, s.store_id ? stores.find((x) => x.id === s.store_id)?.nombre : L('Todas las tiendas', 'All stores'))).map((s) => (
               <StoryTile key={s.id} s={s} lang={lang} storeName={s.store_id ? stores.find((x) => x.id === s.store_id)?.nombre.replace('Castillo · ', '') ?? '' : L('Todas las tiendas', 'All stores')} onChanged={load} />
             ))}
           </View>

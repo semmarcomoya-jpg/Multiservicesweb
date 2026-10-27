@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
-import { Circ, Empty, H1, Loading, MiniChip, P, Pills, Screen, TopBar } from '@/components/ui';
+import { Circ, Empty, H1, Loading, MiniChip, P, Pills, Screen, TopBar, SearchBox, matches } from '@/components/ui';
 import { useOrderText } from '@/components/orders';
 import { storesForService, svcCatIcon, useCategories, useServices, useStores } from '@/lib/data';
 import { money } from '@/lib/format';
@@ -19,10 +19,11 @@ export default function Servicios() {
   const { data: services, loading } = useServices();
   const { data: stores } = useStores();
   const [cat, setCat] = useState<string>('all');
+  const [q, setQ] = useState('');
   const { modeLabel } = useOrderText();
 
   const avail = (services || []).filter((sv) => sv.activo && storesForService(stores || [], sv).length > 0);
-  const list = avail.filter((sv) => cat === 'all' || sv.cat_id === cat);
+  const list = avail.filter((sv) => (cat === 'all' || sv.cat_id === cat) && matches(q, sv.es, sv.en, sv.desc_es, sv.desc_en));
   const usedCats = (cats || []).filter((c) => avail.some((sv) => sv.cat_id === c.id));
 
   const price = (sv: Service) =>
@@ -37,6 +38,7 @@ export default function Servicios() {
       <TopBar />
       <H1>{L('Servicios', 'Services')}</H1>
       <P muted>{L('Elige un servicio y dinos cómo lo quieres: sin salir de casa, en tienda, sin bajar del carro o a domicilio.', 'Pick a service and tell us how you want it: from home, in store, curbside or delivered.')}</P>
+      <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca: luz, recarga, Telcel…', 'Search: power, top-up, Telcel…')} count={list.length} />
       <Pills
         options={[{ v: 'all', label: L('Todos', 'All') }, ...usedCats.map((c) => ({ v: c.id, label: nm(c), icon: c.icon }))]}
         value={cat}

@@ -470,3 +470,42 @@ export const s = StyleSheet.create({
   segBtn: { minHeight: 36, minWidth: 44, paddingHorizontal: 12, borderRadius: R.pill, alignItems: 'center', justifyContent: 'center' },
   logo: { width: 40, height: 40, borderRadius: 12, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center' },
 });
+
+/** Quita acentos y mayúsculas para buscar: "telefono" encuentra "Teléfono". */
+export const norm = (t: unknown) => String(t ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+/** ¿Todas las palabras de la búsqueda aparecen en alguno de los campos? */
+export function matches(q: string, ...fields: unknown[]) {
+  const words = norm(q).split(/\s+/).filter(Boolean);
+  if (!words.length) return true;
+  const hay = fields.map(norm).join(' ');
+  return words.every((w) => hay.includes(w));
+}
+
+/** Buscador con lupita (y botón para borrar). */
+export function SearchBox({ value, onChangeText, placeholder, count }: { value: string; onChangeText: (v: string) => void; placeholder?: string; count?: number }) {
+  const { L } = useLang();
+  return (
+    <View style={{ gap: 4 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 48, borderRadius: R.pill, borderWidth: 1.5, borderColor: value ? C.brown : C.line2, backgroundColor: C.card, paddingLeft: 16, paddingRight: 6 }}>
+        <Icon n="search" size={20} color={value ? C.brown : C.muted} />
+        <TextInput
+          accessibilityLabel={L('Buscar', 'Search')}
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder || L('Buscar…', 'Search…')}
+          placeholderTextColor="#93A5BD"
+          autoCorrect={false}
+          returnKeyType="search"
+          style={[{ flex: 1, minWidth: 0, fontSize: 16, color: C.ink, paddingVertical: 10 }, Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null]}
+        />
+        {value ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={L('Borrar búsqueda', 'Clear search')} onPress={() => onChangeText('')} hitSlop={8}
+            style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center' }}>
+            <Icon n="x" size={16} color={C.ink} />
+          </Pressable>
+        ) : null}
+      </View>
+      {value && count !== undefined ? <P small muted style={{ paddingLeft: 16 }}>{count === 0 ? L('Sin resultados', 'No results') : L(`${count} resultado${count === 1 ? '' : 's'}`, `${count} result${count === 1 ? '' : 's'}`)}</P> : null}
+    </View>
+  );
+}

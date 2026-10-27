@@ -3,7 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
 import { Text } from '@/components/Text';
 
-import { BackBar, Btn, Card, Empty, H1, IcoBox, Loading, P, Row, Screen } from '@/components/ui';
+import { BackBar, Btn, Card, Empty, H1, IcoBox, Loading, P, Row, Screen, SearchBox, matches } from '@/components/ui';
 import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/theme';
@@ -12,6 +12,7 @@ import type { Beneficiary } from '@/lib/types';
 export default function Beneficiarios() {
   const { L } = useLang();
   const [list, setList] = useState<Beneficiary[] | null>(null);
+  const [q, setQ] = useState('');
   const load = useCallback(() => {
     supabase
       .from('beneficiaries')
@@ -26,6 +27,8 @@ export default function Beneficiarios() {
     load();
   };
 
+  const shown = (list || []).filter((b) => matches(q, b.nombre, b.apellidos, b.parentesco, b.ciudad, b.estado, b.banco, b.red, b.telefono));
+
   return (
     <Screen wall="send">
       <BackBar title={L('Mis personas', 'My people')} />
@@ -34,7 +37,8 @@ export default function Beneficiarios() {
       <Btn icon="users" title={L('Agregar nueva persona', 'Add a new person')} onPress={() => router.push('/beneficiarios/nuevo')} />
       {!list ? <Loading /> : null}
       {list && list.length === 0 ? <Empty>{L('Aún no guardas a nadie.', 'No one saved yet.')}</Empty> : null}
-      {(list || []).map((b) => (
+      {list && list.length > 4 ? <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca por nombre, parentesco o ciudad', 'Search by name, relationship or city')} count={shown.length} /> : null}
+      {shown.map((b) => (
         <Card key={b.id}>
           <Row gap={12} style={{ flexWrap: 'nowrap' }}>
             <IcoBox n={b.metodo === 'cuenta' ? 'bank' : 'cash'} size={44} />

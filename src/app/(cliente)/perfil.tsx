@@ -19,29 +19,57 @@ export default function Perfil() {
   const { data: stores } = useStores();
   const [f, setF] = useState({ nombre: '', apellidos: '', telefono: '', fecha_nac: '', store_id: '' as string | null });
   const [msg, setMsg] = useState('');
+  const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [fotoBusy, setFotoBusy] = useState(false);
   const [fotoErr, setFotoErr] = useState('');
 
   useEffect(() => {
     if (profile)
-      setF({ nombre: profile.nombre, apellidos: profile.apellidos, telefono: profile.telefono, fecha_nac: profile.fecha_nac || '', store_id: profile.store_id });
+      setF({ nombre: profile.nombre || '', apellidos: profile.apellidos || '', telefono: profile.telefono || '', fecha_nac: profile.fecha_nac ? profile.fecha_nac.split('-').reverse().join('/') : '', store_id: profile.store_id });
   }, [profile]);
 
   if (!profile) return null;
   const set = (k: keyof typeof f) => (v: string) => setF((p) => ({ ...p, [k]: v }));
-  const dateOk = !f.fecha_nac || /^\d{4}-\d{2}-\d{2}$/.test(f.fecha_nac);
+  // Acepta 21/05/1990, 21-5-1990 o 1990-05-21; se guarda como 1990-05-21
+  const toIso = (t: string): string | null => {
+    const v = t.trim();
+    if (!v) return '';
+    let y: number, m: number, d: number;
+    let r = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/.exec(v);
+    if (r) [y, m, d] = [+r[1], +r[2], +r[3]];
+    else if ((r = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/.exec(v))) [d, m, y] = [+r[1], +r[2], +r[3]];
+    else return null;
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    if (dt.getUTCMonth() !== m - 1 || y < 1900 || dt > new Date()) return null;
+    return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  };
+  const iso = toIso(f.fecha_nac);
+  const dateOk = iso !== null;
 
   const save = async () => {
-    if (!dateOk) return;
+    setOk(false);
+    if (!dateOk) return setMsg(L('Revisa tu fecha de nacimiento: escríbela como 21/05/1990.', 'Check your date of birth: type it as day/month/year, like 21/05/1990.'));
+    if (!(f.nombre || '').trim()) return setMsg(L('Escribe tu nombre.', 'Enter your first name.'));
     setBusy(true);
-    const { error } = await supabase
-      .from('profiles')
-      .update({ nombre: f.nombre.trim(), apellidos: f.apellidos.trim(), telefono: digits(f.telefono), fecha_nac: f.fecha_nac || null, store_id: profile.role === 'cliente' ? f.store_id : profile.store_id })
-      .eq('id', profile.id);
-    setBusy(false);
-    setMsg(error ? errMsg(error) : L('Guardado', 'Saved'));
-    refreshProfile();
+    setMsg('');
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ nombre: (f.nombre || '').trim(), apellidos: (f.apellidos || '').trim(), telefono: digits(f.telefono || ''), fecha_nac: iso || null, store_id: profile.role === 'cliente' ? f.store_id || null : profile.store_id })
+        .eq('id', profile.id)
+        .select('id');
+      if (error) throw error;
+      // Si no regresó nada, la base no dejó guardar (permisos)
+      if (!data || data.length === 0) throw new Error(L('No se pudo guardar: tu sesión no tiene permiso. Cierra sesión y vuelve a entrar.', 'Could not save: your session has no permission. Sign out and sign in again.'));
+      setOk(true);
+      setMsg(L('¡Listo! Tus datos se guardaron.', 'Done! Your details were saved.'));
+      await refreshProfile();
+    } catch (e) {
+      setMsg(errMsg(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   // Foto de perfil: se sube a tu carpeta y se guarda en tu perfil
@@ -115,12 +143,12 @@ export default function Perfil() {
           <Field label={L('Apellidos', 'Last name')} value={f.apellidos} onChangeText={set('apellidos')} />
         </Row>
         <Field label={L('Teléfono', 'Phone')} value={f.telefono} onChangeText={(v) => set('telefono')(digits(v))} keyboardType="phone-pad" maxLength={10} />
-        <Field label={L('Fecha de nacimiento (AAAA-MM-DD)', 'Date of birth (YYYY-MM-DD)')} value={f.fecha_nac} onChangeText={set('fecha_nac')} placeholder="1990-05-21" error={dateOk ? '' : L('Usa el formato AAAA-MM-DD', 'Use YYYY-MM-DD')} hint={L('Opcional. Te consentimos en tu cumpleaños.', 'Optional. We treat you on your birthday.')} />
+        <Field label={L('Fecha de nacimiento (día/mes/año)', 'Date of birth (day/month/year)')} value={f.fecha_nac} onChangeText={set('fecha_nac')} placeholder="21/05/1990" error={dateOk ? '' : L('Escríbela como 21/05/1990', 'Type it like 21/05/1990')} hint={L('Opcional. Te consentimos en tu cumpleaños.', 'Optional. We treat you on your birthday.')} />
         <P small muted>{session?.user.email}</P>
         {profile.role === 'cliente' && stores ? (
           <Pills label={L('Mi tienda favorita', 'My favorite store')} options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', ''), icon: 'store' }))} value={f.store_id} onChange={(v) => setF((p) => ({ ...p, store_id: v }))} />
         ) : null}
-        {msg ? <Note kind="blue">{msg}</Note> : null}
+        {msg ? <Note kind={ok ? 'blue' : 'red'} icon={ok ? 'check' : 'x'}>{msg}</Note> : null}
         <Btn title={L('Guardar cambios', 'Save changes')} onPress={save} loading={busy} />
       </Card>
 

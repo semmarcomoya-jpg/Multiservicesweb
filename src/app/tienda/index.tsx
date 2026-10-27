@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { OrderRow } from '@/components/orders';
 import { PanelHeader, usePanelStore } from '@/components/panel';
 import { orderGroup, orderSvcKey, inPeriod, Summary, type Period } from '@/components/summary';
-import { Empty, Loading, Pills, Screen } from '@/components/ui';
+import { Empty, Loading, Pills, Screen, SearchBox, matches } from '@/components/ui';
 import { useCategories, useStores } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
@@ -20,6 +20,7 @@ export default function TiendaPedidos() {
   const [period, setPeriod] = useState<Period>('30');
   const [kind, setKind] = useState('all');
   const [svc, setSvc] = useState('all');
+  const [q, setQ] = useState('');
 
   const load = useCallback(async () => {
     if (!st) return;
@@ -46,7 +47,7 @@ export default function TiendaPedidos() {
   }, [st, load]);
 
   if (!stores || !cats) return <Loading />;
-  const base = (orders || []).filter((o) => inPeriod(o, period) && (kind === 'all' || orderGroup(o) === kind) && (svc === 'all' || orderSvcKey(o) === svc));
+  const base = (orders || []).filter((o) => inPeriod(o, period) && (kind === 'all' || orderGroup(o) === kind) && (svc === 'all' || orderSvcKey(o) === svc) && matches(q, o.folio, o.cliente_nombre, o.cliente_code, o.zelle_nombre, o.attended_name, o.service_name?.es, o.beneficiary?.nombre, o.beneficiary?.apellidos, (o.items || []).map((x) => x.name).join(' ')));
   const count = (k: string) => base.filter((o) => k === 'todos' || o.status === k).length;
   const list = base.filter((o) => status === 'todos' || o.status === status);
 
@@ -58,6 +59,7 @@ export default function TiendaPedidos() {
       ) : (
         <>
           <Summary orders={orders} cats={cats} period={period} setPeriod={setPeriod} kind={kind} setKind={setKind} svc={svc} setSvc={setSvc} />
+          <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca folio, cliente, número CM o servicio', 'Search ref, customer, CM number or service')} count={q ? list.length : undefined} />
           <Pills
             options={[
               { v: 'todos', label: `${L('Todos', 'All')} · ${count('todos')}` },

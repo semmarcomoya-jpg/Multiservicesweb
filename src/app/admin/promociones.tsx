@@ -3,7 +3,7 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 
 import { PanelHeader } from '@/components/panel';
 import { Text } from '@/components/Text';
-import { Btn, Card, Field, Icon, Loading, Note, P, Pills, Row, Screen } from '@/components/ui';
+import { Btn, Card, Field, Icon, Loading, Note, P, Pills, Row, Screen, SearchBox, matches } from '@/components/ui';
 import { useQuery } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
@@ -45,6 +45,7 @@ export default function AdminPromos() {
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
   const [storyDur, setStoryDur] = useState<StoryDuration>('7d');
+  const [q, setQ] = useState('');
   useEffect(() => {
     if (data) setList(data);
   }, [data]);
@@ -142,7 +143,8 @@ export default function AdminPromos() {
       {err ? <Note kind="red">{err}</Note> : null}
       {msg ? <Note kind="blue" icon="check">{msg}</Note> : null}
       {list.length === 0 ? <P muted>{L('Sin promociones. Los clientes verán ofertas automáticas.', 'No promotions. Customers will see automatic offers.')}</P> : null}
-      {list.map((p) => (
+      {list.length > 4 ? <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca una promoción', 'Search a promotion')} /> : null}
+      {list.filter((p) => matches(q, p.title_es, p.title_en, p.sub_es, p.sub_en)).map((p) => (
         <Card key={p.id}>
           <Row style={{ alignItems: 'flex-start', gap: 16 }}>
             <View style={{ width: 240, gap: 8, opacity: p.activo ? 1 : 0.5 }}>

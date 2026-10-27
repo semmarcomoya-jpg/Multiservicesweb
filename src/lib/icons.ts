@@ -46,6 +46,7 @@ export const ICONS: Record<string, IconDef> = {
     calendar: [['rect', { x: 3, y: 5, width: 18, height: 16, rx: 2 }], ['path', { d: 'M3 10h18' }], ['path', { d: 'M8 3v4' }], ['path', { d: 'M16 3v4' }]],
     heart: [['path', { d: 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z' }]],
     megaphone: [['path', { d: 'M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1z' }], ['path', { d: 'M17 9a4 4 0 0 1 0 6' }]],
+    search: [['circle', { cx: 11, cy: 11, r: 7 }], ['path', { d: 'M20 20l-4.2-4.2' }]],
     image: [['rect', { x: 3, y: 4, width: 18, height: 16, rx: 2 }], ['circle', { cx: 9, cy: 10, r: 2 }], ['path', { d: 'M21 17l-5-5-9 8' }]],
     chart: [['path', { d: 'M4 20V10' }], ['path', { d: 'M10 20V4' }], ['path', { d: 'M16 20v-7' }], ['path', { d: 'M3 20h18' }]],
     eye: [['path', { d: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z' }], ['circle', { cx: 12, cy: 12, r: 3 }]],

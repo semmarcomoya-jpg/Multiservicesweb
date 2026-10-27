@@ -5,7 +5,7 @@ import { Text } from '@/components/Text';
 import { useOrderText } from '@/components/orders';
 import { PanelHeader, usePanelStore } from '@/components/panel';
 import { orderGroup, useGroups } from '@/components/summary';
-import { Btn, Card, Empty, Field, H2, IcoBox, Label, Loading, Note, P, Row, Screen } from '@/components/ui';
+import { Btn, Card, Empty, Field, H2, IcoBox, Label, Loading, Note, P, Row, Screen, SearchBox, matches } from '@/components/ui';
 import { useCategories, useStores } from '@/lib/data';
 import { digits, money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
@@ -28,6 +28,7 @@ export default function TiendaCorte() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
+  const [q, setQ] = useState('');
 
   const fmt = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString(lang === 'es' ? 'es-MX' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
@@ -209,6 +210,7 @@ export default function TiendaCorte() {
 
               <Card>
                 <Label>{L('Detalle de ventas', 'Sales detail')}</Label>
+                {list.length > 5 ? <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca folio, cliente o empleado', 'Search ref, customer or employee')} /> : null}
                 <ScrollView horizontal>
                   <View>
                     <Row gap={0} style={{ flexWrap: 'nowrap', borderBottomWidth: 1, borderBottomColor: C.line }}>
@@ -216,7 +218,7 @@ export default function TiendaCorte() {
                         <Text key={h as string} style={[cell, { width: w as number, fontWeight: '800', color: C.muted, textAlign: (h === L('Comisión', 'Fee') || h === L('Total', 'Total')) ? 'right' : 'left' }]}>{h}</Text>
                       ))}
                     </Row>
-                    {list.map((o) => (
+                    {list.filter((o) => matches(q, o.folio, o.cliente_nombre, o.attended_name, title(o))).map((o) => (
                       <Row key={o.id} gap={0} style={{ flexWrap: 'nowrap', borderBottomWidth: 1, borderBottomColor: C.line }}>
                         <Text style={[cell, { width: 80, fontWeight: '800', color: C.ink }]}>{o.folio}</Text>
                         <Text style={[cell, { width: 150, color: C.ink }]}>{fmt(o.paid_at)}</Text>

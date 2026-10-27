@@ -3,7 +3,7 @@ import { Image, Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { PanelHeader, usePanelStore } from '@/components/panel';
-import { Btn, Card, Empty, Field, H2, IcoBox, Icon, Loading, Note, P, Pills, Row, Screen, Toggle } from '@/components/ui';
+import { Btn, Card, Empty, Field, H2, IcoBox, Icon, Loading, Note, P, Pills, Row, Screen, Toggle, SearchBox, matches } from '@/components/ui';
 import { modOn, prodName, useFamilies, useProducts, useStores } from '@/lib/data';
 import { digits, money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
@@ -21,6 +21,7 @@ export default function TiendaProductos() {
   const st = usePanelStore(stores);
   const { data: products, reload } = useProducts(st?.id);
   const [fam, setFam] = useState('all');
+  const [q, setQ] = useState('');
   const [edit, setEdit] = useState<string | null>(null);
   const [err, setErr] = useState('');
 
@@ -50,7 +51,7 @@ export default function TiendaProductos() {
     setEdit(data.id);
   };
 
-  const list = (products || []).filter((p) => fam === 'all' || p.family_id === fam);
+  const list = (products || []).filter((p) => (fam === 'all' || p.family_id === fam) && matches(q, p.marca, p.modelo, p.compat, p.descripcion, p.product_variants.map((v) => v.label).join(' ')));
   const onCount = (products || []).filter((p) => p.activo).length;
 
   return (
@@ -65,6 +66,7 @@ export default function TiendaProductos() {
         </P>
         <Btn icon="bag" title={L('Agregar producto', 'Add product')} onPress={addProduct} />
       </Row>
+      <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca marca, modelo o variante', 'Search brand, model or variant')} count={q ? list.length : undefined} />
       <Pills options={[{ v: 'all', label: L('Todo', 'All') }, ...fams.map((f) => ({ v: f.id, label: nm(f), icon: f.icon }))]} value={fam} onChange={setFam} />
       {err ? <Note kind="red">{err}</Note> : null}
       {!products ? <Loading /> : null}

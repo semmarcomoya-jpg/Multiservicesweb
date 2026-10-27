@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
-import { BackBar, Btn, Card, Empty, Field, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
+import { BackBar, Btn, Card, Empty, Field, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen, TopBar, SearchBox, matches } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { modOn, pickOpen, storeOptions, useSettings, useStores } from '@/lib/data';
 import { setDraft } from '@/lib/draft';
@@ -23,6 +23,7 @@ export default function Enviar() {
   const [storeId, setStoreId] = useState<string | null>(null);
   const [monto, setMonto] = useState('');
   const [tried, setTried] = useState(false);
+  const [q, setQ] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -96,7 +97,8 @@ export default function Enviar() {
           <Btn small kind="ghost" icon="users" title={L('Agregar', 'Add')} onPress={() => router.push('/beneficiarios/nuevo')} />
         </Row>
         {benefs.length === 0 ? <Empty>{L('Agrega a la persona que recibe el dinero.', 'Add the person who receives the money.')}</Empty> : null}
-        {benefs.map((x) => (
+        {benefs.length > 4 ? <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca a la persona', 'Search the person')} /> : null}
+        {benefs.filter((x) => x.id === sel || matches(q, x.nombre, x.apellidos, x.parentesco, x.ciudad, x.banco, x.red)).map((x) => (
           <Pressable
             key={x.id}
             accessibilityRole="radio"

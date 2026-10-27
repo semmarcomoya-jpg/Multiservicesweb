@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { PanelHeader } from '@/components/panel';
-import { Btn, Card, Field, H2, Loading, Note, P, Pills, Row, Screen, Toggle } from '@/components/ui';
+import { Btn, Card, Field, H2, Loading, Note, P, Pills, Row, Screen, Toggle, SearchBox, matches } from '@/components/ui';
 import { useStores } from '@/lib/data';
 import { digits } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
@@ -20,6 +20,7 @@ export default function AdminEmpleados() {
   const [d, setD] = useState<Draft | null>(null);
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [q, setQ] = useState('');
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('employees').select('id, store_id, nombre, rol, activo').order('nombre');
@@ -82,7 +83,8 @@ export default function AdminEmpleados() {
 
       <Card>
         <H2>{L('Empleados', 'Staff')}</H2>
-        {list.map((e) => (
+        {list.length > 5 ? <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca por nombre o sucursal', 'Search by name or branch')} /> : null}
+        {list.filter((e) => matches(q, e.nombre, storeName(e.store_id))).map((e) => (
           <Row key={e.id} style={{ justifyContent: 'space-between', padding: 10, borderRadius: R.md, backgroundColor: C.cream, flexWrap: 'nowrap' }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: '900', color: e.activo ? C.ink : C.muted }}>{e.nombre}</Text>
