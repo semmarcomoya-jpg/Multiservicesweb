@@ -1,6 +1,6 @@
 import { router, usePathname } from 'expo-router';
 import React, { useState, useSyncExternalStore } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { Icon, LangToggle, Row } from '@/components/ui';
@@ -124,55 +124,58 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
         ];
   return (
     <View style={{ gap: 10 }}>
-      <ViewSwitch current={kind} />
-      <View style={{ backgroundColor: C.brownDark, borderRadius: R.lg, padding: 14, gap: 10 }}>
-        <Row style={{ justifyContent: 'space-between' }}>
-          <Row gap={8}>
-            <Text style={{ color: '#fff', fontSize: 20, fontWeight: '900' }}>{kind === 'tienda' ? L('Modo tienda', 'Store mode') : L('Administración', 'Administration')}</Text>
-            {store && kind === 'tienda' ? (
-              <View style={{ backgroundColor: C.gold, borderRadius: R.pill, paddingHorizontal: 10, paddingVertical: 3 }}>
-                <Text style={{ fontWeight: '900', color: C.ink, fontSize: 12 }}>{store.nombre}</Text>
-              </View>
-            ) : null}
-          </Row>
-          <Row gap={8}>
-            <LangToggle />
-            <Pressable
-              accessibilityRole="button"
-              onPress={async () => {
-                await signOut();
-                router.replace('/bienvenida');
-              }}
-              style={{ paddingHorizontal: 12, minHeight: 36, borderRadius: R.pill, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center' }}
-            >
-              <Text style={{ color: '#fff', fontWeight: '800' }}>{L('Salir', 'Sign out')}</Text>
-            </Pressable>
-          </Row>
+      <Row style={{ justifyContent: 'space-between' }}>
+        <ViewSwitch current={kind} />
+        <Row gap={8}>
+          <LangToggle />
+          <Pressable
+            accessibilityRole="button"
+            onPress={async () => {
+              await signOut();
+              router.replace('/bienvenida');
+            }}
+            style={{ paddingHorizontal: 14, minHeight: 38, borderRadius: R.pill, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, justifyContent: 'center' }}
+          >
+            <Text style={{ color: C.ink, fontWeight: '800' }}>{L('Salir', 'Sign out')}</Text>
+          </Pressable>
         </Row>
-        {kind === 'tienda' && store ? <OpenSwitch store={store} onChanged={onStoreChange} /> : null}
-        {kind === 'tienda' && profile?.role === 'admin' && stores ? (
-          <Row gap={6}>
-            {stores.map((st) => (
-              <Pressable key={st.id} accessibilityRole="radio" accessibilityState={{ checked: store?.id === st.id }} onPress={() => setAdminStore(st.id)}
-                style={{ paddingHorizontal: 12, minHeight: 34, justifyContent: 'center', borderRadius: R.pill, backgroundColor: store?.id === st.id ? C.gold : 'rgba(255,255,255,0.12)' }}>
-                <Text style={{ fontWeight: '800', color: store?.id === st.id ? C.ink : '#fff' }}>{st.nombre.replace('Castillo · ', '') + (st.abierta === false ? ' · ' + L('cerrada', 'closed') : '')}</Text>
-              </Pressable>
-            ))}
-          </Row>
-        ) : null}
-      </View>
-      <Row gap={6}>
-        {links.map(([href, label, ic]) => {
-          const on = path === href;
-          return (
-            <Pressable key={href} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => router.replace(href as never)}
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, minHeight: 40, borderRadius: R.pill, backgroundColor: on ? C.ink : C.card, borderWidth: 1, borderColor: on ? C.ink : C.line }}>
-              <Icon n={ic} size={16} color={on ? '#fff' : C.softInk} />
-              <Text style={{ fontWeight: '800', color: on ? '#fff' : C.softInk }}>{label}</Text>
-            </Pressable>
-          );
-        })}
       </Row>
+
+      <View style={{ borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: C.line, backgroundColor: C.card }}>
+        {/* Encabezado café como la maqueta */}
+        <View style={{ backgroundColor: C.brownDark, paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
+          <Row gap={8}>
+            <Text style={{ color: '#fff', fontSize: 19, fontWeight: '900' }}>{kind === 'tienda' ? L('Mostrador', 'Counter') : L('Administración', 'Administration')}</Text>
+            <View style={{ backgroundColor: C.gold, borderRadius: R.pill, paddingHorizontal: 10, paddingVertical: 3 }}>
+              <Text style={{ fontWeight: '900', color: C.ink, fontSize: 12 }}>{kind === 'tienda' ? (store ? store.nombre.replace('Castillo · ', '') : L('Modo tienda', 'Store mode')) : L('Administrador', 'Administrator')}</Text>
+            </View>
+          </Row>
+          {kind === 'tienda' && profile?.role === 'admin' && stores ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+              {stores.map((st) => (
+                <Pressable key={st.id} accessibilityRole="radio" accessibilityState={{ checked: store?.id === st.id }} onPress={() => setAdminStore(st.id)}
+                  style={{ paddingHorizontal: 12, minHeight: 34, justifyContent: 'center', borderRadius: R.pill, backgroundColor: store?.id === st.id ? C.gold : 'rgba(255,255,255,0.12)' }}>
+                  <Text style={{ fontWeight: '800', color: store?.id === st.id ? C.ink : '#fff' }}>{st.nombre.replace('Castillo · ', '') + (st.abierta === false ? ' · ' + L('cerrada', 'closed') : '')}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          ) : null}
+          {kind === 'tienda' && store ? <OpenSwitch store={store} onChanged={onStoreChange} /> : null}
+        </View>
+        {/* Pestañas en una sola fila que se desliza (cómodo en celular) */}
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ backgroundColor: '#F6E2D0' }} contentContainerStyle={{ gap: 4, padding: 6 }}>
+          {links.map(([href, label, ic]) => {
+            const on = path === href;
+            return (
+              <Pressable key={href} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => router.replace(href as never)}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, minHeight: 40, borderRadius: 12, backgroundColor: on ? C.ink : 'transparent' }}>
+                <Icon n={ic} size={16} color={on ? '#fff' : C.segInk} />
+                <Text style={{ fontWeight: '800', color: on ? '#fff' : C.segInk }}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+      </View>
     </View>
   );
 }

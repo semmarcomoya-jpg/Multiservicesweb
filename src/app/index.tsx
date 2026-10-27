@@ -46,7 +46,7 @@ export default function Index() {
     }
     return <Loading />;
   }
-  if (profile.role === 'admin') return <Redirect href="/admin" />;
+  // El superusuario entra a la app como cliente (igual que la maqueta) y cambia de vista con el selector de arriba
   if (profile.role === 'tienda') return <Redirect href="/tienda" />;
   return <Redirect href="/inicio" />;
 }
