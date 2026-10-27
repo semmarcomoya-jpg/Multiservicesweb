@@ -74,6 +74,32 @@ export function OpenSwitch({ store, onChanged }: { store: Store; onChanged?: () 
   );
 }
 
+/** Selector de vista como en la maqueta: Cliente · Tienda · Admin (según el rol). */
+export function ViewSwitch({ current }: { current: 'cliente' | 'tienda' | 'admin' }) {
+  const { L } = useLang();
+  const { profile } = useAuth();
+  if (!profile || profile.role === 'cliente') return null;
+  const opts: ['cliente' | 'tienda' | 'admin', string, string, string][] = [
+    ['cliente', L('Cliente', 'Customer'), 'user', '/inicio'],
+    ['tienda', L('Tienda', 'Store'), 'store', '/tienda'],
+    ...(profile.role === 'admin' ? [['admin', L('Admin', 'Admin'), 'lock', '/admin'] as ['admin', string, string, string]] : []),
+  ];
+  return (
+    <View style={{ flexDirection: 'row', alignSelf: 'flex-start', padding: 3, borderRadius: R.pill, backgroundColor: C.seg }} accessibilityRole="tablist">
+      {opts.map(([k, label, ic, href]) => {
+        const on = k === current;
+        return (
+          <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => !on && router.replace(href as never)}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 38, paddingHorizontal: 16, borderRadius: R.pill, backgroundColor: on ? C.ink : 'transparent' }}>
+            <Icon n={ic} size={16} color={on ? '#fff' : C.segInk} />
+            <Text style={{ fontWeight: '800', color: on ? '#fff' : C.segInk }}>{label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tienda' | 'admin'; store?: Store | null; stores?: Store[] | null; onStoreChange?: () => void }) {
   const { L } = useLang();
   const { profile, signOut } = useAuth();
@@ -98,6 +124,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
         ];
   return (
     <View style={{ gap: 10 }}>
+      <ViewSwitch current={kind} />
       <View style={{ backgroundColor: C.brownDark, borderRadius: R.lg, padding: 14, gap: 10 }}>
         <Row style={{ justifyContent: 'space-between' }}>
           <Row gap={8}>
@@ -145,13 +172,6 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
             </Pressable>
           );
         })}
-        {profile?.role === 'admin' ? (
-          <Pressable accessibilityRole="button" onPress={() => router.replace((kind === 'tienda' ? '/admin' : '/tienda') as never)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, minHeight: 40, borderRadius: R.pill, backgroundColor: C.goldSoft }}>
-            <Icon n={kind === 'tienda' ? 'lock' : 'store'} size={16} color={C.goldInk} />
-            <Text style={{ fontWeight: '800', color: C.goldInk }}>{kind === 'tienda' ? L('Ir a administración', 'Go to admin') : L('Ir a modo tienda', 'Go to store mode')}</Text>
-          </Pressable>
-        ) : null}
       </Row>
     </View>
   );

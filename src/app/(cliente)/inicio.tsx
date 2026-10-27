@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Scenery, Wallpaper } from '@/components/art';
 import { OrderRow } from '@/components/orders';
+import { ViewSwitch } from '@/components/panel';
 import { StoriesRow } from '@/components/StoriesRow';
 import { Text } from '@/components/Text';
 import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Loading, Note, P } from '@/components/ui';
@@ -95,6 +96,11 @@ export default function Inicio() {
           </View>
 
           <View style={{ marginTop: -58, marginHorizontal: 16, gap: 16 }}>
+            {profile && profile.role !== 'cliente' ? (
+              <View style={{ alignItems: 'center' }}>
+                <ViewSwitch current="cliente" />
+              </View>
+            ) : null}
             {/* Saludo */}
             <View style={{ padding: 18, borderRadius: 22, backgroundColor: C.card, gap: 12, shadowColor: '#7A3412', shadowOpacity: 0.1, shadowRadius: 30, shadowOffset: { width: 0, height: 10 }, elevation: 4 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
