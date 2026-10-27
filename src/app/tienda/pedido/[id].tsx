@@ -194,8 +194,8 @@ export default function TiendaPedido() {
         <Card>
           <H2>3 · {needCode ? L('Entrega al cliente', 'Hand it to the customer') : L('Sube el comprobante', 'Upload the receipt')}</H2>
           {needCode ? (
-            <Field label={L('Código que te dicta el cliente', 'Code the customer tells you')} value={code} onChangeText={(v) => setCode(digits(v))} keyboardType="number-pad" maxLength={4}
-              error={code.length === 4 && code !== o.code ? L('El código no coincide', 'Code does not match') : ''} style={{ maxWidth: 260 }} />
+            <Field label={L('Código que te dicta el cliente', 'Code the customer tells you')} value={code} onChangeText={(v) => setCode(v.replace(/[^a-zA-Z0-9]/g, '').toUpperCase())} autoCapitalize="characters" maxLength={4}
+              error={code.length === 4 && code !== (o.code || '').toUpperCase() ? L('El código no coincide', 'Code does not match') : ''} style={{ maxWidth: 260 }} />
           ) : null}
           {o.kind === 'send' ? <Field label={L('Folio del envío (MTCN)', 'Transfer reference (MTCN)')} value={folioProv} onChangeText={setFolioProv} style={{ maxWidth: 360 }} /> : null}
           <Pressable accessibilityRole="button" onPress={async () => setTicket((await pickImage()) || ticket)}
@@ -205,7 +205,7 @@ export default function TiendaPedido() {
           </Pressable>
           <Row>
             <Btn kind="blue" icon="check" title={needCode ? L('Entregar y completar', 'Hand over and complete') : L('Enviar comprobante al cliente', 'Send receipt to customer')}
-              disabled={needCode ? code !== o.code : !ticket || (o.kind === 'send' && !folioProv.trim())}
+              disabled={needCode ? code !== (o.code || '').toUpperCase() : !ticket || (o.kind === 'send' && !folioProv.trim())}
               loading={busy === 'completado' || busy === 'up'} onPress={complete} />
           </Row>
         </Card>

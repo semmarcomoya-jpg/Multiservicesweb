@@ -5,6 +5,7 @@ import { Text } from '@/components/Text';
 
 import { orderIcon, useOrderText } from '@/components/orders';
 import { PayZelle } from '@/components/PayZelle';
+import { OrderStatusCard } from '@/components/OrderStatusCard';
 import { RatingCard } from '@/components/RatingCard';
 import { useAuth } from '@/lib/auth';
 import { useStores } from '@/lib/data';
@@ -50,66 +51,42 @@ export default function PedidoCliente() {
 
   if (!o) return <Loading />;
   const mode = o.entrega?.mode;
-  const steps = [
-    ['verificar', L('Pedido hecho · pago por confirmar', 'Order placed · payment pending')],
-    ['proceso', L('Pago confirmado, lo estamos haciendo', 'Payment confirmed, working on it')],
-    ['completado', L('¡Listo! Ya tienes tu comprobante', 'Done! Your receipt is ready')],
-  ];
-  const idx = o.status === 'rechazado' ? -1 : steps.findIndex((x) => x[0] === o.status);
 
   return (
     <Screen wall="send">
-      <BackBar title={o.folio} />
-      {nuevo && o.status === 'verificar' ? <Note kind="blue" icon="check">{L('¡Listo, tu pedido ' + o.folio + ' está hecho! Ahora mándale el Zelle a la tienda.', 'Your order ' + o.folio + ' is placed! Now send the Zelle to the store.')}</Note> : null}
-      <Row gap={12} style={{ flexWrap: 'nowrap' }}>
-        <IcoBox n={orderIcon(o)} size={52} />
+      <BackBar />
+      <View style={{ flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+        <Text style={{ fontSize: 34, fontWeight: '900', color: C.ink, lineHeight: 38 }}>{L('Pedido ', 'Order ') + o.folio}</Text>
+        <P small muted style={{ paddingBottom: 4 }}>{L('Pedido el ', 'Ordered on ') + new Date(o.created_at).toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US')}</P>
+      </View>
+      <Row gap={10} style={{ flexWrap: 'nowrap' }}>
+        <IcoBox n={orderIcon(o)} size={40} />
         <View style={{ flex: 1 }}>
-          <H1 style={{ fontSize: 22 }}>{title(o)}</H1>
-          <P muted>{money(o.total)} · {o.folio}</P>
+          <Text style={{ fontWeight: '800', color: C.ink, fontSize: 16 }} numberOfLines={2}>{title(o)}</Text>
+          <P small muted>{money(o.total)}</P>
         </View>
-        <StatusChip status={o.status} />
       </Row>
 
       {session ? <PayZelle order={o} store={(stores || []).find((s) => s.id === o.store_id)} userId={session.user.id} captura={captura} onChanged={load} /> : null}
 
-      {o.attended_name ? (
-        <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.gold, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ fontWeight: '900', color: C.ink }}>{o.attended_name.charAt(0)}</Text>
-          </View>
-          <Text style={{ fontWeight: '800', color: C.ink }}>{(o.status === 'completado' ? L('Te atendió ', 'You were helped by ') : L('Te atiende ', 'Helping you: ')) + o.attended_name}</Text>
-        </Card>
-      ) : null}
+      <OrderStatusCard o={o} />
 
       {o.code && mode && mode !== 'digital' && o.status !== 'completado' && o.status !== 'rechazado' ? (
-        <Card style={{ alignItems: 'center' }}>
-          <Label>{L('Tu código de entrega', 'Your pickup code')}</Label>
-          <Text style={{ fontSize: 40, fontWeight: '900', letterSpacing: 10, color: C.brownDark }}>{o.code}</Text>
-          <P small muted style={{ textAlign: 'center' }}>
-            {modeLabel(mode)}
-            {o.entrega?.time ? ' · ' + o.entrega.time : ''}. {L('Díselo a quien te entregue. No lo compartas con nadie más.', 'Tell it to whoever hands you the order. Do not share it with anyone else.')}
+        <View style={{ backgroundColor: C.card, borderRadius: 24, borderWidth: 2.5, borderColor: C.gold, padding: 22, alignItems: 'center', gap: 6 }}>
+          <Text style={{ fontSize: 13, fontWeight: '900', letterSpacing: 2.5, color: C.muted }}>{L('CÓDIGO PARA RECOGER', 'PICKUP CODE')}</Text>
+          <Text selectable style={{ fontSize: 64, fontWeight: '900', letterSpacing: 14, color: C.brownDark, lineHeight: 72, paddingLeft: 14 }}>{o.code}</Text>
+          <P style={{ textAlign: 'center' }}>
+            {mode === 'home'
+              ? L('Díselo a quien te entregue. No lo compartas con nadie más.', 'Tell it to the delivery person. Do not share it with anyone else.')
+              : L('Muestra este código en el mostrador.', 'Show this code at the counter.')}
           </P>
+          <P small muted style={{ textAlign: 'center' }}>{modeLabel(mode)}{o.entrega?.time ? ' · ' + o.entrega.time : ''}</P>
           {mode === 'curb' && o.status === 'proceso' && !o.entrega?.arrived ? (
             <Btn icon="car" title={L('Ya llegué', "I'm here")} onPress={async () => { await supabase.rpc('mark_arrived', { p_order: o.id }); load(); }} />
           ) : null}
           {o.entrega?.arrived ? <Note kind="blue">{L('Avisamos a la tienda que ya llegaste.', 'We told the store you are here.')}</Note> : null}
-        </Card>
+        </View>
       ) : null}
-
-      {o.status === 'rechazado' ? (
-        <Note kind="red" icon="x">{L('La tienda no pudo confirmar tu pago. ', "The store couldn't confirm your payment. ") + (o.reject_reason || L('Comunícate con la tienda.', 'Please contact the store.'))}</Note>
-      ) : (
-        <Card>
-          {steps.map(([k, label], i) => (
-            <Row key={k} gap={12} style={{ flexWrap: 'nowrap' }}>
-              <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: i <= idx ? C.brown : C.line, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: '#fff', fontWeight: '900', fontSize: 12 }}>{i + 1}</Text>
-              </View>
-              <Text style={{ flex: 1, fontWeight: i === idx ? '900' : '600', color: i <= idx ? C.ink : C.muted }}>{label}</Text>
-            </Row>
-          ))}
-        </Card>
-      )}
 
       <RatingCard order={o} />
 
