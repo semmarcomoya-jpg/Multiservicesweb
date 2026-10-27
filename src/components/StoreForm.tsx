@@ -77,7 +77,7 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
     ['shop', 'bag', L('Productos', 'Products'), L('Catálogo, carrito y pago', 'Catalog, cart and payment')],
     ['credit', 'wallet', L('Crédito', 'Credit'), L('Compras a plazos (fase 2)', 'Installments (phase 2)')],
     ['layaway', 'calendar', L('Apartado', 'Layaway'), L('Fase 2', 'Phase 2')],
-    ['comm', 'chat', L('Boca a boca', 'Word of mouth'), L('Reseñas (fase 2)', 'Reviews (phase 2)')],
+    ['comm', 'chat', L('Boca a boca', 'Word of mouth'), L('Recomendaciones y reseñas de clientes', 'Customer recommendations and reviews')],
   ];
 
   return (

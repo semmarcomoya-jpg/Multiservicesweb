@@ -7,6 +7,7 @@ import { Scenery, Wallpaper, FramedImage } from '@/components/art';
 import { OrderRow } from '@/components/orders';
 import { ViewSwitch } from '@/components/panel';
 import { Destacados } from '@/components/Destacados';
+import { Stars } from '@/components/Stars';
 import { StoriesRow } from '@/components/StoriesRow';
 import { useDestacados } from '@/lib/featured';
 import { Text } from '@/components/Text';
@@ -35,6 +36,21 @@ export default function Inicio() {
   const { orders } = useMyOrders(5);
   const { brand } = useBranding();
   const destacados = useDestacados();
+  // Recordatorio: el pedido completado más reciente que aún no calificas (de los últimos 14 días)
+  const [toRate, setToRate] = useState<{ id: string; folio: string; who: string } | null>(null);
+  useEffect(() => {
+    const done = (orders || []).filter((o) => o.status === 'completado' && Date.now() - new Date(o.updated_at || o.created_at).getTime() < 14 * 864e5);
+    if (!done.length) return setToRate(null);
+    supabase
+      .from('ratings')
+      .select('order_id')
+      .in('order_id', done.map((o) => o.id))
+      .then(({ data }) => {
+        const rated = new Set((data || []).map((r: { order_id: string }) => r.order_id));
+        const o = done.find((x) => !rated.has(x.id));
+        setToRate(o ? { id: o.id, folio: o.folio, who: o.attended_name || '' } : null);
+      });
+  }, [orders]);
   const { data: adminPromos } = useQuery<Promo[]>(() => supabase.from('promos').select('*').eq('activo', true).order('orden'));
 
   // Historias: igual que en Viva, al entrar se abren solas una vez por visita (primero las nuevas).
@@ -97,6 +113,7 @@ export default function Inicio() {
     any('send') && { ic: 'send', tone: 'blue', label: L('Enviar dinero', 'Send money'), go: '/enviar' },
     { ic: 'users', tone: 'gold', label: L('Mis personas', 'My people'), go: '/beneficiarios' },
     { ic: 'receipt', tone: 'blue', label: L('Mis pedidos', 'My orders'), go: '/pedidos' },
+    (stores || []).some((st) => st.activo && modOn(st, 'comm')) && { ic: 'chat', tone: 'gold', label: L('Boca a boca', 'Word of mouth'), go: '/comunidad' },
   ].filter(Boolean) as { ic: string; tone: 'gold' | 'blue'; label: string; go: string }[];
 
   return (
@@ -156,6 +173,18 @@ export default function Inicio() {
               <Note kind="gold" icon="gift">
                 {L(`¡Feliz cumpleaños, ${profile?.nombre}! Este mes te consentimos en tu tienda.`, `Happy birthday, ${profile?.nombre}! This month we treat you at your store.`)}
               </Note>
+            ) : null}
+
+            {toRate ? (
+              <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/pedido/[id]', params: { id: toRate.id } })}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 18, backgroundColor: C.card, borderWidth: 2, borderColor: C.gold }}>
+                <Stars value={0} size={18} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: '900', color: C.ink }}>{toRate.who ? L(`¿Cómo te atendió ${toRate.who}?`, `How did ${toRate.who} do?`) : L('¿Cómo te atendimos?', 'How did we do?')}</Text>
+                  <P small muted>{L(`Califica tu pedido ${toRate.folio}. Toma 5 segundos.`, `Rate your order ${toRate.folio}. Takes 5 seconds.`)}</P>
+                </View>
+                <Icon n="arrow" size={18} color={C.brown} />
+              </Pressable>
             ) : null}
 
             {/* Destacados: lo que elige el administrador o lo más vendido */}

@@ -110,6 +110,8 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
       ? [
           ['/tienda', L('Pedidos', 'Orders'), 'receipt'],
           ['/tienda/productos', L('Productos', 'Products'), 'bag'],
+          ['/tienda/comunidad', L('Boca a boca', 'Word of mouth'), 'chat'],
+          ['/tienda/calificaciones', L('Calificaciones', 'Ratings'), 'star'],
           ['/tienda/historias', L('Historias', 'Stories'), 'camera'],
           ['/tienda/corte', L('Ventas y corte', 'Sales & close-out'), 'chart'],
           ['/tienda/ajustes', L('Mi tienda', 'My store'), 'store'],
@@ -124,6 +126,8 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           ['/admin/servicios', L('Servicios', 'Services'), 'tool'],
           ['/admin/tiendas', L('Tiendas', 'Stores'), 'store'],
           ['/admin/cambio', L('Tipo de cambio y reglas', 'Rate & rules'), 'cash'],
+          ['/admin/calificaciones', L('Calificaciones', 'Ratings'), 'star'],
+          ['/admin/comunidad', L('Boca a boca', 'Word of mouth'), 'chat'],
           ['/admin/empleados', L('Empleados', 'Staff'), 'users'],
           ['/admin/usuarios', L('Cuentas', 'Accounts'), 'id'],
           ['/admin/bitacora', L('Bitácora', 'Activity log'), 'clock'],

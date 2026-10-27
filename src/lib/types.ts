@@ -216,3 +216,40 @@ export interface Promo {
 
 export interface Featured { id: string; kind: 'product' | 'service'; ref_id: string; orden: number }
 export interface TopSeller { kind: 'product' | 'service'; ref_id: string; veces: number; total: number }
+
+export interface Rating {
+  id: string;
+  order_id: string;
+  user_id: string;
+  store_id: string;
+  employee_id: string | null;
+  employee_name: string;
+  stars: number;
+  tags: string[];
+  comment: string;
+  followed_up: boolean;
+  followed_by: string;
+  followed_at: string | null;
+  created_at: string;
+}
+export type PostKind = 'reco' | 'prod' | 'promo' | 'sug' | 'store';
+export interface PostReply { id: string; post_id: string; author_name: string; text: string; created_at: string }
+export interface Post {
+  id: string;
+  store_id: string;
+  user_id: string | null;
+  author_name: string;
+  author_foto: string | null;
+  kind: PostKind;
+  stars: number;
+  text: string;
+  ref_type: 'product' | 'service' | null;
+  ref_id: string | null;
+  ref_label: string;
+  likes: number;
+  hidden: boolean;
+  hide_reason: '' | 'ofensivo' | 'spam' | 'datos' | 'otro';
+  hidden_by: string;
+  created_at: string;
+  post_replies?: PostReply[];
+}

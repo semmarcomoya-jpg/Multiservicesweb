@@ -5,6 +5,7 @@ import { Text } from '@/components/Text';
 
 import { orderIcon, useOrderText } from '@/components/orders';
 import { PayZelle } from '@/components/PayZelle';
+import { RatingCard } from '@/components/RatingCard';
 import { useAuth } from '@/lib/auth';
 import { useStores } from '@/lib/data';
 import { BackBar, Btn, Card, H1, IcoBox, Label, Loading, Note, P, Row, Screen, StatusChip } from '@/components/ui';
@@ -109,6 +110,8 @@ export default function PedidoCliente() {
           ))}
         </Card>
       )}
+
+      <RatingCard order={o} />
 
       {ticket ? (
         <Card>
