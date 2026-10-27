@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { PostCard, useHideReasons, usePostKinds } from '@/components/PostCard';
 import { Btn, Card, Empty, Field, H2, Loading, Note, Pills, Row, SearchBox, matches } from '@/components/ui';
+import { useAuth } from '@/lib/auth';
 import { storeShort } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
@@ -23,6 +24,9 @@ export function ComunidadPanel({ stores, storeId }: { stores: Store[]; storeId?:
   const [reply, setReply] = useState<Record<string, string>>({});
   const [reason, setReason] = useState<Record<string, Post['hide_reason']>>({});
   const [busy, setBusy] = useState('');
+  const [armed, setArmed] = useState<string | null>(null);
+  const { profile } = useAuth();
+  const isAdmin = profile?.role === 'admin';
   const [err, setErr] = useState('');
 
   const load = useCallback(() => {
@@ -112,6 +116,19 @@ export function ComunidadPanel({ stores, storeId }: { stores: Store[]; storeId?:
                     loading={busy === 'r' + p.id}
                     onPress={() => run('r' + p.id, () => supabase.rpc('reply_post', { p_post: p.id, p_text: (reply[p.id] || '').trim() }), () => setReply((r) => ({ ...r, [p.id]: '' })))}
                   />
+                </Row>
+              ) : null}
+              {isAdmin ? (
+                <Row>
+                  {armed === p.id ? (
+                    <>
+                      <Btn small kind="danger" icon="x" title={L('Sí, borrar para siempre', 'Yes, delete forever')} loading={busy === 'd' + p.id}
+                        onPress={() => run('d' + p.id, () => supabase.rpc('admin_delete_post', { p_post: p.id, p_reason: reason[p.id] || p.hide_reason || 'otro' }), () => setArmed(null))} />
+                      <Btn small kind="ghost" title={L('Cancelar', 'Cancel')} onPress={() => setArmed(null)} />
+                    </>
+                  ) : (
+                    <Btn small kind="ghost" icon="x" title={L('Borrar definitivamente', 'Delete permanently')} onPress={() => setArmed(p.id)} />
+                  )}
                 </Row>
               ) : null}
               {p.hidden ? (
