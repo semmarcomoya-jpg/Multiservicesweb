@@ -130,6 +130,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           ['/admin/destacados', L('Destacados', 'Featured'), 'star'],
           ['/admin/historias', L('Historias', 'Stories'), 'camera'],
           ['/admin/servicios', L('Servicios', 'Services'), 'tool'],
+          ['/admin/productos', L('Productos', 'Products'), 'bag'],
           ['/admin/tiendas', L('Tiendas', 'Stores'), 'store'],
           ['/admin/cambio', L('Tipo de cambio', 'Exchange rate'), 'cash'],
           ['/admin/reglas', L('Reglas', 'Rules'), 'shield'],

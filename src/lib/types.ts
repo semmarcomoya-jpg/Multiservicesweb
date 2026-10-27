@@ -165,6 +165,10 @@ export interface Product {
   foto_url: string | null;
   activo: boolean;
   orden: number;
+  specs?: { k: string; v: string }[];
+  fotos?: string[];
+  ficha_url?: string | null;
+  ficha_name?: string;
   product_variants: Variant[];
 }
 

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, Linking, Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen } from '@/components/ui';
@@ -10,11 +10,14 @@ import { money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
+import { cleanSpecs, specLabel } from '@/lib/specs';
 import type { Product } from '@/lib/types';
 
 export default function ProductoDetalle() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { L } = useLang();
+  const { L, lang } = useLang();
+  const [img, setImg] = useState(0);
+  const [allSpecs, setAllSpecs] = useState(false);
   const { data: stores } = useStores();
   const { data: fams } = useFamilies();
   const { data: cfg } = useSettings();
@@ -56,6 +59,10 @@ export default function ProductoDetalle() {
   const st = stores.find((x) => x.id === p.store_id);
   const v = p.product_variants.find((x) => x.id === vid);
   const closed = st?.abierta === false;
+  const photos = [p.foto_url, ...(p.fotos || [])].filter(Boolean) as string[];
+  const specs = cleanSpecs(p.specs);
+  const shownSpecs = allSpecs ? specs : specs.slice(0, 6);
+  const fichaPdf = /\.pdf($|\?)/i.test(p.ficha_url || '');
   const max = v ? Math.min(v.stock, 20) : 0;
 
   const add = (force = false) => {
@@ -88,8 +95,18 @@ export default function ProductoDetalle() {
     >
       <BackBar />
       <View style={{ height: 220, borderRadius: R.xl, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-        {p.foto_url ? <Image source={{ uri: p.foto_url }} style={{ width: '100%', height: '100%' }} resizeMode="contain" /> : <IcoBox n={fams?.find((f) => f.id === p.family_id)?.icon || 'bag'} size={90} />}
+        {photos.length ? <Image source={{ uri: photos[Math.min(img, photos.length - 1)] }} style={{ width: '100%', height: '100%' }} resizeMode="contain" /> : <IcoBox n={fams?.find((f) => f.id === p.family_id)?.icon || 'bag'} size={90} />}
       </View>
+      {photos.length > 1 ? (
+        <Row gap={8}>
+          {photos.map((u, i) => (
+            <Pressable key={u} accessibilityRole="button" accessibilityLabel={L(`Foto ${i + 1}`, `Photo ${i + 1}`)} onPress={() => setImg(i)}
+              style={{ width: 58, height: 58, borderRadius: 12, overflow: 'hidden', backgroundColor: C.tint, borderWidth: 2, borderColor: i === img ? C.brown : 'transparent' }}>
+              <Image source={{ uri: u }} style={{ width: '100%', height: '100%' }} resizeMode="contain" />
+            </Pressable>
+          ))}
+        </Row>
+      ) : null}
       <View style={{ gap: 4 }}>
         <P small muted>{p.marca} · {st?.nombre}</P>
         <H1>{prodName(p)}</H1>
@@ -120,6 +137,25 @@ export default function ProductoDetalle() {
         {v ? <P small muted>{v.stock > 0 ? L(`Quedan ${v.stock}`, `${v.stock} left`) : L('Se agotó esta opción', 'This option is sold out')}</P> : null}
         {p.compat ? <Note kind="blue">{L('Compatible con: ', 'Works with: ') + p.compat}</Note> : null}
       </Card>
+      {specs.length || p.ficha_url ? (
+        <Card>
+          <Text style={{ fontWeight: '900', fontSize: 17, color: C.ink }}>{L('Especificaciones', 'Specifications')}</Text>
+          {shownSpecs.map((s, i) => (
+            <View key={s.k + i} style={{ flexDirection: 'row', gap: 12, paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
+              <Text style={{ width: '42%', color: C.muted, fontWeight: '700' }}>{specLabel(s.k, lang)}</Text>
+              <Text style={{ flex: 1, color: C.ink, fontWeight: '800' }}>{s.v}</Text>
+            </View>
+          ))}
+          {specs.length > 6 ? (
+            <Pressable onPress={() => setAllSpecs(!allSpecs)}>
+              <Text style={{ color: C.blue, fontWeight: '800' }}>{allSpecs ? L('Ver menos', 'Show less') : L(`Ver las ${specs.length}`, `Show all ${specs.length}`)}</Text>
+            </Pressable>
+          ) : null}
+          {p.ficha_url ? (
+            <Btn kind="ghost" icon={fichaPdf ? 'doc' : 'image'} title={L('Ver ficha técnica completa', 'See full spec sheet')} onPress={() => Linking.openURL(p.ficha_url!)} style={{ alignSelf: 'flex-start' }} />
+          ) : null}
+        </Card>
+      ) : null}
       {v && v.stock > 0 && st && credCfg.on !== false && ((modOn(st, 'credit') && Number(v.price) >= Number(credCfg.minPrice || 0)) || (credCfg.layaway !== false && modOn(st, 'layaway'))) ? (
         <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/plan', params: { variant: v.id } })}
           style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: R.lg, borderWidth: 1.5, borderColor: C.gold, backgroundColor: C.goldSoft, opacity: pressed ? 0.85 : 1 })}>
