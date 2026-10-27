@@ -1,11 +1,12 @@
 import { router, usePathname } from 'expo-router';
 import React, { useState, useSyncExternalStore } from 'react';
-import { Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { useInShell } from '@/components/StaffShell';
 import { Icon, LangToggle, Row, ChipScroll } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { useStores } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
@@ -38,7 +39,7 @@ export function usePanelStore(stores: Store[] | null) {
 }
 
 /** Interruptor grande para abrir o cerrar la tienda (no recibe pedidos nuevos mientras está cerrada). */
-export function OpenSwitch({ store, onChanged }: { store: Store; onChanged?: () => void }) {
+export function OpenSwitch({ store, onChanged, compact }: { store: Store; onChanged?: () => void; compact?: boolean }) {
   const { L } = useLang();
   const [open, setOpen] = useState(store.abierta !== false);
   const [busy, setBusy] = useState(false);
@@ -63,20 +64,20 @@ export function OpenSwitch({ store, onChanged }: { store: Store; onChanged?: () 
       accessibilityLabel={L('Tienda abierta', 'Store open')}
       onPress={toggle}
       disabled={busy}
-      style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, minHeight: 40, borderRadius: R.pill, backgroundColor: open ? '#DDF1E4' : C.redSoft }}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: compact ? 6 : 10, paddingHorizontal: compact ? 6 : 12, minHeight: compact ? 32 : 40, borderRadius: R.pill, backgroundColor: open ? '#DDF1E4' : C.redSoft }}
     >
-      <View style={{ width: 42, height: 24, borderRadius: 12, padding: 3, backgroundColor: open ? '#2E8B57' : '#93A5BD' }}>
-        <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff', transform: [{ translateX: open ? 18 : 0 }] }} />
+      <View style={{ width: compact ? 32 : 42, height: compact ? 18 : 24, borderRadius: 12, padding: compact ? 2 : 3, backgroundColor: open ? '#2E8B57' : '#93A5BD' }}>
+        <View style={{ width: compact ? 14 : 18, height: compact ? 14 : 18, borderRadius: 9, backgroundColor: '#fff', transform: [{ translateX: open ? (compact ? 14 : 18) : 0 }] }} />
       </View>
-      <Text style={{ fontWeight: '900', color: open ? '#1E5B35' : C.red }}>
-        {err ? err : open ? L('Abierta · recibe pedidos', 'Open · taking orders') : L('Cerrada · no recibe pedidos', 'Closed · no new orders')}
+      <Text style={{ fontWeight: '900', fontSize: compact ? 13 : 14, color: open ? '#1E5B35' : C.red }}>
+        {err ? err : compact ? (open ? L('Abierta', 'Open') : L('Cerrada', 'Closed')) : open ? L('Abierta · recibe pedidos', 'Open · taking orders') : L('Cerrada · no recibe pedidos', 'Closed · no new orders')}
       </Text>
     </Pressable>
   );
 }
 
 /** Selector de vista como en la maqueta: Cliente · Tienda · Admin (según el rol). */
-export function ViewSwitch({ current }: { current: 'cliente' | 'tienda' | 'admin' }) {
+export function ViewSwitch({ current, compact }: { current: 'cliente' | 'tienda' | 'admin'; compact?: boolean }) {
   const { L } = useLang();
   const { profile } = useAuth();
   if (!profile || profile.role === 'cliente') return null;
@@ -91,8 +92,8 @@ export function ViewSwitch({ current }: { current: 'cliente' | 'tienda' | 'admin
         const on = k === current;
         return (
           <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => !on && router.replace(href as never)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 38, paddingHorizontal: 16, borderRadius: R.pill, backgroundColor: on ? C.ink : 'transparent' }}>
-            <Icon n={ic} size={16} color={on ? '#fff' : C.segInk} />
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: compact ? 34 : 38, paddingHorizontal: compact ? 11 : 16, borderRadius: R.pill, backgroundColor: on ? C.ink : 'transparent' }}>
+            {compact ? null : <Icon n={ic} size={16} color={on ? '#fff' : C.segInk} />}
             <Text style={{ fontWeight: '800', color: on ? '#fff' : C.segInk }}>{label}</Text>
           </Pressable>
         );
@@ -133,20 +134,22 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           ['/admin/bitacora', L('Bitácora', 'Activity log'), 'clock'],
         ];
   const inShell = useInShell();
+  // En celular el menú queda fijo arriba, así que lo hacemos más bajito
+  const compact = useWindowDimensions().width < 700;
   return (
-    <View style={{ gap: 10 }}>
+    <View style={{ gap: compact ? 6 : 10 }}>
       {inShell ? null : (
-      <Row style={{ justifyContent: 'space-between' }}>
-        <ViewSwitch current={kind} />
-        <Row gap={8}>
-          <LangToggle />
+      <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }} gap={6}>
+        <ViewSwitch current={kind} compact={compact} />
+        <Row gap={6} style={{ flexWrap: 'nowrap' }}>
+          {compact ? null : <LangToggle />}
           <Pressable
             accessibilityRole="button"
             onPress={async () => {
               await signOut();
               router.replace('/bienvenida');
             }}
-            style={{ paddingHorizontal: 14, minHeight: 38, borderRadius: R.pill, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, justifyContent: 'center' }}
+            style={{ paddingHorizontal: compact ? 11 : 14, minHeight: compact ? 34 : 38, borderRadius: R.pill, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, justifyContent: 'center' }}
           >
             <Text style={{ color: C.ink, fontWeight: '800' }}>{L('Salir', 'Sign out')}</Text>
           </Pressable>
@@ -156,12 +159,19 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
 
       <View style={{ borderRadius: 18, overflow: 'hidden', borderWidth: 1, borderColor: C.line, backgroundColor: C.card }}>
         {/* Encabezado café como la maqueta */}
-        <View style={{ backgroundColor: C.brownDark, paddingHorizontal: 16, paddingVertical: 14, gap: 10 }}>
-          <Row gap={8}>
-            <Text style={{ color: '#fff', fontSize: 19, fontWeight: '900' }}>{kind === 'tienda' ? L('Mostrador', 'Counter') : L('Administración', 'Administration')}</Text>
-            <View style={{ backgroundColor: C.gold, borderRadius: R.pill, paddingHorizontal: 10, paddingVertical: 3 }}>
-              <Text style={{ fontWeight: '900', color: C.ink, fontSize: 12 }}>{kind === 'tienda' ? (store ? store.nombre.replace('Castillo · ', '') : L('Modo tienda', 'Store mode')) : L('Administrador', 'Administrator')}</Text>
+        <View style={{ backgroundColor: C.brownDark, paddingHorizontal: compact ? 12 : 16, paddingVertical: compact ? 8 : 14, gap: compact ? 6 : 10 }}>
+          <Row gap={8} style={compact ? { flexWrap: 'nowrap' } : undefined}>
+            {compact && kind === 'tienda' ? null : (
+              <Text style={{ color: '#fff', fontSize: compact ? 16 : 19, fontWeight: '900' }}>{kind === 'tienda' ? L('Mostrador', 'Counter') : L('Administración', 'Administration')}</Text>
+            )}
+            <View style={{ backgroundColor: C.gold, borderRadius: R.pill, paddingHorizontal: 10, paddingVertical: 3, flexShrink: 1, minWidth: 0 }}>
+              <Text style={{ fontWeight: '900', color: C.ink, fontSize: 12 }} numberOfLines={1}>{kind === 'tienda' ? (store ? store.nombre.replace('Castillo · ', '') : L('Modo tienda', 'Store mode')) : L('Administrador', 'Administrator')}</Text>
             </View>
+            {compact && kind === 'tienda' && store ? (
+              <View style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                <OpenSwitch store={store} onChanged={onStoreChange} compact />
+              </View>
+            ) : null}
           </Row>
           {kind === 'tienda' && profile?.role === 'admin' && stores ? (
             <ChipScroll active={store?.id}>
@@ -173,7 +183,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
               ))}
             </ChipScroll>
           ) : null}
-          {kind === 'tienda' && store ? <OpenSwitch store={store} onChanged={onStoreChange} /> : null}
+          {kind === 'tienda' && store && !compact ? <OpenSwitch store={store} onChanged={onStoreChange} /> : null}
         </View>
         {/* Pestañas en una sola fila que se desliza (cómodo en celular) */}
         <View style={{ backgroundColor: '#DCE7F6', padding: 6 }}>
@@ -191,6 +201,23 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
         </ChipScroll>
         </View>
       </View>
+    </View>
+  );
+}
+
+/**
+ * Encabezado y pestañas del panel, puestos UNA vez en el layout: al cambiar de pestaña
+ * solo cambia el contenido de abajo (el menú no se vuelve a dibujar ni regresa al inicio).
+ */
+export function PanelFrame({ kind, children }: { kind: 'tienda' | 'admin'; children: React.ReactNode }) {
+  const { data: stores, reload } = useStores();
+  const st = usePanelStore(stores);
+  return (
+    <View style={{ flex: 1, backgroundColor: C.page }}>
+      <View style={{ width: '100%', maxWidth: 1100, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 10, zIndex: 2 }}>
+        {kind === 'tienda' ? <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reload} /> : <PanelHeader kind="admin" />}
+      </View>
+      <View style={{ flex: 1 }}>{children}</View>
     </View>
   );
 }

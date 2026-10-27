@@ -47,7 +47,6 @@ export default function AdminCambio() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       <Card>
         <H2>{L('Tipo de cambio', 'Exchange rate')}</H2>
         <Row style={{ alignItems: 'flex-end' }}>

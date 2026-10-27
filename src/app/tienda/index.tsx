@@ -53,7 +53,6 @@ export default function TiendaPedidos() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reload} />
       {!orders ? (
         <Loading />
       ) : (

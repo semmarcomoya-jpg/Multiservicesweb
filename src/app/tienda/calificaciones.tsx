@@ -13,7 +13,6 @@ export default function TiendaCalificaciones() {
   if (!stores) return <Loading />;
   return (
     <Screen wide>
-      <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reload} />
       {st ? <CalificacionesPanel key={st.id} stores={stores} storeId={st.id} /> : <Empty>{L('Esta cuenta no tiene tienda asignada.', 'This account has no store assigned.')}</Empty>}
     </Screen>
   );

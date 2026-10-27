@@ -55,43 +55,52 @@ export default function AdminEmpleados() {
 
   const pinOk = d ? (d.id ? !d.pin || /^\d{4,6}$/.test(d.pin) : /^\d{4,6}$/.test(d.pin)) : false;
 
+  // El mismo formulario sirve para agregar (arriba) y para editar (justo debajo del empleado que tocaste)
+  const form = d ? (
+        <Card>
+      <H2>{d.id ? L('Editar empleado', 'Edit employee') : L('Empleado nuevo', 'New employee')}</H2>
+      <Row style={{ alignItems: 'flex-start' }}>
+        <Field label={L('Nombre (lo ve el cliente)', 'Name (customers see it)')} value={d.nombre} onChangeText={(v) => setD({ ...d, nombre: v })} />
+        <Field label={d.id ? L('Nueva clave (vacío = no cambiar)', 'New code (empty = keep)') : L('Clave (4 a 6 dígitos)', 'Code (4 to 6 digits)')} value={d.pin} onChangeText={(v) => setD({ ...d, pin: digits(v) })} keyboardType="number-pad" maxLength={6} secure />
+      </Row>
+      <Pills label={L('Rol', 'Role')} options={[{ v: 'tienda', label: L('Tienda', 'Store') }, { v: 'admin', label: L('Administrador', 'Administrator') }]} value={d.rol} onChange={(v) => setD({ ...d, rol: v as Draft['rol'] })} />
+      {d.rol === 'tienda' ? <Pills label={L('Sucursal', 'Branch')} options={stores.map((s) => ({ v: s.id, label: s.nombre.replace('Castillo · ', ''), icon: 'store' }))} value={d.store} onChange={(v) => setD({ ...d, store: v })} /> : null}
+      <Toggle label={L('Activo', 'Active')} value={d.activo} onChange={(v) => setD({ ...d, activo: v })} />
+      {err ? <Note kind="red">{err}</Note> : null}
+      <Row>
+        <Btn title={L('Guardar', 'Save')} onPress={save} loading={busy} disabled={!d.nombre.trim() || !pinOk} />
+        <Btn kind="ghost" title={L('Cancelar', 'Cancel')} onPress={() => setD(null)} />
+      </Row>
+    </Card>
+  ) : null;
+
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       <Note kind="blue" icon="shield">
         {L('Cada empleado tiene su clave. La escribe al tomar un pedido; así sabes quién atendió y el cliente ve su nombre. Las claves se guardan cifradas: nadie puede verlas, solo cambiarlas.', 'Each employee has their own code, entered when taking an order, so you know who helped and the customer sees their name. Codes are stored encrypted: nobody can view them, only change them.')}
       </Note>
       <Btn icon="users" title={L('Agregar empleado', 'Add employee')} style={{ alignSelf: 'flex-start' }} onPress={() => setD({ id: null, nombre: '', store: stores[0]?.id || '', rol: 'tienda', activo: true, pin: '' })} />
 
-      {d ? (
-        <Card>
-          <H2>{d.id ? L('Editar empleado', 'Edit employee') : L('Empleado nuevo', 'New employee')}</H2>
-          <Row style={{ alignItems: 'flex-start' }}>
-            <Field label={L('Nombre (lo ve el cliente)', 'Name (customers see it)')} value={d.nombre} onChangeText={(v) => setD({ ...d, nombre: v })} />
-            <Field label={d.id ? L('Nueva clave (vacío = no cambiar)', 'New code (empty = keep)') : L('Clave (4 a 6 dígitos)', 'Code (4 to 6 digits)')} value={d.pin} onChangeText={(v) => setD({ ...d, pin: digits(v) })} keyboardType="number-pad" maxLength={6} secure />
-          </Row>
-          <Pills label={L('Rol', 'Role')} options={[{ v: 'tienda', label: L('Tienda', 'Store') }, { v: 'admin', label: L('Administrador', 'Administrator') }]} value={d.rol} onChange={(v) => setD({ ...d, rol: v as Draft['rol'] })} />
-          {d.rol === 'tienda' ? <Pills label={L('Sucursal', 'Branch')} options={stores.map((s) => ({ v: s.id, label: s.nombre.replace('Castillo · ', ''), icon: 'store' }))} value={d.store} onChange={(v) => setD({ ...d, store: v })} /> : null}
-          <Toggle label={L('Activo', 'Active')} value={d.activo} onChange={(v) => setD({ ...d, activo: v })} />
-          {err ? <Note kind="red">{err}</Note> : null}
-          <Row>
-            <Btn title={L('Guardar', 'Save')} onPress={save} loading={busy} disabled={!d.nombre.trim() || !pinOk} />
-            <Btn kind="ghost" title={L('Cancelar', 'Cancel')} onPress={() => setD(null)} />
-          </Row>
-        </Card>
-      ) : null}
+      {d && !d.id ? form : null}
 
       <Card>
         <H2>{L('Empleados', 'Staff')}</H2>
         {list.length > 5 ? <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca por nombre o sucursal', 'Search by name or branch')} /> : null}
         {list.filter((e) => matches(q, e.nombre, storeName(e.store_id))).map((e) => (
-          <Row key={e.id} style={{ justifyContent: 'space-between', padding: 10, borderRadius: R.md, backgroundColor: C.cream, flexWrap: 'nowrap' }}>
+          <View key={e.id} style={{ gap: 8 }}>
+          <Row style={{ justifyContent: 'space-between', padding: 10, borderRadius: R.md, backgroundColor: d?.id === e.id ? C.blueSoft : C.cream, flexWrap: 'nowrap' }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontWeight: '900', color: e.activo ? C.ink : C.muted }}>{e.nombre}</Text>
               <P small muted>{e.rol === 'admin' ? L('Administrador', 'Administrator') : storeName(e.store_id)}{e.activo ? '' : L(' · inactivo', ' · inactive')}</P>
             </View>
-            <Btn small kind="ghost" title={L('Editar', 'Edit')} onPress={() => setD({ id: e.id, nombre: e.nombre, store: e.store_id || stores[0]?.id || '', rol: e.rol, activo: e.activo, pin: '' })} />
+            {d?.id === e.id ? (
+              <Btn small kind="ghost" title={L('Cerrar', 'Close')} onPress={() => setD(null)} />
+            ) : (
+              <Btn small kind="ghost" title={L('Editar', 'Edit')} onPress={() => { setErr(''); setD({ id: e.id, nombre: e.nombre, store: e.store_id || stores[0]?.id || '', rol: e.rol, activo: e.activo, pin: '' }); }} />
+            )}
           </Row>
+          {d?.id === e.id ? form : null}
+          </View>
         ))}
       </Card>
     </Screen>

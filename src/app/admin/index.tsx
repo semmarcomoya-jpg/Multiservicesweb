@@ -40,7 +40,6 @@ export default function AdminVentas() {
   if (!stores || !cats || !orders) {
     return (
       <Screen wide>
-        <PanelHeader kind="admin" />
         <Loading />
       </Screen>
     );
@@ -56,7 +55,6 @@ export default function AdminVentas() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       <Pills options={[{ v: 'all', label: L('Todas las tiendas', 'All stores') }, ...stores.map((s) => ({ v: s.id, label: s.nombre.replace('Castillo · ', ''), icon: 'store' }))]} value={storeSel} onChange={setStoreSel} />
       <Summary orders={base} cats={cats} period={period} setPeriod={setPeriod} kind={kind} setKind={setKind} svc={svc} setSvc={setSvc} />
       <Card>

@@ -10,7 +10,6 @@ export default function AdminHistorias() {
   if (!stores) return <Loading />;
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       <StoriesAdmin storeId={null} admin stores={stores} />
     </Screen>
   );

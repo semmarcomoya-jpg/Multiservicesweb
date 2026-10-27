@@ -32,7 +32,6 @@ export default function AdminDestacados() {
   if (!cfg || !rows || !products || !services || !stores) {
     return (
       <Screen wide>
-        <PanelHeader kind="admin" />
         <Loading />
       </Screen>
     );
@@ -103,7 +102,6 @@ export default function AdminDestacados() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       <P small muted>{L('Aparecen en Inicio, arriba, en la fila "Destacados". Las promociones siguen abajo de los accesos rápidos.', 'They appear at the top of Home in the "Featured" row. Promotions stay below the quick actions.')}</P>
       {err ? <Note kind="red">{err}</Note> : null}
 

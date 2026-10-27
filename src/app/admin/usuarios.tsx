@@ -103,7 +103,6 @@ export default function AdminUsuarios() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       <Card>
         <H2>{L('Crear una cuenta', 'Create an account')}</H2>
         <P small muted>{L('Para un cliente que no sabe registrarse, o para el personal de una tienda. Los clientes también pueden registrarse solos con "Crear mi cuenta".', 'For a customer who cannot sign up, or for store staff. Customers can also sign up on their own with "Create my account".')}</P>

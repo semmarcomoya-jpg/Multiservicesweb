@@ -9,7 +9,6 @@ export default function AdminBitacora() {
   const { data: stores } = useStores();
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       {stores ? <Bitacora stores={stores} /> : <Loading />}
     </Screen>
   );

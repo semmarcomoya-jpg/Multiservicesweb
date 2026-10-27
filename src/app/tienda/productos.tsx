@@ -56,7 +56,6 @@ export default function TiendaProductos() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reloadStores} />
       {st && !modOn(st, 'shop') ? (
         <Note kind="gold" icon="bag">{L('La venta de productos está apagada para esta tienda (Mi tienda → ¿Qué ofrece?). Los clientes no ven estos productos.', 'Product sales are off for this store (My store → What does it offer?). Customers do not see these products.')}</Note>
       ) : null}

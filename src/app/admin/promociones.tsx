@@ -126,7 +126,6 @@ export default function AdminPromos() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       <P small muted>{L('Aparecen en Inicio, abajo de los accesos rápidos. Úsalas para ofertas, temporadas o avisos. También puedes publicarlas como historia.', 'They appear on Home below the quick actions. Use them for offers, seasons or notices. You can also publish them as a story.')}</P>
       <Card style={{ gap: 6 }}>
         <Text style={{ fontWeight: '900', color: C.ink }}>{L('Medidas de las imágenes', 'Image sizes')}</Text>

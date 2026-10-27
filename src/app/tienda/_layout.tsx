@@ -1,6 +1,7 @@
 import { Redirect, Stack } from 'expo-router';
 import React from 'react';
 
+import { PanelFrame } from '@/components/panel';
 import { StaffShell } from '@/components/StaffShell';
 import { Loading } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -13,7 +14,9 @@ export default function TiendaLayout() {
   if (profile?.role !== 'tienda' && profile?.role !== 'admin') return <Redirect href="/" />;
   return (
     <StaffShell kind="tienda">
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: C.page } }} />
+      <PanelFrame kind="tienda">
+        <Stack screenOptions={{ headerShown: false, animation: 'none', contentStyle: { backgroundColor: C.page } }} />
+      </PanelFrame>
     </StaffShell>
   );
 }

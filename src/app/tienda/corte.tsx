@@ -119,7 +119,6 @@ export default function TiendaCorte() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reloadStores} />
 
       <Card>
         <H2>{L('Informe de ventas para el corte', 'Sales report for close-out')}</H2>

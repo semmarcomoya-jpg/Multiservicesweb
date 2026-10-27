@@ -24,7 +24,6 @@ export default function AdminServicios() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       <Row style={{ justifyContent: 'space-between' }}>
         <P muted style={{ flex: 1 }}>{L('Tú defines el catálogo. El cliente solo elige un servicio y llena los datos que tú pides.', 'You define the catalog. Customers pick a service and fill in the fields you ask for.')}</P>
         <Btn icon="tool" title={L('Agregar servicio', 'Add service')} onPress={() => router.push({ pathname: '/admin/servicio/[id]', params: { id: 'nuevo' } })} />

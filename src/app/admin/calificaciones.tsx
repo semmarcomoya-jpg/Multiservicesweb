@@ -9,7 +9,6 @@ export default function AdminCalificaciones() {
   const { data: stores } = useStores();
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       {stores ? <CalificacionesPanel stores={stores} /> : <Loading />}
     </Screen>
   );

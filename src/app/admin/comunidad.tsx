@@ -9,7 +9,6 @@ export default function AdminComunidad() {
   const { data: stores } = useStores();
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       {stores ? <ComunidadPanel stores={stores} /> : <Loading />}
     </Screen>
   );

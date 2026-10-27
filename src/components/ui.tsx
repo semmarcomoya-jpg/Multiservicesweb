@@ -294,11 +294,20 @@ export function Field({
  *  la opción elegida se queda a la vista. En compu, la rueda del mouse también la recorre. */
 export function ChipScroll({ children, active, style }: { children: React.ReactNode; active?: string | number | null; style?: StyleProp<ViewStyle> }) {
   const ref = React.useRef<React.ComponentRef<typeof ScrollView>>(null);
-  const xs = React.useRef<Record<string, number>>({});
-  React.useEffect(() => {
-    const x = active == null ? undefined : xs.current[String(active)];
-    if (x !== undefined && x > 40) ref.current?.scrollTo({ x: Math.max(0, x - 24), animated: true });
-  }, [active]);
+  const xs = React.useRef<Record<string, { x: number; w: number }>>({});
+  const view = React.useRef({ off: 0, w: 0 });
+  // Solo se mueve si la opción elegida quedó tapada; si ya se ve, el menú se queda donde estás
+  const reveal = React.useCallback(
+    (animated: boolean) => {
+      const it = active == null ? undefined : xs.current[String(active)];
+      const { off, w } = view.current;
+      if (!it || !w) return;
+      if (it.x < off) ref.current?.scrollTo({ x: Math.max(0, it.x - 24), animated });
+      else if (it.x + it.w > off + w) ref.current?.scrollTo({ x: Math.max(0, it.x + it.w - w + 24), animated });
+    },
+    [active],
+  );
+  React.useEffect(() => reveal(true), [reveal]);
   React.useEffect(() => {
     if (Platform.OS !== 'web') return undefined;
     const node = (ref.current as unknown as { getScrollableNode?: () => HTMLElement } | null)?.getScrollableNode?.();
@@ -314,11 +323,22 @@ export function ChipScroll({ children, active, style }: { children: React.ReactN
   }, []);
   const kids = React.Children.toArray(children);
   return (
-    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={[{ flexGrow: 0 }, style]} contentContainerStyle={{ gap: 8, paddingLeft: 2, paddingRight: 16, paddingVertical: 2, alignItems: 'center' }}>
+    <ScrollView
+      ref={ref}
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      scrollEventThrottle={32}
+      onScroll={(e) => (view.current.off = e.nativeEvent.contentOffset.x)}
+      onLayout={(e) => {
+        const first = !view.current.w;
+        view.current.w = e.nativeEvent.layout.width;
+        if (first) setTimeout(() => reveal(false), 0);
+      }}
+      style={[{ flexGrow: 0 }, style]} contentContainerStyle={{ gap: 8, paddingLeft: 2, paddingRight: 16, paddingVertical: 2, alignItems: 'center' }}>
       {kids.map((k) => {
         const key = React.isValidElement(k) && k.key != null ? String(k.key).replace(/^\.\$/, '') : '';
         return (
-          <View key={key} onLayout={(e) => { xs.current[key] = e.nativeEvent.layout.x; }}>
+          <View key={key} onLayout={(e) => { xs.current[key] = { x: e.nativeEvent.layout.x, w: e.nativeEvent.layout.width }; }}>
             {k}
           </View>
         );

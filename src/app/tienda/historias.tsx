@@ -11,7 +11,6 @@ export default function TiendaHistorias() {
   if (!stores) return <Loading />;
   return (
     <Screen wide>
-      <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reload} />
       {st ? <StoriesAdmin key={st.id} storeId={st.id} admin={false} stores={stores} /> : null}
     </Screen>
   );

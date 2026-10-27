@@ -87,7 +87,6 @@ export default function AdminApariencia() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
 
       <Card>
         <Row style={{ alignItems: 'flex-start', gap: 16 }}>

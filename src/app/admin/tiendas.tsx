@@ -31,7 +31,6 @@ export default function AdminTiendas() {
 
   return (
     <Screen wide>
-      <PanelHeader kind="admin" />
       <Row style={{ justifyContent: 'space-between' }}>
         <Pills options={stores.map((x) => ({ v: x.id, label: x.nombre.replace('Castillo · ', '') + (x.activo ? '' : L(' (oculta)', ' (hidden)')) + (x.abierta === false ? L(' · cerrada', ' · closed') : ''), icon: 'store', img: x.fotos?.[0] || null }))} value={st?.id} onChange={setSel} />
         <Btn small kind="ghost" icon="store" title={L('Agregar sucursal', 'Add branch')} onPress={add} />
