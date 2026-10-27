@@ -297,7 +297,7 @@ export function ChipScroll({ children, active, style }: { children: React.ReactN
   const xs = React.useRef<Record<string, number>>({});
   React.useEffect(() => {
     const x = active == null ? undefined : xs.current[String(active)];
-    if (x !== undefined) ref.current?.scrollTo({ x: Math.max(0, x - 16), animated: true });
+    if (x !== undefined && x > 40) ref.current?.scrollTo({ x: Math.max(0, x - 24), animated: true });
   }, [active]);
   React.useEffect(() => {
     if (Platform.OS !== 'web') return undefined;
@@ -314,7 +314,7 @@ export function ChipScroll({ children, active, style }: { children: React.ReactN
   }, []);
   const kids = React.Children.toArray(children);
   return (
-    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={[{ flexGrow: 0 }, style]} contentContainerStyle={{ gap: 8, paddingRight: 16, alignItems: 'center' }}>
+    <ScrollView ref={ref} horizontal showsHorizontalScrollIndicator={false} style={[{ flexGrow: 0 }, style]} contentContainerStyle={{ gap: 8, paddingLeft: 2, paddingRight: 16, paddingVertical: 2, alignItems: 'center' }}>
       {kids.map((k) => {
         const key = React.isValidElement(k) && k.key != null ? String(k.key).replace(/^\.\$/, '') : '';
         return (
@@ -327,38 +327,52 @@ export function ChipScroll({ children, active, style }: { children: React.ReactN
   );
 }
 
+/**
+ * Opciones para elegir una.
+ *  - Filtros (sin etiqueta): una fila que se recorre a la derecha, como en Viva.
+ *  - Opciones de un formulario (con etiqueta, o `wrap`): se acomodan en varias líneas
+ *    para que ninguna quede cortada (variantes, precios, montos, horarios…).
+ */
 export function Pills<T extends string | number>({
   options,
   value,
   onChange,
   label,
+  wrap,
 }: {
   options: { v: T; label: string; icon?: string; img?: string | null; disabled?: boolean }[];
   value: T | null | undefined;
   onChange: (v: T) => void;
   label?: string;
+  wrap?: boolean;
 }) {
+  const multi = wrap ?? !!label;
+  const items = options.map((o) => {
+    const on = o.v === value;
+    return (
+      <Pressable
+        key={String(o.v)}
+        accessibilityRole="radio"
+        accessibilityState={{ checked: on, disabled: !!o.disabled }}
+        disabled={o.disabled}
+        onPress={() => onChange(o.v)}
+        style={({ pressed }) => [s.pill, multi && { maxWidth: '100%', flexShrink: 1 }, on && s.pillOn, o.disabled && { opacity: 0.45 }, pressed && { opacity: 0.8 }]}
+      >
+        {o.img ? <Image source={{ uri: o.img }} style={{ width: 26, height: 26, borderRadius: 13, marginLeft: -6, backgroundColor: C.tint }} /> : o.icon ? <Icon n={o.icon} size={16} color={on ? '#fff' : C.softInk} /> : null}
+        <Text style={[s.pillTxt, multi && ({ whiteSpace: 'normal', flexShrink: 1 } as TextStyle), on && { fontWeight: '800', color: '#fff' }]}>{o.label}</Text>
+      </Pressable>
+    );
+  });
   return (
     <View style={{ gap: 6 }}>
       {label ? <Label>{label}</Label> : null}
-      <ChipScroll active={value == null ? null : String(value)}>
-        {options.map((o) => {
-          const on = o.v === value;
-          return (
-            <Pressable
-              key={String(o.v)}
-              accessibilityRole="radio"
-              accessibilityState={{ checked: on, disabled: !!o.disabled }}
-              disabled={o.disabled}
-              onPress={() => onChange(o.v)}
-              style={({ pressed }) => [s.pill, on && s.pillOn, o.disabled && { opacity: 0.45 }, pressed && { opacity: 0.8 }]}
-            >
-              {o.img ? <Image source={{ uri: o.img }} style={{ width: 26, height: 26, borderRadius: 13, marginLeft: -6, backgroundColor: C.tint }} /> : o.icon ? <Icon n={o.icon} size={16} color={on ? '#fff' : C.softInk} /> : null}
-              <Text style={[s.pillTxt, on && { fontWeight: '800', color: '#fff' }]}>{o.label}</Text>
-            </Pressable>
-          );
-        })}
-      </ChipScroll>
+      {multi ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }} accessibilityRole="radiogroup">
+          {items}
+        </View>
+      ) : (
+        <ChipScroll active={value == null ? null : String(value)}>{items}</ChipScroll>
+      )}
     </View>
   );
 }

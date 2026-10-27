@@ -70,7 +70,7 @@ export function RatingCard({ order }: { order: Order }) {
 /** Varias opciones a la vez (etiquetas). */
 function MultiPills({ options, value, onChange }: { options: string[]; value: string[]; onChange: (v: string[]) => void }) {
   return (
-    <Pills
+    <Pills wrap
       options={options.map((o) => ({ v: o, label: (value.includes(o) ? '✓ ' : '') + o }))}
       value={null}
       onChange={(o) => onChange(value.includes(o) ? value.filter((x) => x !== o) : [...value, o])}

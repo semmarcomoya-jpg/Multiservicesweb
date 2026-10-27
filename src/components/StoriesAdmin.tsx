@@ -187,10 +187,10 @@ function NewStory({ storeId, admin, stores, onDone }: { storeId: string | null; 
         onChange={(v) => { setLink(v); setLinkId(null); }}
       />
       {link === 'service' && services ? (
-        <Pills options={services.filter((s) => s.activo).map((s) => ({ v: s.id, label: nm(s), icon: s.icon }))} value={linkId} onChange={setLinkId} />
+        <Pills wrap options={services.filter((s) => s.activo).map((s) => ({ v: s.id, label: nm(s), icon: s.icon }))} value={linkId} onChange={setLinkId} />
       ) : null}
       {link === 'product' && products ? (
-        <Pills options={products.filter((p) => p.activo).map((p) => ({ v: p.id, label: prodName(p) }))} value={linkId} onChange={setLinkId} />
+        <Pills wrap options={products.filter((p) => p.activo).map((p) => ({ v: p.id, label: prodName(p) }))} value={linkId} onChange={setLinkId} />
       ) : null}
 
       <Pills label={L('¿Cuánto tiempo se ve?', 'How long is it shown?')} options={DUR} value={duration} onChange={setDuration} />

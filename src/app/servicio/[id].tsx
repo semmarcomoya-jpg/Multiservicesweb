@@ -142,12 +142,12 @@ export default function ServicioDetalle() {
         <Label>{L('¿Cuánto?', 'How much?')}</Label>
         {sv.price_type === 'fixed' ? <Text style={{ fontSize: 22, fontWeight: '900', color: C.ink }}>{money(sv.base)}</Text> : null}
         {sv.price_type === 'options' ? (
-          <Pills options={(sv.options || []).map((o, i) => ({ v: i, label: `${nm(o)} · ${money(o.p)}` }))} value={opt} onChange={setOpt} />
+          <Pills wrap options={(sv.options || []).map((o, i) => ({ v: i, label: `${nm(o)} · ${money(o.p)}` }))} value={opt} onChange={setOpt} />
         ) : null}
         {sv.price_type === 'amount' ? (
           <>
             {(sv.amounts || []).length ? (
-              <Pills options={sv.amounts.map((a) => ({ v: String(a), label: money(a) }))} value={amount} onChange={setAmount} />
+              <Pills wrap options={sv.amounts.map((a) => ({ v: String(a), label: money(a) }))} value={amount} onChange={setAmount} />
             ) : null}
             <Field label={L('Monto en USD', 'Amount in USD')} value={amount} onChangeText={(v) => setAmount(v.replace(/[^0-9.]/g, ''))} keyboardType="decimal-pad" />
           </>

@@ -105,6 +105,7 @@ export default function AdminServicio() {
       <Card>
         <H2>{L('Precio', 'Price')}</H2>
         <Pills
+          wrap
           options={[
             { v: 'fixed', label: L('Precio fijo', 'Fixed price') },
             { v: 'amount', label: L('El cliente elige el monto', 'Customer picks amount') },
@@ -142,7 +143,7 @@ export default function AdminServicio() {
               <Field label={L('Pregunta (español)', 'Question (Spanish)')} value={x.es} onChangeText={(v) => setField(i, { es: v })} />
               <Field label={L('Pregunta (inglés)', 'Question (English)')} value={x.en} onChangeText={(v) => setField(i, { en: v })} />
             </Row>
-            <Pills options={TYPES} value={x.type} onChange={(v) => setField(i, { type: v })} />
+            <Pills wrap options={TYPES} value={x.type} onChange={(v) => setField(i, { type: v })} />
             {x.type === 'select' ? <Field label={L('Opciones (separadas por coma)', 'Options (comma separated)')} value={x.opts || ''} onChangeText={(v) => setField(i, { opts: v })} /> : null}
             {x.type === 'tel' ? <Field label={L('Dígitos exactos (vacío = cualquiera)', 'Exact digits (empty = any)')} value={String(x.digits ?? '')} onChangeText={(v) => setField(i, { digits: v.replace(/\D/g, '') })} keyboardType="number-pad" style={{ maxWidth: 260 }} /> : null}
             <Row>
