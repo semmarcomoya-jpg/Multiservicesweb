@@ -11,7 +11,18 @@ import { digits, money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
-import type { Corte, Order } from '@/lib/types';
+import { useEmp } from '@/lib/emp';
+import type { Corte, Gasto, Order } from '@/lib/types';
+
+type PM = 'zelle' | 'cash' | 'card';
+const PMS: PM[] = ['zelle', 'cash', 'card'];
+const pmOf = (o: Order): PM => (o.pay_method === 'cash' || o.pay_method === 'card' ? o.pay_method : 'zelle');
+/** Celda segura para Excel: lo que empieza con = + - @ se guarda como texto */
+export const csvCell = (c: unknown) => {
+  let s = String(c ?? '');
+  if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+};
 
 export default function TiendaCorte() {
   const { L, lang } = useLang();
@@ -29,6 +40,12 @@ export default function TiendaCorte() {
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
   const [q, setQ] = useState('');
+  const emp = useEmp(st?.id);
+  const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [counted, setCounted] = useState<Record<PM, string>>({ zelle: '', cash: '', card: '' });
+  const [review, setReview] = useState(false);
+  const [g, setG] = useState({ concepto: '', monto: '', metodo: 'cash' as PM });
+  const pmName = (k: PM) => ({ zelle: 'Zelle', cash: L('Efectivo', 'Cash'), card: L('Tarjeta', 'Card') })[k];
 
   const fmt = (iso: string | null | undefined) =>
     iso ? new Date(iso).toLocaleString(lang === 'es' ? 'es-MX' : 'en-US', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
@@ -42,6 +59,10 @@ export default function TiendaCorte() {
     q = sel === 'actual' ? q.is('corte_id', null) : q.eq('corte_id', sel);
     const { data } = await q;
     setOrders((data as Order[]) ?? []);
+    let gq = supabase.from('caja_gastos').select('*').eq('store_id', st.id).order('created_at');
+    gq = sel === 'actual' ? gq.is('corte_id', null) : gq.eq('corte_id', sel);
+    const { data: gs } = await gq;
+    setGastos((gs as Gasto[]) ?? []);
   }, [st, sel]);
 
   useEffect(() => {
@@ -57,6 +78,12 @@ export default function TiendaCorte() {
   const list = orders || [];
   const total = list.reduce((a, o) => a + Number(o.total), 0);
   const fees = list.reduce((a, o) => a + Number(o.fee), 0);
+  const byPm = Object.fromEntries(PMS.map((k) => [k, list.filter((o) => pmOf(o) === k).reduce((a, o) => a + Number(o.total), 0)])) as Record<PM, number>;
+  const gastoPm = Object.fromEntries(PMS.map((k) => [k, gastos.filter((x) => x.metodo === k).reduce((a, x) => a + Number(x.monto), 0)])) as Record<PM, number>;
+  const expected = Object.fromEntries(PMS.map((k) => [k, Math.round((byPm[k] - gastoPm[k]) * 100) / 100])) as Record<PM, number>;
+  const countedNum = (k: PM) => (sel === 'actual' ? parseFloat(counted[k]) : Number(corte?.contado?.[k]));
+  const hasCount = (k: PM) => (sel === 'actual' ? counted[k] !== '' : corte?.contado?.[k] != null);
+  const missingCount = PMS.some((k) => byPm[k] - gastoPm[k] !== 0 && counted[k] === '');
   const byType = groups
     .map(([k, label, icon]) => {
       const arr = list.filter((o) => orderGroup(o) === k);
@@ -81,9 +108,10 @@ export default function TiendaCorte() {
 
   const csv = () => {
     const head = ['Folio', 'Pagado', 'Cliente', 'Número de cliente', 'Concepto', 'Tipo', 'Atendió', 'Forma de pago', 'Monto', 'Comisión', 'Total', 'Estado'];
-    const rows = list.map((o) => [o.folio, fmt(o.paid_at), o.cliente_nombre, o.cliente_code, title(o), groups.find((g) => g[0] === orderGroup(o))?.[1] || o.kind, o.attended_name || '', 'Zelle', Number(o.monto).toFixed(2), Number(o.fee).toFixed(2), Number(o.total).toFixed(2), o.status]);
+    const rows = list.map((o) => [o.folio, fmt(o.paid_at), o.cliente_nombre, o.cliente_code, title(o), groups.find((g) => g[0] === orderGroup(o))?.[1] || o.kind, o.attended_name || '', pmName(pmOf(o)), Number(o.monto).toFixed(2), Number(o.fee).toFixed(2), Number(o.total).toFixed(2), o.status]);
     rows.push(['', '', '', '', '', '', '', 'TOTAL', (total - fees).toFixed(2), fees.toFixed(2), total.toFixed(2), '']);
-    return [head, ...rows].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    gastos.forEach((x) => rows.push(['', fmt(x.created_at), '', '', L('Gasto de caja: ', 'Cash expense: ') + x.concepto, '', x.employee_name, pmName(x.metodo), (-Number(x.monto)).toFixed(2), '', '', '']));
+    return [head, ...rows].map((r) => r.map(csvCell).join(',')).join('\n');
   };
   const fileName = `corte-${(st?.nombre || 'tienda').replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${new Date(hasta || Date.now()).toISOString().slice(0, 10)}.csv`;
 
@@ -106,11 +134,14 @@ export default function TiendaCorte() {
     setErr('');
     setMsg('');
     setBusy(true);
-    const { data, error } = await supabase.rpc('make_corte', { p_store: st.id, p_pin: pin, p_notas: notas.trim() }).single<Corte>();
+    const contado = Object.fromEntries(PMS.map((k) => [k, parseFloat(counted[k]) || 0]));
+    const { data, error } = await supabase.rpc('make_corte', { p_store: st.id, p_pin: pin || emp?.pin || '', p_notas: notas.trim(), p_contado: contado }).single<Corte>();
     setBusy(false);
     if (error) return setErr(errMsg(error));
     setPin('');
     setNotas('');
+    setCounted({ zelle: '', cash: '', card: '' });
+    setReview(false);
     setMsg(L(`Corte hecho por ${data.employee_name}: ${data.n_orders} ventas, ${money(data.total)}.`, `Close-out by ${data.employee_name}: ${data.n_orders} sales, ${money(data.total)}.`));
     setSel(data.id);
   };
@@ -122,7 +153,7 @@ export default function TiendaCorte() {
 
       <Card>
         <H2>{L('Informe de ventas para el corte', 'Sales report for close-out')}</H2>
-        <P small muted>{L('Cuenta los pedidos cuyo pago por Zelle ya confirmó la tienda. Los rechazados no cuentan.', 'Counts orders whose Zelle payment the store already confirmed. Rejected orders are excluded.')}</P>
+        <P small muted>{L('Cuenta lo cobrado en la app (Zelle ya confirmado) y en mostrador (efectivo, tarjeta o Zelle). Los rechazados no cuentan.', 'Counts app sales (confirmed Zelle) and counter sales (cash, card or Zelle). Rejected orders are excluded.')}</P>
         <Row gap={8}>
           <Pressable accessibilityRole="radio" accessibilityState={{ checked: sel === 'actual' }} onPress={() => setSel('actual')}
             style={{ paddingHorizontal: 14, minHeight: 40, justifyContent: 'center', borderRadius: R.pill, borderWidth: 1.5, borderColor: sel === 'actual' ? C.brown : C.line2, backgroundColor: sel === 'actual' ? C.tint : C.card }}>
@@ -156,9 +187,11 @@ export default function TiendaCorte() {
             <Row gap={10} style={{ alignItems: 'stretch' }}>
               {[
                 [L('Ventas', 'Sales'), String(list.length)],
-                [L('Total cobrado por Zelle', 'Total collected via Zelle'), money(total)],
+                [L('Total cobrado', 'Total collected'), money(total)],
+                ['Zelle', money(byPm.zelle)],
+                [L('Efectivo', 'Cash'), money(byPm.cash)],
+                [L('Tarjeta', 'Card'), money(byPm.card)],
                 [L('Comisiones y cargos', 'Fees'), money(fees)],
-                [L('Monto de servicios y productos', 'Services & products amount'), money(total - fees)],
               ].map(([k, v]) => (
                 <View key={k} style={{ flexGrow: 1, minWidth: 180, padding: 12, borderRadius: R.md, backgroundColor: C.cream }}>
                   <P small muted>{k}</P>
@@ -239,14 +272,78 @@ export default function TiendaCorte() {
             </>
           )}
 
+          <Card>
+            <H2>{L('Gastos de caja', 'Cash expenses')}</H2>
+            <P small muted>{L('Lo que sale de la caja (papel, agua, cambio a otra sucursal). Se resta de lo que debe haber.', 'Money taken from the register (paper, water…). It is subtracted from what should be there.')}</P>
+            {gastos.map((x) => (
+              <Row key={x.id} style={{ justifyContent: 'space-between', flexWrap: 'nowrap', borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 6 }}>
+                <P style={{ flex: 1 }}>{x.concepto} · {pmName(x.metodo)} · {x.employee_name}</P>
+                <Text style={{ fontWeight: '900', color: C.ink }}>−{money(x.monto)}</Text>
+              </Row>
+            ))}
+            {!gastos.length ? <P small muted>{L('Sin gastos.', 'No expenses.')}</P> : null}
+            {sel === 'actual' ? (
+              <Row style={{ alignItems: 'flex-end' }}>
+                <Field label={L('Concepto', 'Concept')} value={g.concepto} onChangeText={(v) => setG({ ...g, concepto: v })} placeholder={L('Ej. Garrafón de agua', 'E.g. Water jug')} />
+                <Field label={L('Monto (USD)', 'Amount (USD)')} value={g.monto} onChangeText={(v) => setG({ ...g, monto: v.replace(/[^0-9.]/g, '') })} keyboardType="decimal-pad" style={{ maxWidth: 140 }} />
+                {!emp ? <Field label={L('Clave de empleado', 'Employee code')} value={pin} onChangeText={(v) => setPin(digits(v))} secure keyboardType="number-pad" maxLength={6} style={{ maxWidth: 160 }} /> : null}
+                <Btn
+                  title={L('Agregar gasto', 'Add expense')}
+                  disabled={!g.concepto.trim() || !(parseFloat(g.monto) > 0) || (!emp && pin.length < 4)}
+                  onPress={async () => {
+                    setErr('');
+                    const { error } = await supabase.rpc('add_gasto', { p_store: st!.id, p_pin: emp?.pin || pin, p_concepto: g.concepto.trim(), p_monto: parseFloat(g.monto), p_metodo: g.metodo, p_foto: null });
+                    if (error) return setErr(errMsg(error));
+                    setG({ concepto: '', monto: '', metodo: 'cash' });
+                    load();
+                  }}
+                />
+              </Row>
+            ) : null}
+          </Card>
+
+          {list.length || gastos.length ? (
+            <Card>
+              <H2>{sel === 'actual' ? L('Cuenta la caja', 'Count the register') : L('Lo que se contó', 'What was counted')}</H2>
+              {sel === 'actual' ? <P small muted>{L('Escribe cuánto hay de verdad en cada forma de pago. Te decimos si falta o sobra antes de cerrar.', 'Enter what is really there for each payment method. We show any shortage or surplus before closing.')}</P> : null}
+              {PMS.map((k) => {
+                const exp = sel === 'actual' ? expected[k] : Number(corte?.resumen?.por_pago?.[k]?.total || 0) - Number(corte?.resumen?.gastos_por_pago?.[k] || 0);
+                const diff = hasCount(k) ? Math.round((countedNum(k) - exp) * 100) / 100 : null;
+                return (
+                  <Row key={k} style={{ alignItems: 'center', borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 6 }}>
+                    <Text style={{ fontWeight: '900', color: C.ink, width: 90 }}>{pmName(k)}</Text>
+                    <P style={{ width: 170 }}>{L('Debe haber ', 'Should be ') + money(exp)}</P>
+                    {sel === 'actual' && !review ? (
+                      <Field label="" placeholder={L('Contaste', 'Counted')} value={counted[k]} onChangeText={(v) => setCounted({ ...counted, [k]: v.replace(/[^0-9.]/g, '') })} keyboardType="decimal-pad" style={{ maxWidth: 150 }} />
+                    ) : (
+                      <P style={{ width: 150 }}>{hasCount(k) ? L('Contaste ', 'Counted ') + money(countedNum(k)) : '—'}</P>
+                    )}
+                    {diff !== null ? (
+                      <Text style={{ fontWeight: '900', color: diff === 0 ? '#1E5B35' : diff < 0 ? C.red : C.blueInk }}>
+                        {diff === 0 ? L('Cuadra', 'Balanced') : (diff < 0 ? L('Faltan ', 'Short ') : L('Sobran ', 'Over ')) + money(Math.abs(diff))}
+                      </Text>
+                    ) : null}
+                  </Row>
+                );
+              })}
+            </Card>
+          ) : null}
+
           {sel === 'actual' ? (
             <Card style={{ borderColor: C.gold, borderWidth: 2 }}>
               <H2>{L('Hacer corte', 'Close out')}</H2>
               <P small muted>{L('Cierra estas ventas en un corte a tu nombre. Las ventas nuevas empezarán un corte nuevo.', 'Closes these sales into a close-out under your name. New sales start a new close-out.')}</P>
               <Row style={{ alignItems: 'flex-end' }}>
-                <Field label={L('Clave de empleado', 'Employee code')} value={pin} onChangeText={(v) => setPin(digits(v))} secure keyboardType="number-pad" maxLength={6} style={{ maxWidth: 220 }} />
+                {!emp ? <Field label={L('Clave de empleado', 'Employee code')} value={pin} onChangeText={(v) => setPin(digits(v))} secure keyboardType="number-pad" maxLength={6} style={{ maxWidth: 220 }} /> : <P small>{L('Atiende: ', 'Staff: ') + emp.nombre}</P>}
                 <Field label={L('Notas (opcional)', 'Notes (optional)')} value={notas} onChangeText={setNotas} placeholder={L('Ej. Cuadra con el banco', 'E.g. Matches the bank')} />
-                <Btn icon="check" title={L(`Hacer corte · ${money(total)}`, `Close out · ${money(total)}`)} onPress={makeCorte} loading={busy} disabled={pin.length < 4} />
+                {!review ? (
+                  <Btn icon="check" title={missingCount ? L('Falta contar alguna forma de pago', 'Count every payment method first') : L('Revisar', 'Review')} onPress={() => setReview(true)} disabled={missingCount || (!emp && pin.length < 4)} />
+                ) : (
+                  <>
+                    <Btn icon="check" title={L(`Cerrar corte · ${money(total)}`, `Close out · ${money(total)}`)} onPress={makeCorte} loading={busy} disabled={!emp && pin.length < 4} />
+                    <Btn kind="ghost" title={L('Corregir', 'Fix')} onPress={() => setReview(false)} />
+                  </>
+                )}
               </Row>
               {err ? <Note kind="red">{err}</Note> : null}
             </Card>

@@ -271,9 +271,9 @@ export function Field({
 }) {
   return (
     <View style={[{ gap: 6, flexGrow: 1, flexShrink: 1, minWidth: 180 }, style]}>
-      <Label>{label}</Label>
+      {label ? <Label>{label}</Label> : null}
       <TextInput
-        accessibilityLabel={label}
+        accessibilityLabel={label || placeholder}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}

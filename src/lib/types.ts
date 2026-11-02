@@ -13,6 +13,8 @@ export interface Profile {
   member_code: string | null;
   role: Role;
   store_id: string | null;
+  /** Sucursales que atiende una cuenta de tienda (puede ser más de una) */
+  store_ids?: string[];
   id_status: 'ninguna' | 'pendiente' | 'verificada' | 'rechazada';
 }
 
@@ -38,7 +40,11 @@ export interface Store {
   aviso_cerrada: string;
   orden: number;
   loyalty?: Loyalty;
+  /** Horario por día: d = 0 (domingo) … 6 (sábado), a/c = 'HH:MM' */
+  horas?: DayHours[] | null;
+  tz?: string;
 }
+export interface DayHours { d: number; on: boolean; a: string; c: string }
 
 export interface Category { id: string; es: string; en: string; icon: string; orden: number }
 
@@ -118,6 +124,7 @@ export interface Order {
   reward_pts?: number;
   plan_id?: string | null;
   inst?: number | null;
+  sale_id?: string | null;
   service_id: string | null;
   service_name: { es: string; en: string; icon: string; cat: string; opcion: { es: string; en: string } | null } | null;
   data: OrderDataItem[];
@@ -148,7 +155,7 @@ export interface Order {
 
 export interface OrderEvent { id: number; order_id: string; act: string; by_name: string; created_at: string }
 
-export interface Employee { id: string; store_id: string | null; nombre: string; rol: 'tienda' | 'admin'; activo: boolean }
+export interface Employee { id: string; store_id: string | null; store_ids?: string[]; nombre: string; rol: 'tienda' | 'admin'; activo: boolean }
 
 export interface OrderItem { product_id: string; variant_id: string; name: string; label: string; qty: number; price: number }
 
@@ -181,10 +188,13 @@ export interface Corte {
   n_orders: number;
   total: number;
   fees: number;
-  resumen: { por_tipo: Record<string, { n: number; total: number }>; por_empleado: Record<string, { n: number; total: number }> };
+  resumen: { por_tipo: Record<string, { n: number; total: number }>; por_empleado: Record<string, { n: number; total: number }>; por_pago?: Record<string, { n: number; total: number }>; gastos_por_pago?: Record<string, number> };
   notas: string;
+  contado?: Partial<Record<'zelle' | 'cash' | 'card', number>>;
+  gastos?: number;
   created_at: string;
 }
+export interface Gasto { id: string; store_id: string; concepto: string; monto: number; metodo: 'cash' | 'card' | 'zelle'; foto_path: string | null; employee_name: string; corte_id: string | null; created_at: string }
 
 export type StoryLink = 'none' | 'product' | 'service' | 'send' | 'shop';
 export interface Story {

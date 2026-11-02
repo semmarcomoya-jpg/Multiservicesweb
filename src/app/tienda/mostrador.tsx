@@ -20,6 +20,7 @@ import type { Member, Order, Plan } from '@/lib/types';
 
 type Kind = 'svc' | 'prod' | 'abono';
 type Method = 'cash' | 'card' | 'zelle';
+interface Line { key: string; kind: 'svc' | 'prod'; service?: string; option?: number | null; amount?: number | null; variant?: string; qty: number; label: string; unit: number; fee: number; stock?: number }
 
 export default function Mostrador() {
   const { L, nm, lang } = useLang();
@@ -42,6 +43,9 @@ export default function Mostrador() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [method, setMethod] = useState<Method>('cash');
   const [reward, setReward] = useState('');
+  const [cart, setCart] = useState<Line[]>([]);
+  const [disc, setDisc] = useState(0);
+  const [recibido, setRecibido] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
@@ -93,13 +97,14 @@ export default function Mostrador() {
   const pl = plans.find((p) => p.id === planId) || plans[0];
   const plNext = pl ? nextPay(pl) : undefined;
 
+  // Lo que se está eligiendo ahora (antes de agregarlo a la venta)
   let base = 0;
   let fee = 0;
   let title = '';
   if (kind === 'svc' && sv) {
     base = sv.price_type === 'fixed' ? Number(sv.base) : sv.price_type === 'options' ? Number(sv.options?.[opt ?? -1]?.p || 0) : Number(amount) || 0;
     fee = Number(sv.fee) || 0;
-    title = nm(sv);
+    title = nm(sv) + (sv.price_type === 'options' && opt != null && sv.options?.[opt] ? ' · ' + nm(sv.options[opt]) : '');
   } else if (kind === 'prod' && vr && pr) {
     base = Number(vr.price);
     title = `${prodName(pr)} · ${vr.label}`;
@@ -107,41 +112,78 @@ export default function Mostrador() {
     base = Number(plNext.amount);
     title = L('Abono ', 'Payment ') + `${plNext.i}/${pl.n} · ${pl.item_name}`;
   }
-  const gross = base + fee;
-  const usable = kind !== 'abono' && ly && cust ? ly.rewards.filter((r) => cust.puntos >= r.pts && rewardDiscount(r, gross, fee) > 0) : [];
+  const inCart = (vid?: string) => cart.filter((x) => x.variant === vid).reduce((a, x) => a + x.qty, 0);
+  const canAdd = kind !== 'abono' && base > 0 && (kind !== 'prod' || (!!vr && vr.stock > inCart(vr?.id)));
+  const addLine = () => {
+    if (!canAdd) return;
+    const key = kind === 'svc' ? `s:${sv!.id}:${opt ?? ''}:${sv!.price_type === 'amount' ? amount : ''}` : `p:${vr!.id}`;
+    setCart((c) => {
+      const ex = c.find((x) => x.key === key);
+      if (ex) return c.map((x) => (x.key === key ? { ...x, qty: x.qty + 1 } : x));
+      return [...c, kind === 'svc'
+        ? { key, kind: 'svc', service: sv!.id, option: sv!.price_type === 'options' ? opt : null, amount: sv!.price_type === 'amount' ? Number(amount) : null, qty: 1, label: title, unit: base, fee }
+        : { key, kind: 'prod', variant: vr!.id, qty: 1, label: title, unit: base, fee: 0, stock: vr!.stock }];
+    });
+    setAmount('');
+    setMsg('');
+  };
+  const setQty = (key: string, d: number) => setCart((c) => c.map((x) => (x.key === key ? { ...x, qty: Math.max(0, Math.min(x.stock ?? 20, x.qty + d)) } : x)).filter((x) => x.qty > 0));
+
+  // Totales de la venta (el servidor vuelve a calcular todo)
+  const lineTotal = (x: Line) => (x.unit + x.fee) * x.qty;
+  const gross = kind === 'abono' ? base : cart.reduce((a, x) => a + lineTotal(x), 0);
+  const fees = cart.reduce((a, x) => a + x.fee * x.qty, 0);
+  const usable = kind !== 'abono' && ly && cust && cart.length ? ly.rewards.filter((r) => cust.puntos >= r.pts && cart.some((x) => rewardDiscount(r, x.unit + x.fee, x.fee) > 0)) : [];
   const sel = usable.find((r) => r.id === reward);
-  const total = gross - (sel ? rewardDiscount(sel, gross, fee) : 0);
-  const ptsWin = kind !== 'abono' && ly ? ly.ptsFor(base) : 0;
-  const ready = !!cust && !!emp && base > 0 && (kind !== 'prod' || (vr && vr.stock > 0));
+  // El premio se aplica al artículo donde rinde más; ese va primero
+  const ordered = [...cart].sort((x, y) => (sel ? rewardDiscount(sel, y.unit + y.fee, y.fee) - rewardDiscount(sel, x.unit + x.fee, x.fee) : 0));
+  const rewardOff = sel && ordered[0] ? rewardDiscount(sel, ordered[0].unit + ordered[0].fee, ordered[0].fee) : 0;
+  const pctOff = kind === 'abono' ? 0 : Math.round((gross - rewardOff) * disc) / 100;
+  const total = Math.max(0, gross - rewardOff - pctOff);
+  const rec = parseFloat(recibido) || 0;
+  const change = rec - total;
+  const ptsWin = kind !== 'abono' && ly ? cart.reduce((a, x) => a + ly.ptsFor(x.unit) * x.qty, 0) : 0;
+  const lack = !cust
+    ? L('Primero identifica al cliente', 'Identify the customer first')
+    : kind === 'abono'
+      ? !plNext ? L('Este cliente no tiene abonos pendientes', 'No pending payments') : ''
+      : !cart.length
+        ? L('Agrega algo a la venta', 'Add something to the sale')
+        : method === 'cash' && recibido !== '' && rec < total ? L(`Faltan ${money(total - rec)} de lo que te dio`, `${money(total - rec)} short`) : '';
 
   const register = async () => {
-    if (!cust || !emp) return;
+    if (!cust || !emp || lack) return;
     setBusy(true);
     setErr('');
     setMsg('');
-    const { error } =
+    const { data, error } =
       kind === 'abono'
         ? await supabase.rpc('pay_installment', { p_plan: pl!.id, p_pin: emp.pin, p_method: method })
-        : await supabase.rpc('counter_sale', {
+        : await supabase.rpc('counter_cart', {
             p_store: st.id,
             p_pin: emp.pin,
             p_member: cust.member_code,
-            p_kind: kind,
-            p_service: kind === 'svc' ? sv?.id : null,
-            p_option: kind === 'svc' && sv?.price_type === 'options' ? opt : null,
-            p_amount: kind === 'svc' && sv?.price_type === 'amount' ? Number(amount) : null,
-            p_variant: kind === 'prod' ? vr?.id : null,
+            p_lines: ordered.map((x) => (x.kind === 'svc' ? { kind: 'svc', service: x.service, option: x.option, amount: x.amount, qty: x.qty } : { kind: 'prod', variant: x.variant, qty: x.qty })),
             p_method: method,
             p_reward: sel?.id || null,
+            p_disc: disc,
           });
     setBusy(false);
     if (error) return setErr(errMsg(error));
-    setMsg(kind === 'abono' ? L(`Abono registrado a ${cust.nombre}`, `Payment recorded for ${cust.nombre}`) : L(`Venta registrada. +${ptsWin} pts para ${cust.nombre}`, `Sale recorded. +${ptsWin} pts for ${cust.nombre}`));
-    setAmount('');
-    setOpt(null);
+    const n = Array.isArray(data) ? data.length : 1;
+    setMsg(
+      kind === 'abono'
+        ? L(`Abono registrado a ${cust.nombre}`, `Payment recorded for ${cust.nombre}`)
+        : L(`Venta registrada (${n} ${n === 1 ? 'artículo' : 'artículos'}) · ${money(total)}`, `Sale recorded (${n} item${n === 1 ? '' : 's'}) · ${money(total)}`) +
+            (method === 'cash' && rec > total ? L(` · Cambio ${money(change)}`, ` · Change ${money(change)}`) : '') +
+            (ptsWin ? L(` · +${ptsWin} pts para ${cust.nombre}`, ` · +${ptsWin} pts for ${cust.nombre}`) : ''),
+    );
+    setCart([]);
+    setDisc(0);
+    setRecibido('');
     setReward('');
     loadRecent();
-    if (kind === 'prod') reloadProducts();
+    reloadProducts();
     void find(cust.member_code);
   };
 
@@ -185,7 +227,7 @@ export default function Mostrador() {
                   {cust.id_status === 'verificada' ? L('ID verificada', 'ID verified') : L('Sin ID verificada', 'ID not verified')}
                 </P>
               </View>
-              <Btn small kind="ghost" title={L('Otro cliente', 'Another')} onPress={() => { setCust(null); setCode(''); setMsg(''); }} />
+              <Btn small kind="ghost" title={L('Otro cliente', 'Another')} onPress={() => { setCust(null); setCode(''); setMsg(''); setCart([]); setDisc(0); setRecibido(''); }} />
             </View>
           ) : null}
           {err ? <Note kind="red">{err}</Note> : null}
@@ -224,6 +266,12 @@ export default function Mostrador() {
                 <Empty>{L('Esta tienda no tiene productos.', 'This store has no products.')}</Empty>
               )
             ) : null}
+            {kind !== 'abono' ? (
+              <Row style={{ alignItems: 'center' }}>
+                <Btn icon="plus" title={canAdd ? L(`Agregar a la venta · ${money(base + fee)}`, `Add to sale · ${money(base + fee)}`) : kind === 'prod' && vr && vr.stock <= inCart(vr.id) ? L('Ya no hay más existencias', 'No more stock') : L('Elige qué agregar', 'Choose what to add')} disabled={!canAdd} onPress={addLine} />
+                {cart.length ? <P small muted>{L(`${cart.reduce((a, x) => a + x.qty, 0)} en la venta`, `${cart.reduce((a, x) => a + x.qty, 0)} in the sale`)}</P> : null}
+              </Row>
+            ) : null}
             {kind === 'abono' ? (
               plans.length ? (
                 <View style={{ gap: 8 }}>
@@ -242,7 +290,30 @@ export default function Mostrador() {
         {cust ? (
           <Card>
             <H2>3 · {L('Cobra', 'Charge')}</H2>
-            <Pills options={[{ v: 'cash' as Method, label: L('Efectivo', 'Cash') }, { v: 'card' as Method, label: L('Tarjeta', 'Card') }, { v: 'zelle' as Method, label: 'Zelle' }]} value={method} onChange={setMethod} />
+            {kind !== 'abono' ? (
+              cart.length ? (
+                <View style={{ gap: 2 }}>
+                  {cart.map((x) => (
+                    <View key={x.key} style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: C.line }}>
+                      <Text style={{ flex: 1, color: C.ink, fontWeight: '700' }} numberOfLines={2}>{x.label}{x.fee ? <Text style={{ color: C.muted, fontWeight: '600' }}>{L(` + ${money(x.fee)} comisión`, ` + ${money(x.fee)} fee`)}</Text> : null}</Text>
+                      <Row gap={6} style={{ flexWrap: 'nowrap' }}>
+                        <Btn small kind="ghost" title="−" onPress={() => setQty(x.key, -1)} />
+                        <Text style={{ fontWeight: '900', color: C.ink, minWidth: 18, textAlign: 'center' }}>{x.qty}</Text>
+                        <Btn small kind="ghost" title="+" onPress={() => setQty(x.key, 1)} disabled={x.stock != null && x.qty >= x.stock} />
+                      </Row>
+                      <Text style={{ fontWeight: '900', color: C.ink, minWidth: 80, textAlign: 'right' }}>{money(lineTotal(x))}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <P small muted>{L('Agrega servicios o productos arriba; puedes cobrar varios en una sola venta.', 'Add services or products above; you can charge several in one sale.')}</P>
+              )
+            ) : (
+              <Text style={{ color: C.ink, fontWeight: '700' }}>{title || '—'}</Text>
+            )}
+            {kind !== 'abono' && cart.length ? (
+              <Pills label={L('Descuento', 'Discount')} options={[0, 5, 10, 15, 20].map((p) => ({ v: p, label: p ? `${p} %` : L('Sin descuento', 'None') }))} value={disc} onChange={setDisc} />
+            ) : null}
             {usable.length ? (
               <Pills
                 label={L(`Premios del cliente (${cust.puntos} pts)`, `Customer rewards (${cust.puntos} pts)`)}
@@ -251,13 +322,27 @@ export default function Mostrador() {
                 onChange={setReward}
               />
             ) : null}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10, paddingVertical: 10, borderTopWidth: 1, borderTopColor: C.line }}>
-              <Text style={{ flex: 1, color: C.ink, fontWeight: '700' }}>{title || '—'}</Text>
-              <Text style={{ fontSize: 26, fontWeight: '900', color: C.ink }}>{money(total)}</Text>
+            <Pills label={L('Forma de pago', 'Payment method')} options={[{ v: 'cash' as Method, label: L('Efectivo', 'Cash') }, { v: 'card' as Method, label: L('Tarjeta', 'Card') }, { v: 'zelle' as Method, label: 'Zelle' }]} value={method} onChange={setMethod} />
+            {method === 'cash' && (kind === 'abono' ? base > 0 : cart.length > 0) ? (
+              <Row style={{ alignItems: 'flex-end' }}>
+                <Field label={L('Recibido (opcional)', 'Received (optional)')} value={recibido} onChangeText={(v) => setRecibido(v.replace(/[^0-9.]/g, ''))} keyboardType="decimal-pad" placeholder="0.00" style={{ maxWidth: 180 }} />
+                {[20, 50, 100, 200].filter((v) => v >= total).slice(0, 3).map((v) => (
+                  <Btn key={v} small kind="ghost" title={`$${v}`} onPress={() => setRecibido(String(v))} />
+                ))}
+                {recibido !== '' && rec >= total ? <Text style={{ fontWeight: '900', color: '#1E5B35', fontSize: 16 }}>{L('Cambio ', 'Change ') + money(change)}</Text> : null}
+              </Row>
+            ) : null}
+            <View style={{ gap: 2, paddingTop: 8, borderTopWidth: 1, borderTopColor: C.line }}>
+              {fees ? <P small muted>{L('Comisiones incluidas: ', 'Fees included: ') + money(fees)}</P> : null}
+              {rewardOff ? <P small style={{ color: '#1E5B35', fontWeight: '800' }}>{L('Premio: −', 'Reward: −') + money(rewardOff)}</P> : null}
+              {pctOff ? <P small style={{ color: '#1E5B35', fontWeight: '800' }}>{L(`Descuento ${disc} %: −`, `Discount ${disc} %: −`) + money(pctOff)}</P> : null}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontWeight: '900', color: C.ink, fontSize: 16 }}>Total</Text>
+                <Text style={{ fontSize: 26, fontWeight: '900', color: C.ink }}>{money(total)}</Text>
+              </View>
+              {ptsWin ? <P small style={{ fontWeight: '800', color: C.goldInk }}>{L(`El cliente gana +${ptsWin} pts`, `Customer earns +${ptsWin} pts`)}</P> : null}
             </View>
-            {sel ? <P small style={{ color: '#1E5B35', fontWeight: '800' }}>{L('Premio aplicado: −', 'Reward applied: −') + money(gross - total)}</P> : null}
-            {ptsWin ? <P small style={{ fontWeight: '800', color: C.goldInk }}>{L(`El cliente gana +${ptsWin} pts`, `Customer earns +${ptsWin} pts`)}</P> : null}
-            <Btn title={kind === 'abono' ? L('Registrar abono', 'Record payment') : L('Registrar venta', 'Record sale')} icon="check" disabled={!ready} loading={busy} onPress={register} style={{ alignSelf: 'flex-start' }} />
+            <Btn title={lack || (kind === 'abono' ? L(`Registrar abono · ${money(total)}`, `Record payment · ${money(total)}`) : L(`Registrar venta · ${money(total)}`, `Record sale · ${money(total)}`))} icon={lack ? undefined : 'check'} disabled={!!lack || !emp} loading={busy} onPress={register} style={{ alignSelf: 'flex-start' }} />
           </Card>
         ) : null}
 

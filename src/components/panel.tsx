@@ -35,8 +35,16 @@ export function usePanelStore(stores: Store[] | null) {
   const { profile } = useAuth();
   const sel = useAdminStore();
   if (!stores || !profile) return null;
-  if (profile.role === 'tienda') return stores.find((s) => s.id === profile.store_id) || null;
-  return stores.find((s) => s.id === sel) || stores[0] || null;
+  const mine = staffStores(profile, stores);
+  return mine.find((s) => s.id === sel) || mine[0] || null;
+}
+
+/** Sucursales que puede atender la cuenta: el admin todas; una cuenta de tienda, las que le asignaron. */
+export function staffStores(profile: { role: string; store_id: string | null; store_ids?: string[] } | null, stores: Store[] | null): Store[] {
+  if (!stores || !profile) return [];
+  if (profile.role === 'admin') return stores;
+  const ids = profile.store_ids && profile.store_ids.length ? profile.store_ids : profile.store_id ? [profile.store_id] : [];
+  return stores.filter((s) => ids.includes(s.id));
 }
 
 /** Interruptor grande para abrir o cerrar la tienda (no recibe pedidos nuevos mientras está cerrada). */
@@ -182,9 +190,9 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
               </View>
             ) : null}
           </Row>
-          {kind === 'tienda' && profile?.role === 'admin' && stores ? (
+          {kind === 'tienda' && staffStores(profile, stores ?? null).length > 1 ? (
             <ChipScroll active={store?.id}>
-              {stores.map((st) => (
+              {staffStores(profile, stores ?? null).map((st) => (
                 <Pressable key={st.id} accessibilityRole="radio" accessibilityState={{ checked: store?.id === st.id }} onPress={() => setAdminStore(st.id)}
                   style={{ paddingHorizontal: 12, minHeight: 34, justifyContent: 'center', borderRadius: R.pill, backgroundColor: store?.id === st.id ? C.gold : 'rgba(255,255,255,0.12)' }}>
                   <Text style={{ fontWeight: '800', color: store?.id === st.id ? C.ink : '#fff' }}>{st.nombre.replace('Castillo · ', '') + (st.abierta === false ? ' · ' + L('cerrada', 'closed') : '')}</Text>
