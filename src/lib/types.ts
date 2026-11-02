@@ -16,6 +16,9 @@ export interface Profile {
   /** Sucursales que atiende una cuenta de tienda (puede ser más de una) */
   store_ids?: string[];
   id_status: 'ninguna' | 'pendiente' | 'verificada' | 'rechazada';
+  /** País de origen (MX, GT, SV…) y su estado o departamento */
+  pais?: string | null;
+  estado?: string;
 }
 
 export interface StoreMods { send: boolean; svc: boolean; shop: boolean; credit: boolean; layaway: boolean; comm: boolean }
@@ -91,6 +94,8 @@ export interface Settings {
   terms_en?: string;
   help_wa?: string;
   help_mail?: string;
+  paises?: { c: string; on: boolean; cur: string; rate: number; fee: number }[];
+  dias?: { m: number; d: number; es: string; en?: string; pais?: string; estado?: string }[];
 }
 export interface CreditCfg { on: boolean; layaway: boolean; freqs: Record<'semanal' | 'quincenal' | 'mensual', boolean>; nList: string; minDown: number; rate: number; lateFee: number; grace: number; minPrice: number; layDays: number }
 
@@ -107,6 +112,7 @@ export interface Beneficiary {
   banco: string;
   cuenta: string;
   red: string;
+  pais?: string;
 }
 
 export interface OrderDataItem { k: string; es: string; en: string; type: FieldType; value: string }
@@ -125,6 +131,8 @@ export interface Order {
   plan_id?: string | null;
   inst?: number | null;
   sale_id?: string | null;
+  pais?: string | null;
+  moneda?: string | null;
   service_id: string | null;
   service_name: { es: string; en: string; icon: string; cat: string; opcion: { es: string; en: string } | null } | null;
   data: OrderDataItem[];

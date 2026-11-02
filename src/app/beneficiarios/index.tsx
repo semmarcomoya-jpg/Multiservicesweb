@@ -33,7 +33,7 @@ export default function Beneficiarios() {
     <Screen wall="send">
       <BackBar title={L('Mis personas', 'My people')} />
       <H1>{L('¿A quién le envías?', 'Who do you send to?')}</H1>
-      <P muted>{L('Las personas en México a quienes les envías. Las guardas una vez y listo.', 'The people in Mexico you send to. Save them once and you are set.')}</P>
+      <P muted>{L('Las personas a quienes les envías, en México, Guatemala, El Salvador y más. Las guardas una vez y listo.', 'The people you send to, in Mexico, Guatemala, El Salvador and more. Save them once and you are set.')}</P>
       <Btn icon="users" title={L('Agregar nueva persona', 'Add a new person')} onPress={() => router.push('/beneficiarios/nuevo')} />
       {!list ? <Loading /> : null}
       {list && list.length === 0 ? <Empty>{L('Aún no guardas a nadie.', 'No one saved yet.')}</Empty> : null}

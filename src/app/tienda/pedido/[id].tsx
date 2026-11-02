@@ -6,7 +6,7 @@ import { Text } from '@/components/Text';
 
 import { orderIcon, useOrderText } from '@/components/orders';
 import { BackBar, Btn, Card, Field, H1, H2, IcoBox, Label, Loading, Note, P, Row, Screen, StatusChip } from '@/components/ui';
-import { digits, money, mxn } from '@/lib/format';
+import { cur, digits, money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
@@ -91,10 +91,10 @@ export default function TiendaPedido() {
   const datos: [string, string][] = [];
   if (o.kind === 'send' && o.beneficiary) {
     const b = o.beneficiary;
-    datos.push([L('Recibe', 'Recipient'), `${b.nombre} ${b.apellidos}`], [L('Teléfono MX', 'MX phone'), b.telefono], [L('Lugar', 'Location'), `${b.ciudad}, ${b.estado}`]);
-    if (b.metodo === 'cuenta') datos.push([L('Banco', 'Bank'), b.banco], [b.cuenta.length === 18 ? 'CLABE' : L('Tarjeta', 'Card'), b.cuenta]);
+    datos.push([L('Recibe', 'Recipient'), `${b.nombre} ${b.apellidos}`], [L('Teléfono', 'Phone'), b.telefono], [L('Lugar', 'Location'), `${b.ciudad}, ${b.estado}` + (b.pais && b.pais !== 'MX' ? ` · ${b.pais}` : '')]);
+    if (b.metodo === 'cuenta') datos.push([L('Banco', 'Bank'), b.banco], [b.cuenta.length === 18 && (b.pais || 'MX') === 'MX' ? 'CLABE' : L('Tarjeta', 'Card'), b.cuenta]);
     else datos.push([L('Retiro en', 'Pickup at'), b.red]);
-    datos.push([L('Monto USD', 'Amount USD'), Number(o.monto).toFixed(2)], [L('Tipo de cambio', 'Rate'), Number(o.rate).toFixed(2)], [L('Recibe', 'Receives'), mxn(o.mxn)]);
+    datos.push([L('Monto USD', 'Amount USD'), Number(o.monto).toFixed(2)], [L('Tipo de cambio', 'Rate'), Number(o.rate).toFixed(2)], [L('Recibe', 'Receives'), cur(o.mxn, o.moneda)]);
   }
   if (o.kind === 'service') {
     datos.push([L('Monto', 'Amount'), Number(o.monto).toFixed(2)]);

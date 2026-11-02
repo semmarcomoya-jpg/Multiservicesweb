@@ -16,7 +16,7 @@ export function useOrderText() {
   const title = (o: Order) => {
     if (o.kind === 'send') {
       const b = o.beneficiary;
-      return b ? `${L('Envío a', 'Transfer to')} ${b.nombre} ${b.apellidos}`.trim() : L('Envío a México', 'Money to Mexico');
+      return b ? `${L('Envío a', 'Transfer to')} ${b.nombre} ${b.apellidos}`.trim() : L('Envío de dinero', 'Money transfer');
     }
     if (o.kind === 'service') return nm(o.service_name) + (o.service_name?.opcion ? ' · ' + nm(o.service_name.opcion) : '');
     if (o.kind === 'shop' && o.items?.length) return o.items[0].name + (o.items.length > 1 ? ` +${o.items.length - 1}` : '');

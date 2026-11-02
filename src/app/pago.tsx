@@ -9,7 +9,7 @@ import { loyaltyOf, rewardDiscount, useMyPoints } from '@/lib/points';
 import { useStores } from '@/lib/data';
 import { clearCart } from '@/lib/cart';
 import { setDraft, useDraft } from '@/lib/draft';
-import { money, mxn } from '@/lib/format';
+import { cur, money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
@@ -106,7 +106,7 @@ export default function Pago() {
         {d.kind === 'send' ? (
           <>
             <Row style={{ justifyContent: 'space-between' }}><P>{L('Envías', 'You send')}</P><P>{money(d.monto)}</P></Row>
-            <Row style={{ justifyContent: 'space-between' }}><P>{L('Recibe aprox.', 'They receive approx.')}</P><P>{mxn(d.mxn)}</P></Row>
+            <Row style={{ justifyContent: 'space-between' }}><P>{L('Recibe aprox.', 'They receive approx.')}</P><P>{cur(d.mxn, d.moneda)}</P></Row>
           </>
         ) : d.kind === 'shop' ? (
           d.items.map((x) => (

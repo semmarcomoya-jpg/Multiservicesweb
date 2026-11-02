@@ -24,7 +24,7 @@ const agg = (arr: Order[]) => ({
 export function useGroups(cats: Category[]) {
   const { L, nm } = useLang();
   return [
-    ['send', L('Envíos a México', 'Money to Mexico'), 'send'] as const,
+    ['send', L('Envíos de dinero', 'Money transfers'), 'send'] as const,
     ...cats.map((c) => ['cat:' + c.id, nm(c), c.icon] as const),
     ['shop', L('Productos', 'Products'), 'bag'] as const,
   ];
@@ -145,7 +145,7 @@ function Desglose({ orders }: { orders: Order[] }) {
       });
     } else {
       const k = o.kind === 'send' ? 'send' : o.kind === 'abono' ? 'abono' : o.service_id || 'otro';
-      const label = o.kind === 'send' ? L('Envíos a México', 'Money to Mexico') : o.kind === 'abono' ? L('Abonos de crédito y apartado', 'Credit & layaway payments') : nm(o.service_name);
+      const label = o.kind === 'send' ? L('Envíos de dinero', 'Money transfers') : o.kind === 'abono' ? L('Abonos de crédito y apartado', 'Credit & layaway payments') : nm(o.service_name);
       const e = svc.get(k) || { label, icon: o.kind === 'send' ? 'send' : o.kind === 'abono' ? 'wallet' : o.service_name?.icon || 'tool', n: 0, total: 0 };
       e.n += 1;
       e.total += Number(o.total || 0);

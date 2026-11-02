@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Text } from '@/components/Text';
 
-import { PanelHeader } from '@/components/panel';
-import { Btn, Card, Field, H2, Loading, Note, P, Row, Screen } from '@/components/ui';
+import { Btn, Card, Field, H2, Loading, Note, P, Row, Screen, Toggle } from '@/components/ui';
+import { COUNTRIES } from '@/lib/countries';
 import { useSettings } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
@@ -15,8 +15,16 @@ export default function AdminCambio() {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [paises, setPaises] = useState<{ c: string; on: boolean; cur: string; rate: string; fee: string }[]>([]);
 
   useEffect(() => {
+    if (cfg)
+      setPaises(
+        COUNTRIES.filter((c) => c.c !== 'MX' && c.c !== 'US').map((c) => {
+          const p = (cfg.paises || []).find((x) => x.c === c.c);
+          return { c: c.c, on: !!p?.on, cur: p?.cur || c.cur, rate: p ? String(p.rate) : '', fee: p ? String(p.fee) : String(cfg.send_fee) };
+        }),
+      );
     if (cfg) setF({ exchange_rate: String(cfg.exchange_rate), send_fee: String(cfg.send_fee), limit_l1: String(cfg.limit_l1), limit_l2: String(cfg.limit_l2), proveedor: cfg.proveedor });
   }, [cfg]);
   if (!cfg) return <Loading />;
@@ -34,6 +42,7 @@ export default function AdminCambio() {
         limit_l1: Number(f.limit_l1),
         limit_l2: Number(f.limit_l2),
         proveedor: f.proveedor,
+        paises: [{ c: 'MX', on: true, cur: 'MXN', rate: 0, fee: 0 }, ...paises.map((p) => ({ c: p.c, on: p.on, cur: p.cur, rate: Number(p.rate) || 0, fee: Number(p.fee) || 0 }))],
         ...(rateChanged ? { rate_updated_at: new Date().toISOString() } : {}),
       })
       .eq('id', 1);
@@ -48,12 +57,28 @@ export default function AdminCambio() {
   return (
     <Screen wide>
       <Card>
-        <H2>{L('Tipo de cambio', 'Exchange rate')}</H2>
+        <H2>{L('Tipo de cambio · México', 'Exchange rate · Mexico')}</H2>
         <Row style={{ alignItems: 'flex-end' }}>
           <Field label={L('1 USD = ? MXN', '1 USD = ? MXN')} value={f.exchange_rate} onChangeText={set('exchange_rate')} keyboardType="decimal-pad" style={{ maxWidth: 240 }} />
           <Text style={{ fontSize: 28, fontWeight: '900', color: C.blueInk, paddingBottom: 6 }}>{Number(f.exchange_rate || 0).toFixed(2)} MXN</Text>
         </Row>
         <P small muted>{L('Última actualización: ', 'Last updated: ') + new Date(cfg.rate_updated_at).toLocaleString(lang === 'es' ? 'es-MX' : 'en-US')}</P>
+      </Card>
+      <Card>
+        <H2>{L('Otros países', 'Other countries')}</H2>
+        <P small muted>{L('Prende los países a los que envías y pon su tipo de cambio y comisión. El cliente los elige al agregar a la persona que recibe. Revisa el tipo de cambio cada día, igual que el de México.', 'Turn on the countries you send to and set their rate and fee. Customers pick the country when adding a recipient. Update rates daily, like Mexico.')}</P>
+        {paises.map((p, i) => {
+          const c = COUNTRIES.find((x) => x.c === p.c)!;
+          const upd = (patch: Partial<typeof p>) => setPaises((arr) => arr.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+          return (
+            <Row key={p.c} style={{ alignItems: 'flex-end', paddingVertical: 6, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
+              <Toggle label={`${c.flag} ${lang === 'es' ? c.es : c.en}`} value={p.on} onChange={(v) => upd({ on: v })} />
+              <Field label={`1 USD = ? ${p.cur}`} value={p.rate} onChangeText={(v) => upd({ rate: v.replace(/[^0-9.]/g, '') })} keyboardType="decimal-pad" style={{ maxWidth: 170 }} />
+              <Field label={L('Comisión (USD)', 'Fee (USD)')} value={p.fee} onChangeText={(v) => upd({ fee: v.replace(/[^0-9.]/g, '') })} keyboardType="decimal-pad" style={{ maxWidth: 150 }} />
+            </Row>
+          );
+        })}
+        {paises.some((p) => p.on && !(Number(p.rate) > 0)) ? <Note kind="red">{L('Un país prendido necesita su tipo de cambio.', 'An enabled country needs its rate.')}</Note> : null}
       </Card>
       <Card>
         <H2>{L('Envíos: comisión y límites', 'Transfers: fee and limits')}</H2>
@@ -67,7 +92,7 @@ export default function AdminCambio() {
       </Card>
       {err ? <Note kind="red">{err}</Note> : null}
       {msg ? <Note kind="blue" icon="check">{msg}</Note> : null}
-      <Btn title={L('Guardar', 'Save')} onPress={save} loading={busy} style={{ alignSelf: 'flex-start' }} />
+      <Btn title={L('Guardar', 'Save')} onPress={save} loading={busy} disabled={paises.some((p) => p.on && !(Number(p.rate) > 0))} style={{ alignSelf: 'flex-start' }} />
     </Screen>
   );
 }

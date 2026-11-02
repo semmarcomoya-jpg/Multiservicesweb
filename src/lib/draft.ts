@@ -4,7 +4,7 @@ import type { Mode, OrderDataItem, OrderItem } from './types';
 
 /** Lo que el cliente armó antes de pagar (envío o servicio). Vive solo en memoria. */
 export type PayDraft =
-  | { kind: 'send'; storeId: string; beneficiaryId: string; beneficiaryName: string; monto: number; fee: number; rate: number; mxn: number }
+  | { kind: 'send'; storeId: string; beneficiaryId: string; beneficiaryName: string; monto: number; fee: number; rate: number; mxn: number; moneda?: string; pais?: string }
   | {
       kind: 'service';
       storeId: string;

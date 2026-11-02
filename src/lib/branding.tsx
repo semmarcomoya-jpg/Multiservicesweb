@@ -9,7 +9,7 @@ export const DEFAULT_BRAND: Brand = {
   corto: 'Castillo',
   cover_title_es: 'Tu familia, más cerca',
   cover_title_en: 'Your family, closer',
-  cover_sub_es: 'Envía dinero a México, compra tu celular y paga tus servicios. Y gana puntos en cada movimiento.',
+  cover_sub_es: 'Envía dinero a tu país, compra tu celular y paga tus servicios. Y gana puntos en cada movimiento.',
   cover_sub_en: 'Send money to Mexico, buy your phone and pay your bills. And earn points with every move.',
 };
 

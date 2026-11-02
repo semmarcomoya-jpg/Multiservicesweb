@@ -249,7 +249,7 @@ export default function Inicio() {
             {any('send') ? (
               <Pressable accessibilityRole="button" onPress={() => router.push('/enviar')} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderRadius: 22, backgroundColor: C.brown }}>
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#fff', fontSize: 21, fontWeight: '900' }}>{L('Enviar dinero a México', 'Send money to Mexico')}</Text>
+                  <Text style={{ color: '#fff', fontSize: 21, fontWeight: '900' }}>{L('Enviar dinero a tu país', 'Send money home')}</Text>
                   <Text style={{ color: C.goldSoft, fontSize: 14, marginTop: 4 }}>{L('Rápido, seguro y con comprobante', 'Fast, safe and with a receipt')}</Text>
                 </View>
                 <Circ n="arrow" tone="sun" size={52} />

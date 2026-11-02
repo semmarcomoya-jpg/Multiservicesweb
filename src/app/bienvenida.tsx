@@ -17,7 +17,7 @@ export default function Bienvenida() {
   const { height } = useWindowDimensions();
   const heroH = Math.max(280, Math.min(460, height * 0.5));
   const feats: [string, 'gold' | 'blue', string][] = [
-    ['send', 'gold', L('Envía a México', 'Send to Mexico')],
+    ['send', 'gold', L('Envía a tu país', 'Send money home')],
     ['bag', 'blue', L('Compra y paga', 'Shop & pay')],
     ['star', 'gold', L('Gana puntos', 'Earn points')],
   ];

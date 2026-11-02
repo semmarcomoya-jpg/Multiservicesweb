@@ -9,17 +9,19 @@ import { resetTour } from '@/components/Tour';
 import { Avatar, Btn, Card, Field, H1, Label, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
 import { pickImage, uploadImage } from '@/lib/upload';
 import { useAuth } from '@/lib/auth';
+import { COUNTRIES, STATES } from '@/lib/countries';
 import { useStores } from '@/lib/data';
+import { SpecialDays } from '@/components/SpecialDays';
 import { digits } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
 
 export default function Perfil() {
-  const { L } = useLang();
+  const { L, lang } = useLang();
   const { profile, refreshProfile, signOut, session } = useAuth();
   const { data: stores } = useStores();
-  const [f, setF] = useState({ nombre: '', apellidos: '', telefono: '', fecha_nac: '', store_id: '' as string | null });
+  const [f, setF] = useState({ nombre: '', apellidos: '', telefono: '', fecha_nac: '', store_id: '' as string | null, pais: '' as string, estado: '' });
   const [msg, setMsg] = useState('');
   const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -28,7 +30,7 @@ export default function Perfil() {
 
   useEffect(() => {
     if (profile)
-      setF({ nombre: profile.nombre || '', apellidos: profile.apellidos || '', telefono: profile.telefono || '', fecha_nac: profile.fecha_nac ? profile.fecha_nac.split('-').reverse().join('/') : '', store_id: profile.store_id });
+      setF({ nombre: profile.nombre || '', apellidos: profile.apellidos || '', telefono: profile.telefono || '', fecha_nac: profile.fecha_nac ? profile.fecha_nac.split('-').reverse().join('/') : '', store_id: profile.store_id, pais: profile.pais || '', estado: profile.estado || '' });
   }, [profile]);
 
   if (!profile) return null;
@@ -58,7 +60,9 @@ export default function Perfil() {
     (f.apellidos || '').trim() !== (profile.apellidos || '') ||
     digits(f.telefono || '') !== (profile.telefono || '') ||
     (iso === null ? true : (iso || null) !== (profile.fecha_nac || null)) ||
-    (profile.role === 'cliente' && (f.store_id || null) !== (profile.store_id || null));
+    (profile.role === 'cliente' && (f.store_id || null) !== (profile.store_id || null)) ||
+    (f.pais || '') !== (profile.pais || '') ||
+    (f.estado || '').trim() !== (profile.estado || '');
   const dateOk = iso !== null;
 
   const save = async () => {
@@ -70,7 +74,7 @@ export default function Perfil() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .update({ nombre: (f.nombre || '').trim(), apellidos: (f.apellidos || '').trim(), telefono: digits(f.telefono || ''), fecha_nac: iso || null, store_id: profile.role === 'cliente' ? f.store_id || null : profile.store_id })
+        .update({ nombre: (f.nombre || '').trim(), apellidos: (f.apellidos || '').trim(), telefono: digits(f.telefono || ''), fecha_nac: iso || null, store_id: profile.role === 'cliente' ? f.store_id || null : profile.store_id, pais: f.pais || null, estado: (f.estado || '').trim() })
         .eq('id', profile.id)
         .select('id');
       if (error) throw error;
@@ -119,6 +123,7 @@ export default function Perfil() {
     <Screen wall="profile">
       <TopBar />
       <H1>{L('Mi perfil', 'My profile')}</H1>
+      <SpecialDays />
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={L('Cambiar foto de perfil', 'Change profile photo')} onPress={() => cambiarFoto()} disabled={fotoBusy}>
           <Avatar name={`${profile.nombre} ${profile.apellidos}`} size={84} uri={profile.foto_url} />
@@ -157,6 +162,13 @@ export default function Perfil() {
           <Field label={L('Apellidos', 'Last name')} value={f.apellidos} onChangeText={set('apellidos')} />
         </Row>
         <Field label={L('Teléfono', 'Phone')} value={f.telefono} onChangeText={(v) => set('telefono')(digits(v))} keyboardType="phone-pad" maxLength={10} />
+        <Pills label={L('¿De qué país eres?', 'Which country are you from?')} options={COUNTRIES.map((c) => ({ v: c.c, label: `${c.flag} ${lang === 'es' ? c.es : c.en}` }))} value={f.pais} onChange={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, pais: v, estado: '' })); }} wrap={false} />
+        {f.pais && STATES[f.pais] ? (
+          <Pills label={f.pais === 'MX' ? L('¿De qué estado?', 'Which state?') : L('¿De qué departamento?', 'Which department?')} options={STATES[f.pais].map((s) => ({ v: s, label: s }))} value={f.estado} onChange={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, estado: v })); }} wrap={false} />
+        ) : f.pais && f.pais !== 'US' ? (
+          <Field label={L('Estado, provincia o departamento', 'State or province')} value={f.estado} onChangeText={set('estado')} />
+        ) : null}
+        <P small muted>{L('Lo usamos para avisarte de los días especiales de tu tierra y de Estados Unidos.', 'We use it to remind you of special days back home and in the U.S.')}</P>
         <BirthdayField value={f.fecha_nac} onChange={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, fecha_nac: v })); }} />
         <P small muted>{session?.user.email}</P>
         {profile.role === 'cliente' && stores ? (

@@ -55,7 +55,7 @@ export function CalificacionesPanel({ stores, storeId }: { stores: Store[]; stor
   const what = (r: Row2) => {
     const o = r.orders;
     if (!o) return '';
-    if (o.kind === 'send') return L('Envío a México', 'Transfer to Mexico');
+    if (o.kind === 'send') return L('Envío de dinero', 'Money transfer');
     if (o.kind === 'shop') return (o.items || []).map((x) => x.name).join(', ');
     if (o.kind === 'abono') return L('Abono de crédito', 'Credit payment');
     return (lang === 'es' ? o.service_name?.es : o.service_name?.en) || '';

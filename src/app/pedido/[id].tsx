@@ -10,7 +10,7 @@ import { RatingCard } from '@/components/RatingCard';
 import { useAuth } from '@/lib/auth';
 import { useStores } from '@/lib/data';
 import { BackBar, Btn, Card, H1, IcoBox, Label, Loading, Note, P, Row, Screen, StatusChip } from '@/components/ui';
-import { money, mxn } from '@/lib/format';
+import { cur, money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
@@ -104,8 +104,8 @@ export default function PedidoCliente() {
           <>
             <P>{L('Recibe: ', 'Recipient: ')}{`${o.beneficiary.nombre} ${o.beneficiary.apellidos}`}</P>
             <P>{o.beneficiary.metodo === 'cuenta' ? `${o.beneficiary.banco} ···${o.beneficiary.cuenta.slice(-4)}` : L('Retiro en ', 'Pickup at ') + o.beneficiary.red}</P>
-            <P>{L('Envías ', 'You send ') + money(o.monto)} · {L('recibe ', 'receives ') + mxn(o.mxn)}</P>
-            <P small muted>1 USD = {Number(o.rate).toFixed(2)} MXN</P>
+            <P>{L('Envías ', 'You send ') + money(o.monto)} · {L('recibe ', 'receives ') + cur(o.mxn, o.moneda)}</P>
+            <P small muted>1 USD = {Number(o.rate).toFixed(2)} {o.moneda || 'MXN'}</P>
           </>
         ) : null}
         {o.kind === 'shop'

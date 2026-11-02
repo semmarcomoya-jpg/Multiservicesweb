@@ -9,6 +9,10 @@ export const money = (v: unknown) =>
 export const mxn = (v: unknown) =>
   '$' + num(v).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' MXN';
 
+/** Lo que recibe en su moneda (MXN, GTQ, HNL…) */
+export const cur = (v: unknown, code?: string | null) =>
+  (code === 'USD' ? '$' : '$') + num(v).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ' + (code || 'MXN');
+
 export const digits = (v: string) => (v || '').replace(/\D/g, '');
 
 export function timeAgo(iso: string, lang: 'es' | 'en'): string {

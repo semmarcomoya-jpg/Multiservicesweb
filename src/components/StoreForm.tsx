@@ -85,7 +85,7 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
   };
 
   const MODS: [keyof StoreMods, string, string, string][] = [
-    ['send', 'send', L('Envíos a México', 'Money to Mexico'), L('Depósito o retiro en efectivo', 'Deposit or cash pickup')],
+    ['send', 'send', L('Envíos de dinero', 'Money transfers'), L('Depósito o retiro en efectivo', 'Deposit or cash pickup')],
     ['svc', 'tool', L('Pago de servicios y trámites', 'Bill pay & services'), L('Recargas, luz, agua, trámites…', 'Top-ups, utilities, paperwork…')],
     ['shop', 'bag', L('Productos', 'Products'), L('Catálogo, carrito y pago', 'Catalog, cart and payment')],
     ['credit', 'wallet', L('Crédito', 'Credit'), L('Compras a plazos con abonos', 'Installment purchases')],
