@@ -9,9 +9,10 @@ import { orderForViewer, useSeenStories } from '@/lib/stories';
 import { C } from '@/lib/theme';
 import type { Story } from '@/lib/types';
 
-const SIZE = 68;
+const SIZE0 = 68;
 
-export function StoriesRow({ stories, addHref }: { stories: Story[]; addHref?: string }) {
+export function StoriesRow({ stories, addHref, dark = false, size }: { stories: Story[]; addHref?: string; dark?: boolean; size?: number }) {
+  const SIZE = size || SIZE0;
   const { L, lang } = useLang();
   const seen = useSeenStories();
   const ordered = useMemo(() => orderForViewer(stories, seen), [stories, seen]);
@@ -26,15 +27,15 @@ export function StoriesRow({ stories, addHref }: { stories: Story[]; addHref?: s
   };
   return (
     <View style={{ gap: 8 }}>
-      <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Novedades', "What's new")}</Text>
+      {dark ? null : <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Novedades', "What's new")}</Text>}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 12, paddingRight: 16 }}>
         {addHref ? (
           <Pressable accessibilityRole="button" accessibilityLabel={L('Subir historia', 'Add story')} onPress={goAdd}
             style={({ pressed }) => ({ width: SIZE + 8, alignItems: 'center', gap: 4, opacity: pressed ? 0.7 : 1 })}>
-            <View style={{ width: SIZE + 8, height: SIZE + 8, borderRadius: (SIZE + 8) / 2, borderWidth: 2, borderStyle: 'dashed', borderColor: C.brown, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: C.brown, fontSize: 34, fontWeight: '900', lineHeight: 38 }}>+</Text>
+            <View style={{ width: SIZE + 8, height: SIZE + 8, borderRadius: (SIZE + 8) / 2, borderWidth: 2, borderStyle: 'dashed', borderColor: dark ? '#fff' : C.brown, backgroundColor: dark ? 'rgba(255,255,255,0.12)' : C.card, alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: dark ? '#fff' : C.brown, fontSize: 34, fontWeight: '900', lineHeight: 38 }}>+</Text>
             </View>
-            <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '800', color: C.brown, maxWidth: SIZE + 8 }}>{L('Subir', 'Add')}</Text>
+            <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: '800', color: dark ? '#fff' : C.brown, maxWidth: SIZE + 8 }}>{L('Subir', 'Add')}</Text>
           </Pressable>
         ) : null}
         {ordered.map((s) => {
@@ -48,7 +49,7 @@ export function StoriesRow({ stories, addHref }: { stories: Story[]; addHref?: s
               onPress={() => router.push({ pathname: '/historias', params: { id: s.id } })}
               style={({ pressed }) => ({ width: SIZE + 8, alignItems: 'center', gap: 4, opacity: pressed ? 0.7 : 1 })}
             >
-              <View style={{ width: SIZE + 8, height: SIZE + 8, borderRadius: (SIZE + 8) / 2, padding: 3, backgroundColor: isNew ? C.brown : C.line2, alignItems: 'center', justifyContent: 'center' }}>
+              <View style={{ width: SIZE + 8, height: SIZE + 8, borderRadius: (SIZE + 8) / 2, padding: 3, backgroundColor: isNew ? (dark ? '#62BDF6' : C.brown) : dark ? 'rgba(255,255,255,0.35)' : C.line2, alignItems: 'center', justifyContent: 'center' }}>
                 <View style={{ width: SIZE + 2, height: SIZE + 2, borderRadius: (SIZE + 2) / 2, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}>
                   {s.media_type === 'image' ? (
                     <Image source={{ uri: s.media_url }} style={{ width: SIZE - 2, height: SIZE - 2, borderRadius: (SIZE - 2) / 2 }} resizeMode="cover" />
@@ -59,7 +60,7 @@ export function StoriesRow({ stories, addHref }: { stories: Story[]; addHref?: s
                   )}
                 </View>
               </View>
-              <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: isNew ? '800' : '600', color: isNew ? C.ink : C.muted, maxWidth: SIZE + 8 }}>
+              <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: isNew ? '800' : '600', color: dark ? (isNew ? '#fff' : 'rgba(255,255,255,0.75)') : isNew ? C.ink : C.muted, maxWidth: SIZE + 8 }}>
                 {cap}
               </Text>
             </Pressable>

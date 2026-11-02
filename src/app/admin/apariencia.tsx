@@ -159,7 +159,7 @@ export default function AdminApariencia() {
           </View>
         )}
         <H2>{L('Imagen de portada', 'Cover image')}</H2>
-        <P small muted>{L('Es lo primero que ven tus clientes. Usa una foto vertical y alegre (recomendado 1080 × 1350 px o más).', 'It is the first thing customers see. Use a cheerful vertical photo (1080 × 1350 px or more).') + ' ' + L('Arrástrala para acomodarla y usa + / − para el zoom.', 'Drag it to adjust and use + / − to zoom.')}</P>
+        <P small muted>{L('Es lo primero que ven tus clientes: sale en la bienvenida y como portada de Inicio, con las historias encima. Usa una foto vertical y alegre (recomendado 1080 × 1350 px o más). El "Texto" sale debajo del saludo.', 'It is the first thing customers see: on the welcome screen and as the Home cover, with stories on top. Use a cheerful vertical photo (1080 × 1350 px or more). The "Text" shows under the greeting.') + ' ' + L('Arrástrala para acomodarla y usa + / − para el zoom.', 'Drag it to adjust and use + / − to zoom.')}</P>
         <Row>
           <Btn small icon="upload" title={L('Subir portada', 'Upload cover')} loading={busy === 'cover'} onPress={() => upload('cover', 'branding', (u) => setB((x) => ({ ...x, cover_url: u, cover_pos: undefined })))} />
           <Btn small kind="ghost" title={L('Usar ilustración', 'Use illustration')} onPress={() => setB((x) => ({ ...x, cover_url: null }))} />

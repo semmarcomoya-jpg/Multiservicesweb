@@ -1,6 +1,6 @@
 import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { Image, Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Scenery, Wallpaper, FramedImage } from '@/components/art';
@@ -15,7 +15,7 @@ import { StoriesRow } from '@/components/StoriesRow';
 import { useDestacados } from '@/lib/featured';
 import { useMyPoints } from '@/lib/points';
 import { Text } from '@/components/Text';
-import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Loading, NavyHead, Note, P } from '@/components/ui';
+import { Avatar, BrandChip, Btn, Circ, Empty, Icon, LangToggle, Loading, Note, P, Seg } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { modOn, prodFrom, useProducts, useSettings, useStores, scoreOf, useStoreScores } from '@/lib/data';
 import { money } from '@/lib/format';
@@ -24,7 +24,7 @@ import { useQuery } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n';
 import { countryOf, paisCfg } from '@/lib/countries';
-import { Scene, type SceneName } from '@/components/scenes';
+import { Scene, doodleUrl, type SceneName } from '@/components/scenes';
 import { openState } from '@/lib/hours';
 import { useMyOrders } from '@/lib/myorders';
 import { autoOpenDecided, fetchStories, takeAutoOpen } from '@/lib/stories';
@@ -33,6 +33,7 @@ import { C } from '@/lib/theme';
 
 // Dentro del celular de la vista de escritorio del personal no se repite el selector
 const inFrame = typeof window !== 'undefined' && window.self !== window.top;
+type HTab = 'hoy' | 'nov' | 'comu' | 'mio';
 
 export default function Inicio() {
   const { L, lang } = useLang();
@@ -47,6 +48,8 @@ export default function Inicio() {
   const [tour, setTour] = useState(false);
   const [focused, setFocused] = useState(true);
   const [fw, setFw] = useState(0);
+  const [htab, setHtab] = useState<HTab>('hoy');
+  const { height: winH } = useWindowDimensions();
   const [fi, setFi] = useState(0);
   useFocusEffect(
     useCallback(() => {
@@ -192,20 +195,22 @@ export default function Inicio() {
     any('svc') && { sc: 'tramite' as SceneName, label: L('Trámites', 'Paperwork'), go: '/servicios?cat=tra' },
   ].filter(Boolean) as { sc: SceneName; label: string; go: string }[];
   const web = typeof document !== 'undefined';
+  // Portada: la que sube el administrador en Apariencia (o la foto de tu tienda)
+  const coverUri = brand.cover_url || myStore?.fotos?.[0] || brand.home_bg_url || null;
+  const coverFrame = brand.cover_url ? brand.cover_pos : brand.home_bg_url && !myStore?.fotos?.[0] ? brand.home_pos : undefined;
+  const coverSub = (lang === 'es' ? brand.cover_sub_es : brand.cover_sub_en || brand.cover_sub_es) || '';
+  const coverH = Math.max(420, Math.min(560, Math.round(winH * 0.62)));
 
   return (
     <View style={{ flex: 1 }}>
       <Wallpaper theme="home" />
       <ScrollView contentContainerStyle={{ alignItems: 'center', paddingBottom: 24 }}>
         <View style={{ width: '100%', maxWidth: 520 }}>
-          {/* Encabezado azul con tipo de cambio y puntos (maqueta v2) */}
-          <NavyHead>
-            {brand.home_bg_url ? (
-              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.35 }}>
-                <FramedImage uri={brand.home_bg_url} frame={brand.home_pos} />
-              </View>
-            ) : null}
-            <SafeAreaView edges={['top']}>
+          {/* Portada como la de Filo: foto del negocio, historias arriba y saludo abajo */}
+          <View style={{ minHeight: coverH, backgroundColor: '#0B2E5E', overflow: 'hidden', borderBottomLeftRadius: 26, borderBottomRightRadius: 26 }}>
+            {coverUri ? <FramedImage uri={coverUri} frame={coverFrame} /> : null}
+            <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, ...(web ? ({ backgroundImage: coverUri ? 'linear-gradient(180deg, rgba(11,31,58,.55) 0%, rgba(11,31,58,.35) 35%, rgba(11,31,58,.92) 100%)' : `${doodleUrl('#62BDF6', 0.14)}, linear-gradient(165deg, #0B2E5E, #123E78)`, backgroundSize: coverUri ? 'cover' : '180px, cover' } as object) : { backgroundColor: 'rgba(11,31,58,0.6)' }) }} />
+            <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10 }}>
                 <BrandChip dark />
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -215,32 +220,55 @@ export default function Inicio() {
               </View>
             </SafeAreaView>
             {profile && profile.role !== 'cliente' && !inFrame ? (
-              <View style={{ alignItems: 'flex-start' }}>
+              <View style={{ alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: 8 }}>
                 <ViewSwitch current="cliente" />
               </View>
             ) : null}
-            <Text style={{ fontSize: 24, fontWeight: '900', color: '#fff' }}>
-              {L('Hola', 'Hi')}{profile?.nombre ? `, ${profile.nombre}` : ''}
-            </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }}>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B9D3F2' }}>{L('Tipo de cambio de hoy', "Today's rate")}{updated ? ` · ${updated}` : ''}</Text>
-                <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff' }}>{`${countryOf(myPais).flag} 1 USD = ${rate ? rate.toFixed(2) : '—'} ${pc.cur}`}</Text>
+            {stories && (stories.length || (profile && profile.role !== 'cliente')) ? (
+              <View style={{ paddingLeft: 16, paddingTop: 12 }}>
+                <StoriesRow dark size={60} stories={stories} addHref={profile?.role === 'admin' ? '/admin/historias' : profile?.role === 'tienda' ? '/tienda/historias' : undefined} />
               </View>
-              {ptsStore ? (
-                <Pressable accessibilityRole="button" accessibilityLabel={L('Mis puntos', 'My points')} onPress={() => router.push('/puntos')}
-                  style={{ backgroundColor: '#E8A317', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 10, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 17, fontWeight: '900', color: '#3B2600' }}>{pts}</Text>
-                  <Text style={{ fontSize: 10.5, fontWeight: '900', color: '#5A3B00' }}>{L('PUNTOS', 'POINTS')}</Text>
+            ) : null}
+            <View style={{ flex: 1, justifyContent: 'flex-end', paddingHorizontal: 16, paddingBottom: 16, paddingTop: 16, gap: 10 }}>
+              <Text style={{ fontSize: 30, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 6 }}>
+                {L('Hola', 'Hi')}{profile?.nombre ? `, ${profile.nombre}` : ''}
+              </Text>
+              {coverSub ? <Text style={{ color: 'rgba(255,255,255,0.88)', fontSize: 15, marginTop: -4 }}>{coverSub}</Text> : null}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: 'rgba(11,31,58,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}>
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#B9D3F2' }}>{L('Tipo de cambio de hoy', "Today's rate")}{updated ? ` · ${updated}` : ''}</Text>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff' }}>{`${countryOf(myPais).flag} 1 USD = ${rate ? rate.toFixed(2) : '—'} ${pc.cur}`}</Text>
+                </View>
+                {ptsStore ? (
+                  <Pressable accessibilityRole="button" accessibilityLabel={L('Mis puntos', 'My points')} onPress={() => router.push('/puntos')}
+                    style={{ backgroundColor: '#E8A317', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 10, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 17, fontWeight: '900', color: '#3B2600' }}>{pts}</Text>
+                    <Text style={{ fontSize: 10.5, fontWeight: '900', color: '#5A3B00' }}>{L('PUNTOS', 'POINTS')}</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                {any('send') ? <Btn icon="send" title={L('Enviar dinero', 'Send money')} style={{ flex: 1 }} onPress={() => router.push('/enviar')} /> : null}
+                <Pressable accessibilityRole="button" onPress={() => router.push('/servicios')}
+                  style={({ pressed }) => ({ flex: 1, minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', opacity: pressed ? 0.8 : 1 })}>
+                  <Text style={{ color: '#fff', fontWeight: '900', fontSize: 15 }}>{L('Ver servicios', 'See services')}</Text>
                 </Pressable>
-              ) : null}
+              </View>
             </View>
-          </NavyHead>
+          </View>
 
           <View style={{ marginHorizontal: 16, marginTop: 12, gap: 14 }}>
-            {stories && (stories.length || (profile && profile.role !== 'cliente')) ? (
-              <StoriesRow stories={stories} addHref={profile?.role === 'admin' ? '/admin/historias' : profile?.role === 'tienda' ? '/tienda/historias' : undefined} />
-            ) : null}
+            <Seg
+              options={[
+                { v: 'hoy' as HTab, label: L('Para ti', 'For you') },
+                { v: 'nov' as HTab, label: L('Destacados', 'Featured') },
+                { v: 'comu' as HTab, label: L('Boca a boca', 'Community') },
+                { v: 'mio' as HTab, label: L('Mi tienda', 'My store') },
+              ]}
+              value={htab}
+              onChange={setHtab}
+            />
+            {htab === 'hoy' ? (<>
 
             {/* ¿Qué necesitas? — 6 cuadritos con ilustración */}
             {tiles.length ? (
@@ -319,11 +347,14 @@ export default function Inicio() {
               </Pressable>
             ) : null}
 
+            </>) : null}
+
             {/* Destacados: lo que elige el administrador o lo más vendido */}
-            {destacados ? <Destacados items={destacados} /> : null}
+            {htab === 'nov' ? (destacados ? <Destacados items={destacados} /> : <Empty>{L('Pronto verás aquí lo más pedido.', 'Popular items will show here soon.')}</Empty>) : null}
 
             {/* Boca a boca: lo más reciente de la comunidad */}
-            {feed.length ? (
+            {htab === 'comu' && !feed.length ? <Empty>{L('Todavía no hay publicaciones.', 'No posts yet.')}</Empty> : null}
+            {htab === 'comu' && feed.length ? (
               <View style={{ gap: 8 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Boca a boca', 'Word of mouth')}</Text>
@@ -346,20 +377,7 @@ export default function Inicio() {
               </View>
             ) : null}
 
-            {/* Pedidos recientes */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Tus pedidos recientes', 'Your recent orders')}</Text>
-              {orders && orders.length ? (
-                <Pressable accessibilityRole="button" onPress={() => router.push('/pedidos')}>
-                  <Text style={{ fontWeight: '900', color: C.blue }}>{L('Ver todo', 'See all')}</Text>
-                </Pressable>
-              ) : null}
-            </View>
-            {orders && orders.length === 0 ? <Empty>{L('Aún no tienes pedidos.', 'No orders yet.')}</Empty> : null}
-            {(orders || []).map((o) => (
-              <OrderRow key={o.id} o={o} onPress={() => router.push({ pathname: '/pedido/[id]', params: { id: o.id } })} />
-            ))}
-
+            {htab === 'mio' ? (<>
             {/* Tu tienda */}
             <Pressable accessibilityRole="button" onPress={() => router.push(myStore ? `/sucursal/${myStore.id}` : '/perfil')}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#E1E9F3', backgroundColor: C.card }}>
@@ -386,6 +404,21 @@ export default function Inicio() {
               </View>
               <Text style={{ fontWeight: '800', color: C.blue }}>{myStore ? L('Ver', 'View') : L('Elegir', 'Choose')}</Text>
             </Pressable>
+            {/* Pedidos recientes */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Tus pedidos recientes', 'Your recent orders')}</Text>
+              {orders && orders.length ? (
+                <Pressable accessibilityRole="button" onPress={() => router.push('/pedidos')}>
+                  <Text style={{ fontWeight: '900', color: C.blue }}>{L('Ver todo', 'See all')}</Text>
+                </Pressable>
+              ) : null}
+            </View>
+            {orders && orders.length === 0 ? <Empty>{L('Aún no tienes pedidos.', 'No orders yet.')}</Empty> : null}
+            {(orders || []).slice(0, 3).map((o) => (
+              <OrderRow key={o.id} o={o} onPress={() => router.push({ pathname: '/pedido/[id]', params: { id: o.id } })} />
+            ))}
+
+            </>) : null}
           </View>
         </View>
       </ScrollView>
