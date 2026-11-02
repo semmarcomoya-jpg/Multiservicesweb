@@ -115,40 +115,9 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
   const { L } = useLang();
   const { profile, signOut } = useAuth();
   const path = usePathname();
-  const links =
-    kind === 'tienda'
-      ? [
-          ['/tienda', L('Pedidos', 'Orders'), 'receipt'],
-          ['/tienda/mostrador', L('Mostrador', 'Counter'), 'qr'],
-          ['/tienda/creditos', L('Créditos', 'Credits'), 'wallet'],
-          ['/tienda/productos', L('Productos', 'Products'), 'bag'],
-          ['/tienda/comunidad', L('Boca a boca', 'Word of mouth'), 'chat'],
-          ['/tienda/calificaciones', L('Calificaciones', 'Ratings'), 'star'],
-          ['/tienda/historias', L('Historias', 'Stories'), 'camera'],
-          ['/tienda/corte', L('Ventas y corte', 'Sales & close-out'), 'chart'],
-          ['/tienda/ajustes', L('Mi tienda', 'My store'), 'store'],
-          ['/tienda/identificaciones', L('Identificaciones', 'IDs'), 'id'],
-          ['/tienda/clientes', L('Clientes', 'Customers'), 'users'],
-          ['/tienda/bitacora', L('Bitácora', 'Activity log'), 'clock'],
-        ]
-      : [
-          ['/admin', L('Ventas', 'Sales'), 'chart'],
-          ['/admin/apariencia', L('Apariencia', 'Appearance'), 'image'],
-          ['/admin/promociones', L('Promociones', 'Promotions'), 'gift'],
-          ['/admin/destacados', L('Destacados', 'Featured'), 'star'],
-          ['/admin/historias', L('Historias', 'Stories'), 'camera'],
-          ['/admin/servicios', L('Servicios', 'Services'), 'tool'],
-          ['/admin/productos', L('Productos', 'Products'), 'bag'],
-          ['/admin/tiendas', L('Tiendas', 'Stores'), 'store'],
-          ['/admin/cambio', L('Tipo de cambio', 'Exchange rate'), 'cash'],
-          ['/admin/reglas', L('Reglas', 'Rules'), 'shield'],
-          ['/admin/textos', L('Textos y ayuda', 'Texts & help'), 'doc'],
-          ['/admin/calificaciones', L('Calificaciones', 'Ratings'), 'star'],
-          ['/admin/comunidad', L('Boca a boca', 'Word of mouth'), 'chat'],
-          ['/admin/empleados', L('Empleados', 'Staff'), 'users'],
-          ['/admin/usuarios', L('Cuentas', 'Accounts'), 'id'],
-          ['/admin/bitacora', L('Bitácora', 'Activity log'), 'clock'],
-        ];
+  const groups = usePanelLinks(kind);
+  const links = groups.flatMap((g) => g[1]);
+  const wideMenu = useWideMenu();
   const inShell = useInShell();
   // En celular el menú queda fijo arriba, así que lo hacemos más bajito
   const compact = useWindowDimensions().width < 700;
@@ -202,7 +171,8 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           ) : null}
           {kind === 'tienda' && store && !compact ? <OpenSwitch store={store} onChanged={onStoreChange} /> : null}
         </View>
-        {/* Pestañas en una sola fila que se desliza (cómodo en celular) */}
+        {/* Pestañas en una sola fila que se desliza (cómodo en celular). En pantalla grande van en el menú lateral. */}
+        {wideMenu ? null : (
         <View style={{ backgroundColor: '#DCE7F6', padding: 6 }}>
         <ChipScroll active={path}>
           {links.map(([href, label, ic]) => {
@@ -217,8 +187,92 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
           })}
         </ChipScroll>
         </View>
+        )}
       </View>
     </View>
+  );
+}
+
+type Link = [string, string, string];
+/** Menú del panel agrupado (Operación · Catálogo · Clientes · Configuración) */
+export function usePanelLinks(kind: 'tienda' | 'admin'): [string, Link[]][] {
+  const { L } = useLang();
+  return kind === 'tienda'
+    ? [
+        [L('Operación', 'Operations'), [
+          ['/tienda', L('Pedidos', 'Orders'), 'receipt'],
+          ['/tienda/mostrador', L('Mostrador', 'Counter'), 'qr'],
+          ['/tienda/creditos', L('Créditos', 'Credits'), 'wallet'],
+          ['/tienda/corte', L('Ventas y corte', 'Sales & close-out'), 'cash'],
+        ]],
+        [L('Catálogo', 'Catalog'), [
+          ['/tienda/productos', L('Productos', 'Products'), 'bag'],
+          ['/tienda/historias', L('Historias', 'Stories'), 'camera'],
+        ]],
+        [L('Clientes', 'Customers'), [
+          ['/tienda/clientes', L('Clientes', 'Customers'), 'users'],
+          ['/tienda/identificaciones', L('Identificaciones', 'IDs'), 'id'],
+          ['/tienda/calificaciones', L('Calificaciones', 'Ratings'), 'star'],
+          ['/tienda/comunidad', L('Boca a boca', 'Word of mouth'), 'chat'],
+          ['/tienda/estadisticas', L('Estadísticas', 'Stats'), 'chart'],
+        ]],
+        [L('Configuración', 'Settings'), [
+          ['/tienda/ajustes', L('Mi tienda', 'My store'), 'store'],
+          ['/tienda/bitacora', L('Bitácora', 'Activity log'), 'clock'],
+        ]],
+      ]
+    : [
+        [L('Resumen', 'Overview'), [['/admin', L('Ventas', 'Sales'), 'chart']]],
+        [L('Catálogo', 'Catalog'), [
+          ['/admin/servicios', L('Servicios', 'Services'), 'tool'],
+          ['/admin/productos', L('Productos', 'Products'), 'bag'],
+          ['/admin/destacados', L('Destacados', 'Featured'), 'star'],
+          ['/admin/promociones', L('Promociones', 'Promotions'), 'gift'],
+          ['/admin/historias', L('Historias', 'Stories'), 'camera'],
+        ]],
+        [L('Sucursales y personal', 'Branches & staff'), [
+          ['/admin/tiendas', L('Tiendas', 'Stores'), 'store'],
+          ['/admin/empleados', L('Empleados', 'Staff'), 'users'],
+          ['/admin/usuarios', L('Cuentas', 'Accounts'), 'id'],
+        ]],
+        [L('Clientes', 'Customers'), [
+          ['/admin/calificaciones', L('Calificaciones', 'Ratings'), 'star'],
+          ['/admin/comunidad', L('Boca a boca', 'Word of mouth'), 'chat'],
+        ]],
+        [L('Configuración', 'Settings'), [
+          ['/admin/apariencia', L('Apariencia', 'Appearance'), 'image'],
+          ['/admin/cambio', L('Tipo de cambio', 'Exchange rate'), 'cash'],
+          ['/admin/reglas', L('Reglas', 'Rules'), 'shield'],
+          ['/admin/textos', L('Textos y ayuda', 'Texts & help'), 'doc'],
+          ['/admin/bitacora', L('Bitácora', 'Activity log'), 'clock'],
+        ]],
+      ];
+}
+
+/** En pantallas grandes el menú va a la izquierda, agrupado */
+export const useWideMenu = () => useWindowDimensions().width >= 1000;
+
+function SideMenu({ kind }: { kind: 'tienda' | 'admin' }) {
+  const groups = usePanelLinks(kind);
+  const path = usePathname();
+  return (
+    <ScrollView style={{ width: 210, flexGrow: 0 }} contentContainerStyle={{ gap: 14, paddingTop: 10, paddingBottom: 24 }}>
+      {groups.map(([g, items]) => (
+        <View key={g} style={{ gap: 2 }}>
+          <Text style={{ fontSize: 11, fontWeight: '900', letterSpacing: 1.2, color: C.muted, textTransform: 'uppercase', paddingHorizontal: 10, marginBottom: 2 }}>{g}</Text>
+          {items.map(([href, label, ic]) => {
+            const on = path === href;
+            return (
+              <Pressable key={href} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => router.replace(href as never)}
+                style={({ hovered }: { hovered?: boolean }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, minHeight: 38, borderRadius: 10, backgroundColor: on ? C.brownDark : hovered ? C.card : 'transparent' })}>
+                <Icon n={ic} size={17} color={on ? C.gold : C.brown} />
+                <Text style={{ fontWeight: '800', color: on ? '#fff' : C.ink, fontSize: 14 }}>{label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -229,12 +283,20 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
 export function PanelFrame({ kind, children }: { kind: 'tienda' | 'admin'; children: React.ReactNode }) {
   const { data: stores, reload } = useStores();
   const st = usePanelStore(stores);
+  const wide = useWideMenu();
   return (
     <View style={{ flex: 1, backgroundColor: C.page }}>
-      <View style={{ width: '100%', maxWidth: 1100, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 4, zIndex: 2, backgroundColor: C.page }}>
+      <View style={{ width: '100%', maxWidth: wide ? 1340 : 1100, alignSelf: 'center', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 4, zIndex: 2, backgroundColor: C.page }}>
         {kind === 'tienda' ? <PanelHeader kind="tienda" store={st} stores={stores} onStoreChange={reload} /> : <PanelHeader kind="admin" />}
       </View>
-      <View style={{ flex: 1 }}>{children}</View>
+      {wide ? (
+        <View style={{ flex: 1, flexDirection: 'row', width: '100%', maxWidth: 1340, alignSelf: 'center', paddingLeft: 20 }}>
+          <SideMenu kind={kind} />
+          <View style={{ flex: 1, minWidth: 0 }}>{children}</View>
+        </View>
+      ) : (
+        <View style={{ flex: 1 }}>{children}</View>
+      )}
     </View>
   );
 }

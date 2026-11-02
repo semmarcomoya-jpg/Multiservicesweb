@@ -23,6 +23,7 @@ import { useBranding } from '@/lib/branding';
 import { useQuery } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n';
+import { openState } from '@/lib/hours';
 import { useMyOrders } from '@/lib/myorders';
 import { autoOpenDecided, fetchStories, takeAutoOpen } from '@/lib/stories';
 import type { Post, Promo, Story } from '@/lib/types';
@@ -331,7 +332,7 @@ export default function Inicio() {
             ))}
 
             {/* Tu tienda */}
-            <Pressable accessibilityRole="button" onPress={() => router.push('/perfil')}
+            <Pressable accessibilityRole="button" onPress={() => router.push(myStore ? `/sucursal/${myStore.id}` : '/perfil')}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, borderRadius: 18, borderWidth: 1, borderColor: '#E1E9F3', backgroundColor: C.card }}>
               {myStore?.fotos?.[0] ? (
                 <Image source={{ uri: myStore.fotos[0] }} style={{ width: 72, height: 56, borderRadius: 14, backgroundColor: C.blueSoft }} />
@@ -351,9 +352,10 @@ export default function Inicio() {
                   ) : null}
                 </View>
                 <Text style={{ fontWeight: '900', fontSize: 15, color: C.ink }}>{myStore ? myStore.nombre : L('Elige tu tienda favorita', 'Choose your favorite store')}</Text>
-                {myStore ? <P small>{[myStore.direccion, myStore.ciudad].filter(Boolean).join(' · ')}{myStore.abierta === false ? ' · ' + L('Cerrada ahora', 'Closed now') : ''}</P> : null}
+                {myStore ? <P small>{[myStore.direccion, myStore.ciudad].filter(Boolean).join(' · ')}</P> : null}
+                {myStore ? <Text style={{ fontSize: 12, fontWeight: '800', color: openState(myStore).open ? '#1F7A45' : '#B45309' }}>{openState(myStore).label[lang]}</Text> : null}
               </View>
-              <Text style={{ fontWeight: '800', color: C.blue }}>{myStore ? L('Cambiar', 'Change') : L('Elegir', 'Choose')}</Text>
+              <Text style={{ fontWeight: '800', color: C.blue }}>{myStore ? L('Ver', 'View') : L('Elegir', 'Choose')}</Text>
             </Pressable>
           </View>
         </View>

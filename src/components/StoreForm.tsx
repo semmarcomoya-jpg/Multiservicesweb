@@ -9,14 +9,15 @@ import { uploadPublic } from '@/lib/upload';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 import { DEFAULT_LOYALTY } from '@/lib/points';
-import type { Loyalty, Reward, Store, StoreDelivery, StoreMods } from '@/lib/types';
+import type { DayHours, Loyalty, Reward, Store, StoreDelivery, StoreMods } from '@/lib/types';
+import { DAY_NAMES, hoursOf, openState, validTime } from '@/lib/hours';
 
 const DEF_MODS: StoreMods = { send: true, svc: true, shop: true, credit: false, layaway: false, comm: true };
 const DEF_DEL: StoreDelivery = { pickup: true, curb: true, home: false, homeFee: 5, freeOver: 0, slots: '10:00, 12:00, 14:00, 16:00, 18:00', zips: '' };
 
 /** Formulario de una tienda. Lo usan la propia tienda (Mi tienda) y el administrador. */
 export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: () => void; admin?: boolean }) {
-  const { L, nm } = useLang();
+  const { L, nm, lang } = useLang();
   const { data: services } = useServices();
   const [f, setF] = useState<Store>(store);
   const [msg, setMsg] = useState('');
@@ -45,8 +46,14 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
   const setRw = (i: number, p: Partial<Reward>) => setLy({ rewards: ly.rewards.map((r, j) => (j === i ? { ...r, ...p } : r)) });
   const num = (v: string) => v.replace(/[^0-9.]/g, '');
   const setDel = (patch: Partial<StoreDelivery>) => setF((p) => ({ ...p, delivery: { ...del, ...patch } }));
+  const hrs = hoursOf(f);
+  const setHr = (d: number, p: Partial<DayHours>) => setF((x) => ({ ...x, horas: hrs.map((h) => (h.d === d ? { ...h, ...p } : h)) }));
+  const time = (v: string) => v.replace(/[^0-9:]/g, '').slice(0, 5);
+  const badHr = hrs.some((h) => h.on && (!validTime(h.a) || !validTime(h.c) || h.a.padStart(5, '0') >= h.c.padStart(5, '0')));
+  const now = openState({ ...f, horas: hrs });
 
   const save = async () => {
+    if (badHr) return setErr(L('Revisa el horario por día: usa formato 09:00 y que cierre después de abrir.', 'Check the daily hours: use 09:00 format and close after opening.'));
     setBusy(true);
     setErr('');
     setMsg('');
@@ -55,6 +62,7 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
       direccion: f.direccion,
       ciudad: f.ciudad,
       horario: f.horario,
+      horas: hrs.map((h) => ({ d: h.d, on: !!h.on, a: h.a.padStart(5, '0'), c: h.c.padStart(5, '0') })),
       telefono: f.telefono,
       descripcion: f.descripcion,
       zelle_dato: f.zelle_dato,
@@ -187,7 +195,7 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
           <Field label={L('Dirección', 'Address')} value={f.direccion} onChangeText={set('direccion')} />
           <Field label={L('Ciudad', 'City')} value={f.ciudad} onChangeText={set('ciudad')} />
         </Row>
-        <Field label={L('Horario', 'Hours')} value={f.horario} onChangeText={set('horario')} />
+        <Field label={L('Horario (texto corto que ve el cliente)', 'Hours (short text customers see)')} value={f.horario} onChangeText={set('horario')} />
         <Field label={L('Descripción', 'Description')} value={f.descripcion} onChangeText={set('descripcion')} multiline />
         {admin ? (
           <Row style={{ alignItems: 'flex-start' }}>
@@ -195,6 +203,39 @@ export function StoreForm({ store, onSaved, admin }: { store: Store; onSaved?: (
             <Field label={L('Orden', 'Order')} value={String(f.orden ?? 0)} onChangeText={(v) => setF((p) => ({ ...p, orden: Number(v) || 0 }))} keyboardType="number-pad" style={{ maxWidth: 120 }} />
           </Row>
         ) : null}
+      </Card>
+
+      <Card>
+        <H2>{L('Horario de atención por día', 'Opening hours by day')}</H2>
+        <P small muted>{L('Con esto la app dice sola "Abierta · cierra 8:00 pm" o "Cerrada · abre mañana". Usa formato de 24 horas (09:00, 20:30).', 'The app uses this to say "Open · closes 8:00 PM" or "Closed · opens tomorrow". Use 24-hour format (09:00, 20:30).')}</P>
+        <Note kind={now.open ? 'blue' : 'gold'} icon="clock">{L('Así se ve ahora: ', 'Right now: ') + now.label[lang]}</Note>
+        {[1, 2, 3, 4, 5, 6, 0].map((d) => {
+          const h = hrs[d];
+          const bad = h.on && (!validTime(h.a) || !validTime(h.c) || h.a.padStart(5, '0') >= h.c.padStart(5, '0'));
+          return (
+            <Row key={d} style={{ alignItems: 'center', flexWrap: 'nowrap', paddingVertical: 4, borderTopWidth: d === 1 ? 0 : 1, borderTopColor: C.line }}>
+              <Pressable accessibilityRole="switch" accessibilityState={{ checked: h.on }} accessibilityLabel={DAY_NAMES[lang][d]} onPress={() => setHr(d, { on: !h.on })}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 8, width: 132 }}>
+                <View style={{ width: 38, height: 22, borderRadius: 11, backgroundColor: h.on ? C.brown : C.line2, padding: 2, alignItems: h.on ? 'flex-end' : 'flex-start' }}>
+                  <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#fff' }} />
+                </View>
+                <Text style={{ fontWeight: '800', color: h.on ? C.ink : C.muted }}>{DAY_NAMES[lang][d]}</Text>
+              </Pressable>
+              {h.on ? (
+                <>
+                  <Field value={h.a} onChangeText={(v) => setHr(d, { a: time(v) })} label="" placeholder="09:00" style={{ maxWidth: 90, minWidth: 74 }} />
+                  <Text style={{ color: C.muted, fontWeight: '700' }}>{L('a', 'to')}</Text>
+                  <Field value={h.c} onChangeText={(v) => setHr(d, { c: time(v) })} label="" placeholder="20:00" style={{ maxWidth: 90, minWidth: 74 }} />
+                  {bad ? <Icon n="x" size={16} color={C.red} /> : null}
+                </>
+              ) : (
+                <Text style={{ color: C.muted, fontWeight: '700' }}>{L('Cerrado', 'Closed')}</Text>
+              )}
+            </Row>
+          );
+        })}
+        <Btn small kind="ghost" title={L('Copiar el lunes a toda la semana', 'Copy Monday to the whole week')} style={{ alignSelf: 'flex-start' }}
+          onPress={() => setF((x) => ({ ...x, horas: hrs.map((h) => (h.d === 1 ? h : { ...hrs[1], d: h.d })) }))} />
       </Card>
 
       <Card>
