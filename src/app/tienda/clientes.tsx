@@ -13,6 +13,8 @@ import { C } from '@/lib/theme';
 import type { Customer } from '@/lib/types';
 
 type Sort = 'reciente' | 'gastado' | 'puntos' | 'nombre';
+type Show = 'all' | 'bday' | 'away';
+const mmdd = (d: Date) => `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
 export default function Clientes() {
   const { L, lang } = useLang();
@@ -21,6 +23,7 @@ export default function Clientes() {
   const [rows, setRows] = useState<Customer[] | null>(null);
   const [q, setQ] = useState('');
   const [sort, setSort] = useState<Sort>('reciente');
+  const [show, setShow] = useState<Show>('all');
   const [err, setErr] = useState('');
 
   const load = useCallback(() => {
@@ -35,8 +38,14 @@ export default function Clientes() {
   if (!stores || (st && !rows)) return <Loading />;
   if (!st) return <Screen wide><Empty>{L('Esta cuenta no tiene tienda asignada.', 'This account has no store assigned.')}</Empty></Screen>;
 
+  const today = mmdd(new Date());
+  const month = today.slice(0, 2);
+  const isBday = (c: Customer) => !!c.cumple && c.cumple.slice(0, 2) === month;
+  // "No ha vuelto": compró al menos 2 veces y su última visita fue hace más de 30 días
+  const isAway = (c: Customer) => Number(c.pedidos) >= 2 && !!c.ultimo && Date.now() - new Date(c.ultimo).getTime() > 30 * 86400000;
+  const nB = (rows || []).filter(isBday).length, nA = (rows || []).filter(isAway).length;
   const list = (rows || [])
-    .filter((c) => matches(q, c.nombre, c.member_code, c.telefono))
+    .filter((c) => (show === 'all' || (show === 'bday' ? isBday(c) : isAway(c))) && matches(q, c.nombre, c.member_code, c.telefono))
     .sort((a, b) =>
       sort === 'gastado' ? Number(b.gastado) - Number(a.gastado) : sort === 'puntos' ? b.puntos - a.puntos : sort === 'nombre' ? a.nombre.localeCompare(b.nombre) : String(b.ultimo || '').localeCompare(String(a.ultimo || '')),
     );
@@ -46,6 +55,16 @@ export default function Clientes() {
     <Screen wide>
       <P small muted>{L('Clientes que compraron aquí o eligieron esta tienda como favorita.', 'Customers who bought here or chose this store as favorite.')}</P>
       <SearchBox value={q} onChangeText={setQ} placeholder={L('Buscar por nombre, número o teléfono', 'Search by name, number or phone')} count={list.length} />
+      <Pills
+        options={[
+          { v: 'all' as Show, label: L(`Todos (${rows?.length || 0})`, `All (${rows?.length || 0})`) },
+          { v: 'bday' as Show, label: L(`Cumplen este mes (${nB})`, `Birthdays this month (${nB})`), icon: 'party' },
+          { v: 'away' as Show, label: L(`No han vuelto en 30 días (${nA})`, `Not back in 30 days (${nA})`), icon: 'clock' },
+        ]}
+        value={show}
+        onChange={setShow}
+      />
+      {show === 'away' && nA ? <Note kind="gold" icon="chat">{L('Mándales un WhatsApp o un aviso con una promoción para que regresen.', 'Send them a WhatsApp or a promo to bring them back.')}</Note> : null}
       <Pills
         options={[
           { v: 'reciente' as Sort, label: L('Recientes', 'Recent') },
@@ -66,6 +85,7 @@ export default function Clientes() {
                 <Text style={{ fontWeight: '900', color: C.ink, fontSize: 15 }} numberOfLines={1}>
                   {c.nombre}
                   {c.favorita ? ' ★' : ''}
+                  {c.cumple === today ? L(' · 🎂 ¡cumple hoy!', ' · 🎂 birthday today!') : isBday(c) ? ` · 🎂 ${Number(c.cumple!.slice(3))}/${Number(month)}` : ''}
                 </Text>
                 <P small muted>
                   {c.member_code}

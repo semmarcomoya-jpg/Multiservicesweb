@@ -1,5 +1,5 @@
 /** Alta y edición de productos de una tienda: datos, fotos, especificaciones, ficha técnica, variantes y existencias. */
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Image, Linking, Pressable, View } from 'react-native';
 
 import { setAdminStore, usePanelStore } from '@/components/panel';
@@ -15,7 +15,22 @@ import { C, R } from '@/lib/theme';
 import type { Product, Variant } from '@/lib/types';
 import { pickImage, uploadImage } from '@/lib/upload';
 
-type VDraft = Omit<Variant, 'id' | 'product_id'> & { id?: string; _del?: boolean };
+type VDraft = Omit<Variant, 'id' | 'product_id'> & { id?: string; _del?: boolean; costo?: string; minimo?: string };
+type Cost = { variant_id: string; costo: number; minimo: number };
+
+/** Costo y mínimo de cada variante (tabla aparte: el cliente nunca la ve). */
+function useCosts(ids: string[]) {
+  const [costs, setCosts] = useState<Record<string, Cost>>({});
+  const key = ids.join(',');
+  const load = useCallback(() => {
+    if (!ids.length) return setCosts({});
+    supabase.from('product_costs').select('*').in('variant_id', ids).then(({ data }) => setCosts(Object.fromEntries(((data as Cost[]) ?? []).map((c) => [c.variant_id, c]))));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  useEffect(load, [load]);
+  return { costs, reloadCosts: load };
+}
+const margin = (price: number, cost?: number) => (cost && price ? Math.round(((price - cost) / price) * 100) : null);
 
 export function ProductosPanel({ admin }: { admin?: boolean }) {
   const { L, nm } = useLang();
@@ -28,8 +43,20 @@ export function ProductosPanel({ admin }: { admin?: boolean }) {
   const [edit, setEdit] = useState<string | null>(null); // id del producto, o 'new'
   const [err, setErr] = useState('');
   const [msg, setMsg] = useState('');
+  const allIds = (products || []).flatMap((p) => p.product_variants.map((v) => v.id));
+  const { costs, reloadCosts } = useCosts(allIds);
+  const [stockBusy, setStockBusy] = useState<string | null>(null);
 
   if (!stores || !fams) return <Loading />;
+  const low = (v: Variant) => v.activo && v.stock <= Math.max(0, costs[v.id]?.minimo ?? 0);
+  const bump = async (v: Variant, d: number) => {
+    const n = Math.max(0, v.stock + d);
+    setStockBusy(v.id);
+    const { error } = await supabase.from('product_variants').update({ stock: n }).eq('id', v.id);
+    setStockBusy(null);
+    if (error) setErr(errMsg(error));
+    reload();
+  };
   if (!st) return <Screen wide><Empty>{L('Esta cuenta no tiene tienda asignada.', 'This account has no store assigned.')}</Empty></Screen>;
 
   const toggleProduct = async (p: Product, v: boolean) => {
@@ -39,13 +66,15 @@ export function ProductosPanel({ admin }: { admin?: boolean }) {
     reload();
   };
 
-  const list = (products || []).filter((p) => (fam === 'all' || p.family_id === fam) && matches(q, p.marca, p.modelo, p.compat, p.descripcion, p.product_variants.map((v) => v.label).join(' ')));
+  const lowCount = (products || []).filter((p) => p.activo && p.product_variants.some(low)).length;
+  const list = (products || []).filter((p) => (fam === 'all' || (fam === 'low' ? p.activo && p.product_variants.some(low) : p.family_id === fam)) && matches(q, p.marca, p.modelo, p.compat, p.descripcion, p.product_variants.map((v) => v.label).join(' ')));
   const onCount = (products || []).filter((p) => p.activo).length;
   const editing = edit === 'new' ? null : (products || []).find((p) => p.id === edit);
   const done = (m?: string) => {
     setEdit(null);
     setMsg(m || '');
     reload();
+    reloadCosts();
   };
 
   return (
@@ -62,7 +91,7 @@ export function ProductosPanel({ admin }: { admin?: boolean }) {
       {msg ? <Note kind="blue" icon="check">{msg}</Note> : null}
 
       {edit ? (
-        <ProductEditor key={edit} p={editing || null} storeId={st.id} defaultFam={fam === 'all' ? fams[0].id : fam} onDone={done} />
+        <ProductEditor key={edit} p={editing || null} storeId={st.id} defaultFam={fam === 'all' || fam === 'low' ? fams[0].id : fam} costs={costs} onDone={done} />
       ) : (
         <>
           <Row style={{ justifyContent: 'space-between' }}>
@@ -72,7 +101,7 @@ export function ProductosPanel({ admin }: { admin?: boolean }) {
             <Btn icon="plus" title={L('Dar de alta un producto', 'Add a product')} onPress={() => { setMsg(''); setEdit('new'); }} />
           </Row>
           <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca marca, modelo o variante', 'Search brand, model or variant')} count={q ? list.length : undefined} />
-          <Pills options={[{ v: 'all', label: L('Todo', 'All') }, ...fams.map((f) => ({ v: f.id, label: nm(f), icon: f.icon }))]} value={fam} onChange={setFam} />
+          <Pills options={[{ v: 'all', label: L('Todo', 'All') }, ...(lowCount ? [{ v: 'low', label: L(`Por resurtir (${lowCount})`, `Restock (${lowCount})`), icon: 'box' }] : []), ...fams.map((f) => ({ v: f.id, label: nm(f), icon: f.icon }))]} value={fam} onChange={setFam} />
           {err ? <Note kind="red">{err}</Note> : null}
           {!products ? <Loading /> : null}
           {products && list.length === 0 ? <Empty>{L('No hay productos aquí. Toca "Dar de alta un producto".', 'No products here. Tap "Add a product".')}</Empty> : null}
@@ -91,13 +120,24 @@ export function ProductosPanel({ admin }: { admin?: boolean }) {
                     {p.ficha_url ? ' · ' + L('con ficha técnica', 'with spec sheet') : ''}
                   </P>
                   <Row gap={6}>
-                    {p.product_variants.slice().sort((a, b) => a.orden - b.orden).map((v) => (
-                      <View key={v.id} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: R.pill, backgroundColor: v.activo ? (v.stock > 0 ? C.blueSoft : C.redSoft) : C.line }}>
-                        <Text style={{ fontSize: 12, fontWeight: '800', color: v.activo ? (v.stock > 0 ? C.blueInk : C.red) : C.muted }}>
-                          {v.label} · {money(v.price)} · {v.activo ? (v.stock > 0 ? L(`${v.stock} pzs`, `${v.stock} pcs`) : L('agotado', 'sold out')) : L('apagado', 'off')}
-                        </Text>
-                      </View>
-                    ))}
+                    {p.product_variants.slice().sort((a, b) => a.orden - b.orden).map((v) => {
+                      const m = margin(Number(v.price), Number(costs[v.id]?.costo) || 0);
+                      const isLow = low(v);
+                      return (
+                        <View key={v.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 8, paddingRight: 3, paddingVertical: 3, borderRadius: R.pill, backgroundColor: v.activo ? (isLow ? C.redSoft : C.blueSoft) : C.line, opacity: stockBusy === v.id ? 0.5 : 1 }}>
+                          <Text style={{ fontSize: 12, fontWeight: '800', color: v.activo ? (isLow ? C.red : C.blueInk) : C.muted }}>
+                            {v.label} · {money(v.price)}{m !== null ? ` · ${L('gana', 'margin')} ${m}%` : ''} · {v.activo ? (v.stock > 0 ? L(`${v.stock} pzs`, `${v.stock} pcs`) : L('agotado', 'sold out')) : L('apagado', 'off')}
+                          </Text>
+                          {[-1, 1].map((d) => (
+                            <Pressable key={d} accessibilityRole="button" accessibilityLabel={(d < 0 ? L('Quitar una pieza de ', 'Remove one from ') : L('Agregar una pieza a ', 'Add one to ')) + v.label}
+                              disabled={stockBusy === v.id || (d < 0 && v.stock <= 0)} onPress={() => bump(v, d)}
+                              style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ fontWeight: '900', color: C.ink }}>{d < 0 ? '−' : '+'}</Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      );
+                    })}
                   </Row>
                 </View>
                 <View style={{ gap: 8, alignItems: 'flex-end' }}>
@@ -119,7 +159,7 @@ export function ProductosPanel({ admin }: { admin?: boolean }) {
   );
 }
 
-function ProductEditor({ p, storeId, defaultFam, onDone }: { p: Product | null; storeId: string; defaultFam: string; onDone: (msg?: string) => void }) {
+function ProductEditor({ p, storeId, defaultFam, costs, onDone }: { p: Product | null; storeId: string; defaultFam: string; costs: Record<string, Cost>; onDone: (msg?: string) => void }) {
   const { L, nm } = useLang();
   const { data: fams } = useFamilies();
   const [f, setF] = useState({
@@ -137,7 +177,7 @@ function ProductEditor({ p, storeId, defaultFam, onDone }: { p: Product | null; 
   const initSpecs = (fam: string): Spec[] => templateFor(fam).map(([k]) => ({ k, v: '' }));
   const [specs, setSpecs] = useState<Spec[]>(p?.specs?.length ? p.specs.map((x) => ({ ...x })) : initSpecs(p?.family_id || defaultFam));
   const [vs, setVs] = useState<VDraft[]>(
-    p ? p.product_variants.slice().sort((a, b) => a.orden - b.orden).map((v) => ({ ...v })) : [{ label: '', price: 0, stock: 1, activo: true, orden: 1 }],
+    p ? p.product_variants.slice().sort((a, b) => a.orden - b.orden).map((v) => ({ ...v, costo: costs[v.id] ? String(costs[v.id].costo) : '', minimo: costs[v.id] ? String(costs[v.id].minimo) : '' })) : [{ label: '', price: 0, stock: 1, activo: true, orden: 1, costo: '', minimo: '' }],
   );
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
@@ -214,18 +254,32 @@ function ProductEditor({ p, storeId, defaultFam, onDone }: { p: Product | null; 
       }
       pid = data.id as string;
     }
+    let costWarn = '';
     for (const [i, v] of vs.entries()) {
       const vr = { label: v.label.trim() || L('Estándar', 'Standard'), price: Number(v.price) || 0, stock: Math.max(0, Number(v.stock) || 0), activo: v.activo, orden: i + 1 };
-      const r = v._del
-        ? v.id ? await supabase.from('product_variants').delete().eq('id', v.id) : { error: null }
-        : v.id ? await supabase.from('product_variants').update(vr).eq('id', v.id) : await supabase.from('product_variants').insert({ ...vr, product_id: pid });
-      if (r.error) {
-        setBusy(false);
-        return setErr(errMsg(r.error));
+      let vid = v.id;
+      if (v._del) {
+        const r = v.id ? await supabase.from('product_variants').delete().eq('id', v.id) : { error: null };
+        if (r.error) { setBusy(false); return setErr(errMsg(r.error)); }
+        continue;
+      }
+      if (v.id) {
+        const r = await supabase.from('product_variants').update(vr).eq('id', v.id);
+        if (r.error) { setBusy(false); return setErr(errMsg(r.error)); }
+      } else {
+        const r = await supabase.from('product_variants').insert({ ...vr, product_id: pid }).select('id').single();
+        if (r.error) { setBusy(false); return setErr(errMsg(r.error)); }
+        vid = (r.data as { id: string }).id;
+      }
+      // Costo y mínimo: si falla (p. ej. falta correr el SQL) no detiene el guardado
+      const had = !!(v.id && costs[v.id]);
+      if (vid && (had || v.costo || v.minimo)) {
+        const c = await supabase.from('product_costs').upsert({ variant_id: vid, costo: Number(v.costo) || 0, minimo: Number(v.minimo) || 0 });
+        if (c.error) costWarn = ' ' + L('(El costo no se guardó: ', '(Cost was not saved: ') + errMsg(c.error) + ')';
       }
     }
     setBusy(false);
-    onDone(p ? L('Producto guardado', 'Product saved') : L(`Listo, ${row.marca} ${row.modelo} ya está dado de alta`, `Done, ${row.marca} ${row.modelo} was added`));
+    onDone((p ? L('Producto guardado', 'Product saved') : L(`Listo, ${row.marca} ${row.modelo} ya está dado de alta`, `Done, ${row.marca} ${row.modelo} was added`)) + costWarn);
   };
 
   const remove = async () => {
@@ -316,20 +370,23 @@ function ProductEditor({ p, storeId, defaultFam, onDone }: { p: Product | null; 
 
       <Card>
         <H2>5 · {L('Variantes, precio y existencias', 'Variants, price and stock')}</H2>
-        <P small muted>{L('Una variante por cada color o capacidad que vendas, con su precio y cuántas piezas tienes.', 'One variant per color or capacity you sell, with its price and how many you have.')}</P>
+        <P small muted>{L('Una variante por cada color o capacidad que vendas, con su precio y cuántas piezas tienes.', 'One variant per color or capacity you sell, with its price and how many you have.') + ' ' + L('El costo solo lo ve el personal; sirve para saber cuánto ganas. "Avísame con": cuando queden esas piezas o menos, sale en "Por resurtir".', 'Only staff see the cost; it shows your profit. "Alert at": when that many or fewer remain, it shows under "Restock".')}</P>
         {vs.map((v, i) =>
           v._del ? null : (
             <Row key={v.id || 'n' + i} style={{ alignItems: 'flex-end', padding: 10, borderRadius: R.md, backgroundColor: C.cream }}>
               <Field label={L('Variante (color, capacidad…)', 'Variant (color, storage…)')} value={v.label} onChangeText={(x) => setV(i, { label: x })} placeholder={L('128 GB · Negro', '128 GB · Black')} />
               <Field label={L('Precio (USD)', 'Price (USD)')} value={String(v.price || '')} onChangeText={(x) => setV(i, { price: x.replace(/[^0-9.]/g, '') as unknown as number })} keyboardType="decimal-pad" style={{ maxWidth: 140 }} />
               <Field label={L('Existencias', 'Stock')} value={String(v.stock)} onChangeText={(x) => setV(i, { stock: digits(x) as unknown as number })} keyboardType="number-pad" style={{ maxWidth: 120 }} />
+              <Field label={L('Te cuesta (USD)', 'Your cost (USD)')} value={v.costo || ''} onChangeText={(x) => setV(i, { costo: x.replace(/[^0-9.]/g, '') })} keyboardType="decimal-pad" placeholder={L('opcional', 'optional')} style={{ maxWidth: 140 }} />
+              <Field label={L('Avísame con (pzs)', 'Alert at (pcs)')} value={v.minimo || ''} onChangeText={(x) => setV(i, { minimo: digits(x) })} keyboardType="number-pad" placeholder="0" style={{ maxWidth: 110 }} />
+              {margin(Number(v.price), Number(v.costo) || 0) !== null ? <P small style={{ alignSelf: 'center' }}>{L(`Ganas ${money(Number(v.price) - Number(v.costo))} (${margin(Number(v.price), Number(v.costo))}%)`, `Profit ${money(Number(v.price) - Number(v.costo))} (${margin(Number(v.price), Number(v.costo))}%)`)}</P> : null}
               <Toggle label={v.activo ? L('Prendida', 'On') : L('Apagada', 'Off')} value={v.activo} onChange={(x) => setV(i, { activo: x })} />
               <Btn small kind="danger" title={L('Quitar', 'Remove')} onPress={() => setV(i, { _del: true })} />
             </Row>
           ),
         )}
         <Btn small kind="ghost" icon="plus" title={L('Agregar variante', 'Add variant')} style={{ alignSelf: 'flex-start' }}
-          onPress={() => setVs((arr) => [...arr, { label: '', price: Number(arr[0]?.price) || 0, stock: 0, activo: true, orden: arr.length + 1 }])} />
+          onPress={() => setVs((arr) => [...arr, { label: '', price: Number(arr[0]?.price) || 0, stock: 0, activo: true, orden: arr.length + 1, costo: arr[0]?.costo || '', minimo: arr[0]?.minimo || '' }])} />
       </Card>
 
       {err ? <Note kind="red">{err}</Note> : null}

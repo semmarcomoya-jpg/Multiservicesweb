@@ -310,5 +310,5 @@ export interface Plan {
   plan_payments?: PlanPayment[];
 }
 export interface CreditLine { user_id: string; store_id: string; on: boolean; limite: number; by_name: string }
-export interface Customer { user_id: string; nombre: string; member_code: string; telefono: string; foto_url: string | null; id_status: string; favorita: boolean; pedidos: number; gastado: number; ultimo: string | null; puntos: number; planes: number; credito_on: boolean; credito_limite: number }
+export interface Customer { user_id: string; nombre: string; member_code: string; telefono: string; foto_url: string | null; id_status: string; favorita: boolean; pedidos: number; gastado: number; ultimo: string | null; puntos: number; planes: number; credito_on: boolean; credito_limite: number; cumple?: string | null }
 export interface IdDocRow { user_id: string; nombre: string; member_code: string; fecha_nac: string | null; id_status: string; tipo: string; front_path: string; back_path: string; submitted_at: string; reviewed_by: string; reviewed_at: string | null; note: string }

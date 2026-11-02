@@ -5,6 +5,7 @@ import { Text } from '@/components/Text';
 
 import { BackBar, Btn, Card, Empty, H1, IcoBox, Loading, P, Row, Screen, SearchBox, matches } from '@/components/ui';
 import { useLang } from '@/lib/i18n';
+import { countryOf } from '@/lib/countries';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/theme';
 import type { Beneficiary } from '@/lib/types';
@@ -43,7 +44,7 @@ export default function Beneficiarios() {
           <Row gap={12} style={{ flexWrap: 'nowrap' }}>
             <IcoBox n={b.metodo === 'cuenta' ? 'bank' : 'cash'} size={44} />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '900', color: C.ink, fontSize: 16 }}>{`${b.nombre} ${b.apellidos}`.trim()}</Text>
+              <Text style={{ fontWeight: '900', color: C.ink, fontSize: 16 }}>{`${countryOf(b.pais).flag} ${b.nombre} ${b.apellidos}`.trim()}</Text>
               <P small muted>
                 {[b.parentesco, b.ciudad && `${b.ciudad}, ${b.estado}`].filter(Boolean).join(' · ')}
               </P>

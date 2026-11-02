@@ -1,11 +1,11 @@
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { ScrollView, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, View, useWindowDimensions } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { PanelHeader } from '@/components/panel';
 import { inPeriod, orderGroup, Summary, useGroups, type Period } from '@/components/summary';
-import { Card, H2, IcoBox, Loading, Pills, Row, Screen } from '@/components/ui';
+import { Card, H2, IcoBox, Icon, Loading, P, Pills, Row, Screen } from '@/components/ui';
 import { useCategories, useStores } from '@/lib/data';
 import { money } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
@@ -23,6 +23,7 @@ export default function AdminVentas() {
   const [kind, setKind] = useState('all');
   const [svc, setSvc] = useState('all');
   const groups = useGroups(cats || []);
+  const [att, setAtt] = useState<{ low: number; ids: number } | null>(null);
   const { width } = useWindowDimensions();
   const narrow = width < 760;
 
@@ -34,6 +35,10 @@ export default function AdminVentas() {
         .order('created_at', { ascending: false })
         .limit(5000)
         .then(({ data }) => setOrders((data as Order[]) ?? []));
+      Promise.all([
+        supabase.from('ratings').select('id', { count: 'exact', head: true }).lte('stars', 2).eq('followed_up', false),
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('id_status', 'pendiente'),
+      ]).then(([r, i]) => setAtt({ low: r.count || 0, ids: i.count || 0 }));
     }, []),
   );
 
@@ -53,8 +58,33 @@ export default function AdminVentas() {
   const colTot = stores.map((_, i) => rows.reduce((a, r) => a + r.cells[i], 0));
   const cell = { width: 150, paddingVertical: 10, paddingHorizontal: 8 } as const;
 
+  // Lo que necesita a alguien hoy
+  const H = 3600000;
+  const verif = orders.filter((o) => o.status === 'verificar');
+  const verifOld = verif.filter((o) => Date.now() - new Date(o.created_at).getTime() > 2 * H);
+  const stuck = orders.filter((o) => o.status === 'proceso' && Date.now() - new Date(o.created_at).getTime() > 24 * H);
+  const closed = stores.filter((s) => s.activo && s.abierta === false);
+  const items = [
+    verif.length && { n: verif.length, ic: 'cash', t: L('pagos por verificar', 'payments to verify') + (verifOld.length ? L(` (${verifOld.length} con más de 2 horas)`, ` (${verifOld.length} over 2 hours)`) : ''), go: '/tienda', red: verifOld.length > 0 },
+    stuck.length && { n: stuck.length, ic: 'clock', t: L('pedidos en proceso desde hace más de un día', 'orders in progress for over a day'), go: '/tienda', red: true },
+    att?.low && { n: att.low, ic: 'star', t: L('calificaciones bajas sin seguimiento', 'low ratings without follow-up'), go: '/admin/calificaciones', red: true },
+    att?.ids && { n: att.ids, ic: 'id', t: L('identificaciones por revisar', 'IDs to review'), go: '/tienda/identificaciones', red: false },
+    closed.length && { n: closed.length, ic: 'store', t: L('sucursales marcadas como cerradas: ', 'branches marked closed: ') + closed.map((s) => s.nombre.replace('Castillo · ', '')).join(', '), go: '/admin/tiendas', red: false },
+  ].filter(Boolean) as { n: number; ic: string; t: string; go: string; red: boolean }[];
+
   return (
     <Screen wide>
+      <Card style={{ borderWidth: 2, borderColor: items.some((x) => x.red) ? C.red : C.line }}>
+        <H2>{L('Requiere tu atención', 'Needs your attention')}</H2>
+        {items.length ? items.map((x) => (
+          <Pressable key={x.go + x.ic} accessibilityRole="link" onPress={() => router.push(x.go as never)}
+            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, borderTopWidth: 1, borderTopColor: C.line, opacity: pressed ? 0.7 : 1 })}>
+            <IcoBox n={x.ic} size={32} bg={x.red ? C.redSoft : C.icoBg} color={x.red ? C.red : C.brown} />
+            <Text style={{ flex: 1, color: C.ink, fontWeight: '700' }}><Text style={{ fontWeight: '900', fontSize: 17 }}>{x.n} </Text>{x.t}</Text>
+            <Icon n="arrow" size={16} color={C.muted} />
+          </Pressable>
+        )) : <P muted>{L('Todo al día. No hay pendientes.', 'All caught up. Nothing pending.')}</P>}
+      </Card>
       <Pills options={[{ v: 'all', label: L('Todas las tiendas', 'All stores') }, ...stores.map((s) => ({ v: s.id, label: s.nombre.replace('Castillo · ', ''), icon: 'store' }))]} value={storeSel} onChange={setStoreSel} />
       <Summary orders={base} cats={cats} period={period} setPeriod={setPeriod} kind={kind} setKind={setKind} svc={svc} setSvc={setSvc} />
       <Card>
