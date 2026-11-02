@@ -1,6 +1,6 @@
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 
 import { EmpGate } from '@/components/EmpGate';
 import { useOrderText } from '@/components/orders';
@@ -8,6 +8,7 @@ import { usePanelStore } from '@/components/panel';
 import { QrScanner } from '@/components/Qr';
 import { Text } from '@/components/Text';
 import { Avatar, Btn, Card, Empty, Field, H2, Loading, Note, P, Pills, Row, Screen } from '@/components/ui';
+import { Scene, sceneFor } from '@/components/scenes';
 import { modOn, prodName, useProducts, useServices, useStores } from '@/lib/data';
 import { useEmp } from '@/lib/emp';
 import { money } from '@/lib/format';
@@ -127,6 +128,16 @@ export default function Mostrador() {
     setAmount('');
     setMsg('');
   };
+  // Agregar con un toque desde los cuadritos (servicio de precio fijo o variante de producto)
+  const push = (line: Line) => {
+    setCart((c) => {
+      const ex = c.find((x) => x.key === line.key);
+      if (ex) return c.map((x) => (x.key === line.key ? { ...x, qty: Math.min(x.stock ?? 20, x.qty + 1) } : x));
+      return [...c, line];
+    });
+    setMsg('');
+  };
+  const qtyOf = (key: string) => cart.find((x) => x.key === key)?.qty || 0;
   const setQty = (key: string, d: number) => setCart((c) => c.map((x) => (x.key === key ? { ...x, qty: Math.max(0, Math.min(x.stock ?? 20, x.qty + d)) } : x)).filter((x) => x.qty > 0));
 
   // Totales de la venta (el servidor vuelve a calcular todo)
@@ -234,14 +245,36 @@ export default function Mostrador() {
           {msg ? <Note kind="blue" icon="check">{msg}</Note> : null}
         </Card>
 
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' }}>
         {cust ? (
-          <Card>
+          <Card style={{ flexGrow: 1.3, flexBasis: 420, minWidth: 0 }}>
             <H2>2 · {L('¿Qué paga?', 'What are they paying for?')}</H2>
             <Pills options={kinds} value={kind} onChange={(v) => { setKind(v); setReward(''); }} />
             {kind === 'svc' ? (
               avail.length ? (
                 <View style={{ gap: 10 }}>
-                  <Pills label={L('Servicio', 'Service')} options={avail.map((s) => ({ v: s.id, label: nm(s), icon: s.icon }))} value={sv?.id} onChange={(v) => { setSvcId(v); setOpt(null); setAmount(''); }} />
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {avail.map((x) => {
+                      const k = `s:${x.id}::`;
+                      const n = qtyOf(k);
+                      const on = sv?.id === x.id;
+                      return (
+                        <Pressable key={x.id} accessibilityRole="button" accessibilityLabel={nm(x)}
+                          onPress={() => {
+                            if (x.price_type === 'fixed' && Number(x.base) > 0) push({ key: k, kind: 'svc', service: x.id, option: null, amount: null, qty: 1, label: nm(x), unit: Number(x.base), fee: Number(x.fee) || 0 });
+                            setSvcId(x.id); setOpt(null); setAmount('');
+                          }}
+                          style={{ width: '31%', flexGrow: 1, maxWidth: 200, borderRadius: 14, borderWidth: on ? 2 : 1, borderColor: on ? C.brown : C.line, backgroundColor: C.card, overflow: 'hidden' }}>
+                          {n ? <View style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 }}><Text style={{ color: '#fff', fontWeight: '900', fontSize: 11 }}>{n}</Text></View> : null}
+                          <View style={{ height: 52, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center' }}><Scene n={sceneFor(x.icon, x.cat_id)} size={48} /></View>
+                          <View style={{ padding: 8 }}>
+                            <Text style={{ fontWeight: '800', fontSize: 13, color: C.ink }} numberOfLines={2}>{nm(x)}</Text>
+                            <Text style={{ fontSize: 12, color: C.muted }}>{x.price_type === 'fixed' ? money(Number(x.base)) : x.price_type === 'amount' ? L('Tú pones el monto', 'Custom amount') : L('Con opciones', 'With options')}{Number(x.fee) ? ` + ${money(Number(x.fee))}` : ''}</Text>
+                          </View>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
                   {sv?.price_type === 'options' ? <Pills label={L('Opción', 'Option')} options={(sv.options || []).map((o, i) => ({ v: i, label: `${nm(o)} · ${money(Number(o.p))}` }))} value={opt} onChange={setOpt} /> : null}
                   {sv?.price_type === 'amount' ? <Field label={L('Monto (USD)', 'Amount (USD)')} value={amount} onChangeText={(v) => setAmount(v.replace(/[^0-9.]/g, ''))} keyboardType="decimal-pad" style={{ maxWidth: 260 }} /> : null}
                 </View>
@@ -252,23 +285,36 @@ export default function Mostrador() {
             {kind === 'prod' ? (
               prods.length ? (
                 <View style={{ gap: 10 }}>
-                  <Pills label={L('Producto', 'Product')} options={prods.map((p) => ({ v: p.id, label: prodName(p) }))} value={pr?.id} onChange={(v) => { setProdId(v); setVarId(null); }} />
-                  {pr ? (
-                    <Pills
-                      label={L('Variante', 'Variant')}
-                      options={pr.product_variants.filter((v) => v.activo).map((v) => ({ v: v.id, label: `${v.label} · ${money(Number(v.price))} · ${L('exist. ', 'stock ')}${v.stock}`, disabled: v.stock < 1 }))}
-                      value={vr?.id}
-                      onChange={setVarId}
-                    />
-                  ) : null}
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                    {prods.flatMap((p) => p.product_variants.filter((v) => v.activo).map((v) => {
+                      const k = `p:${v.id}`;
+                      const n = qtyOf(k);
+                      const left = v.stock - n;
+                      return (
+                        <Pressable key={v.id} accessibilityRole="button" accessibilityLabel={`${prodName(p)} ${v.label}`} disabled={left <= 0}
+                          onPress={() => push({ key: k, kind: 'prod', variant: v.id, qty: 1, label: `${prodName(p)} · ${v.label}`, unit: Number(v.price), fee: 0, stock: v.stock })}
+                          style={{ width: '31%', flexGrow: 1, maxWidth: 200, borderRadius: 14, borderWidth: 1, borderColor: C.line, backgroundColor: C.card, overflow: 'hidden', opacity: left <= 0 ? 0.5 : 1 }}>
+                          {n ? <View style={{ position: 'absolute', top: 6, right: 6, zIndex: 2, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 5 }}><Text style={{ color: '#fff', fontWeight: '900', fontSize: 11 }}>{n}</Text></View> : null}
+                          <View style={{ height: 52, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center' }}>
+                            {p.foto_url ? <Image source={{ uri: p.foto_url }} style={{ width: '100%', height: 52 }} resizeMode="contain" /> : <Scene n={p.family_id === 'cel' ? 'celular' : p.family_id === 'chip' ? 'recarga' : p.family_id === 'reg' ? 'puntos' : 'funda'} size={48} />}
+                          </View>
+                          <View style={{ padding: 8 }}>
+                            <Text style={{ fontWeight: '800', fontSize: 13, color: C.ink }} numberOfLines={2}>{`${prodName(p)} · ${v.label}`}</Text>
+                            <Text style={{ fontSize: 12, color: C.muted }}>{money(Number(v.price))}</Text>
+                            <Text style={{ fontSize: 12, color: left <= 1 ? C.red : C.muted }}>{left > 0 ? L(`Quedan ${left}`, `${left} left`) : L('Agotado', 'Sold out')}</Text>
+                          </View>
+                        </Pressable>
+                      );
+                    }))}
+                  </View>
                 </View>
               ) : (
                 <Empty>{L('Esta tienda no tiene productos.', 'This store has no products.')}</Empty>
               )
             ) : null}
-            {kind !== 'abono' ? (
+            {kind === 'svc' && sv && sv.price_type !== 'fixed' ? (
               <Row style={{ alignItems: 'center' }}>
-                <Btn icon="plus" title={canAdd ? L(`Agregar a la venta · ${money(base + fee)}`, `Add to sale · ${money(base + fee)}`) : kind === 'prod' && vr && vr.stock <= inCart(vr.id) ? L('Ya no hay más existencias', 'No more stock') : L('Elige qué agregar', 'Choose what to add')} disabled={!canAdd} onPress={addLine} />
+                <Btn icon="plus" title={canAdd ? L(`Agregar a la venta · ${money(base + fee)}`, `Add to sale · ${money(base + fee)}`) : L('Elige la opción o escribe el monto', 'Choose the option or type the amount')} disabled={!canAdd} onPress={addLine} />
                 {cart.length ? <P small muted>{L(`${cart.reduce((a, x) => a + x.qty, 0)} en la venta`, `${cart.reduce((a, x) => a + x.qty, 0)} in the sale`)}</P> : null}
               </Row>
             ) : null}
@@ -288,7 +334,7 @@ export default function Mostrador() {
         ) : null}
 
         {cust ? (
-          <Card>
+          <Card style={{ flexGrow: 1, flexBasis: 320, minWidth: 0 }}>
             <H2>3 · {L('Cobra', 'Charge')}</H2>
             {kind !== 'abono' ? (
               cart.length ? (
@@ -346,6 +392,7 @@ export default function Mostrador() {
           </Card>
         ) : null}
 
+        </View>
         {recent.length ? (
           <Card>
             <H2>{L('Últimos registros en mostrador', 'Latest counter records')}</H2>

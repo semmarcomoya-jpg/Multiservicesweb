@@ -138,6 +138,24 @@ export default function Sucursal() {
 
       {cur === 'rev' ? (
         <Card>
+          {revs && revs.length ? (
+            <Row style={{ alignItems: 'center', gap: 14, paddingBottom: 8 }}>
+              <Text style={{ fontSize: 32, fontWeight: '900', color: C.ink }}>{(revs.reduce((x, r) => x + r.stars, 0) / revs.length).toFixed(1)}</Text>
+              <View style={{ flex: 1, gap: 3 }}>
+                {[5, 4, 3, 2, 1].map((n) => {
+                  const c = revs.filter((r) => Math.round(r.stars) === n).length;
+                  return (
+                    <View key={n} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={{ fontSize: 11.5, color: C.muted, width: 10 }}>{n}</Text>
+                      <View style={{ flex: 1, height: 6, borderRadius: 3, backgroundColor: C.line, overflow: 'hidden' }}>
+                        <View style={{ width: `${(c / revs.length) * 100}%`, height: '100%', backgroundColor: '#E8A317' }} />
+                      </View>
+                    </View>
+                  );
+                })}
+              </View>
+            </Row>
+          ) : null}
           {!revs ? <Loading /> : revs.length ? revs.map((r) => (
             <View key={r.id} style={{ gap: 4, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line }}>
               <Row style={{ justifyContent: 'space-between' }}>

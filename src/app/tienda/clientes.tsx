@@ -1,6 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
-import { View } from 'react-native';
+import { Linking, View } from 'react-native';
 
 import { usePanelStore } from '@/components/panel';
 import { Text } from '@/components/Text';
@@ -25,6 +25,7 @@ export default function Clientes() {
   const [sort, setSort] = useState<Sort>('reciente');
   const [show, setShow] = useState<Show>('all');
   const [err, setErr] = useState('');
+  const [lowRates, setLowRates] = useState(0);
 
   const load = useCallback(() => {
     if (!st) return;
@@ -32,6 +33,7 @@ export default function Clientes() {
       if (error) setErr(errMsg(error));
       setRows((data as Customer[]) ?? []);
     });
+    supabase.from('ratings').select('id', { count: 'exact', head: true }).eq('store_id', st.id).lte('stars', 2).eq('followed_up', false).then(({ count }) => setLowRates(count || 0));
   }, [st]);
   useFocusEffect(load);
 
@@ -54,6 +56,50 @@ export default function Clientes() {
   return (
     <Screen wide>
       <P small muted>{L('Clientes que compraron aquí o eligieron esta tienda como favorita.', 'Customers who bought here or chose this store as favorite.')}</P>
+      {(() => {
+        const wa = (c: Customer, msgEs: string, msgEn: string) => {
+          const t = (c.telefono || '').replace(/\D/g, '').slice(-10);
+          if (t) void Linking.openURL(`https://wa.me/1${t}?text=${encodeURIComponent(lang === 'es' ? msgEs : msgEn)}`);
+        };
+        const store = st.nombre.replace('Castillo · ', '');
+        const bdays = (rows || []).filter((c) => c.cumple === today);
+        const away = (rows || []).filter(isAway).slice(0, 5);
+        const first = (n: string) => n.split(' ')[0];
+        const row = (c: Customer, sub: string, btn: string, onPress: () => void, primary = false) => (
+          <View key={c.user_id} style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 6 }}>
+            <Avatar name={c.nombre} size={38} uri={c.foto_url} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontWeight: '800', color: C.ink }} numberOfLines={1}>{c.nombre}</Text>
+              <P small muted>{sub}</P>
+            </View>
+            <Btn small kind={primary ? 'primary' : 'ghost'} title={btn} onPress={onPress} disabled={!c.telefono} />
+          </View>
+        );
+        if (!bdays.length && !away.length && !lowRates) return null;
+        return (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+            {bdays.length ? (
+              <Card style={{ flexGrow: 1, flexBasis: 300 }}>
+                <Text style={{ fontWeight: '900', color: C.ink }}>{L('Cumplen hoy 🎂', 'Birthdays today 🎂')}</Text>
+                {bdays.map((c) => row(c, L('Mándale una felicitación', 'Send a greeting'), L('Felicitar', 'Greet'), () => wa(c, `¡Feliz cumpleaños, ${first(c.nombre)}! De parte de todos en ${store}. Pasa por tu regalo 🎁`, `Happy birthday, ${first(c.nombre)}! From everyone at ${store}. Come get your gift 🎁`), true))}
+              </Card>
+            ) : null}
+            {away.length ? (
+              <Card style={{ flexGrow: 1, flexBasis: 300 }}>
+                <Text style={{ fontWeight: '900', color: C.ink }}>{L('No vienen hace 30 días', 'Not back in 30 days')}</Text>
+                {away.map((c) => row(c, L(`Última vez ${fmt(c.ultimo)} · ${c.pedidos} pedidos`, `Last time ${fmt(c.ultimo)} · ${c.pedidos} orders`), L('Escribirle', 'Message'), () => wa(c, `¡Hola ${first(c.nombre)}! Te extrañamos en ${store}. Esta semana te esperamos con el mejor tipo de cambio.`, `Hi ${first(c.nombre)}! We miss you at ${store}. Come by this week for our best rate.`)))}
+              </Card>
+            ) : null}
+            {lowRates ? (
+              <Card style={{ flexGrow: 1, flexBasis: 300 }}>
+                <Text style={{ fontWeight: '900', color: C.ink }}>{L('Calificaciones para dar seguimiento', 'Ratings to follow up')}</Text>
+                <P small muted>{L(`${lowRates} clientes calificaron con 1 o 2 estrellas y nadie les ha respondido.`, `${lowRates} customers gave 1–2 stars and nobody has followed up.`)}</P>
+                <Btn small icon="star" title={L('Responder', 'Reply')} onPress={() => router.push('/tienda/calificaciones')} style={{ alignSelf: 'flex-start' }} />
+              </Card>
+            ) : null}
+          </View>
+        );
+      })()}
       <SearchBox value={q} onChangeText={setQ} placeholder={L('Buscar por nombre, número o teléfono', 'Search by name, number or phone')} count={list.length} />
       <Pills
         options={[

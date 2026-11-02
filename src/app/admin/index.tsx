@@ -8,13 +8,15 @@ import { inPeriod, orderGroup, Summary, useGroups, type Period } from '@/compone
 import { Card, H2, IcoBox, Icon, Loading, P, Pills, Row, Screen } from '@/components/ui';
 import { useCategories, useStores } from '@/lib/data';
 import { money } from '@/lib/format';
+import { openState } from '@/lib/hours';
+import { Scene } from '@/components/scenes';
 import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { C } from '@/lib/theme';
 import type { Order } from '@/lib/types';
 
 export default function AdminVentas() {
-  const { L } = useLang();
+  const { L, lang } = useLang();
   const { data: stores } = useStores();
   const { data: cats } = useCategories();
   const [orders, setOrders] = useState<Order[] | null>(null);
@@ -23,7 +25,7 @@ export default function AdminVentas() {
   const [kind, setKind] = useState('all');
   const [svc, setSvc] = useState('all');
   const groups = useGroups(cats || []);
-  const [att, setAtt] = useState<{ low: number; ids: number } | null>(null);
+  const [att, setAtt] = useState<{ low: number; ids: number; newc?: number; avg?: number } | null>(null);
   const { width } = useWindowDimensions();
   const narrow = width < 760;
 
@@ -38,7 +40,13 @@ export default function AdminVentas() {
       Promise.all([
         supabase.from('ratings').select('id', { count: 'exact', head: true }).lte('stars', 2).eq('followed_up', false),
         supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('id_status', 'pendiente'),
-      ]).then(([r, i]) => setAtt({ low: r.count || 0, ids: i.count || 0 }));
+        supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('role', 'cliente').gte('created_at', new Date(new Date().setHours(0, 0, 0, 0)).toISOString()),
+        supabase.rpc('store_scores'),
+      ]).then(([r, i, n, sc]) => {
+        const rows = ((sc.data as { promedio: number; total: number }[]) ?? []);
+        const tt = rows.reduce((x, y) => x + Number(y.total), 0);
+        setAtt({ low: r.count || 0, ids: i.count || 0, newc: n.count || 0, avg: tt ? rows.reduce((x, y) => x + Number(y.promedio) * Number(y.total), 0) / tt : 0 });
+      });
     }, []),
   );
 
@@ -85,6 +93,52 @@ export default function AdminVentas() {
           </Pressable>
         )) : <P muted>{L('Todo al día. No hay pendientes.', 'All caught up. Nothing pending.')}</P>}
       </Card>
+      {(() => {
+        const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+        const todayO = orders.filter((o) => o.paid_at && o.status !== 'rechazado' && new Date(o.paid_at).getTime() >= t0.getTime());
+        const tot = todayO.reduce((x, o) => x + Number(o.total), 0);
+        const sends = todayO.filter((o) => o.kind === 'send').length;
+        const kp = [
+          [L('Vendido hoy', 'Sold today'), money(tot)],
+          [L('Envíos de dinero hoy', 'Transfers today'), String(sends)],
+          [L('Clientes nuevos hoy', 'New customers today'), String(att?.newc ?? '—')],
+          [L('Promedio de reseñas', 'Average rating'), att?.avg ? `${att.avg.toFixed(1)} ★` : '—'],
+        ];
+        return (
+          <>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {kp.map(([t, v]) => (
+                <View key={t} style={{ flexGrow: 1, flexBasis: 150, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 9, paddingHorizontal: 12 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '800', color: C.muted }}>{t}</Text>
+                  <Text style={{ fontSize: 22, fontWeight: '900', color: C.ink }}>{v}</Text>
+                </View>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {stores.filter((x) => x.activo).map((x) => {
+                const v = todayO.filter((o) => o.store_id === x.id).reduce((y, o) => y + Number(o.total), 0);
+                const p = tot ? Math.round((v / tot) * 100) : 0;
+                const os = openState(x);
+                return (
+                  <Pressable key={x.id} accessibilityRole="button" onPress={() => setStoreSel(x.id)}
+                    style={{ flexGrow: 1, flexBasis: 220, backgroundColor: C.card, borderWidth: storeSel === x.id ? 2 : 1, borderColor: storeSel === x.id ? C.brown : C.line, borderRadius: 16, padding: 12, gap: 6 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center' }}><Scene n="envio" size={40} /></View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontWeight: '800', color: C.ink }}>{x.nombre.replace('Castillo · ', '')}</Text>
+                        <Text style={{ fontSize: 12, color: os.open ? '#1E7A4A' : C.muted }}>{os.label[lang]}</Text>
+                      </View>
+                    </View>
+                    <Text style={{ fontSize: 22, fontWeight: '900', color: C.ink }}>{money(v)}</Text>
+                    <View style={{ height: 10, borderRadius: 5, backgroundColor: C.tint, overflow: 'hidden' }}><View style={{ width: `${p}%`, height: '100%', backgroundColor: C.brown }} /></View>
+                    <Text style={{ fontSize: 12, color: C.muted }}>{L(`${p} % de lo vendido hoy`, `${p}% of today's sales`)}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </>
+        );
+      })()}
       <Pills options={[{ v: 'all', label: L('Todas las tiendas', 'All stores') }, ...stores.map((s) => ({ v: s.id, label: s.nombre.replace('Castillo · ', ''), icon: 'store' }))]} value={storeSel} onChange={setStoreSel} />
       <Summary orders={base} cats={cats} period={period} setPeriod={setPeriod} kind={kind} setKind={setKind} svc={svc} setSvc={setSvc} />
       <Card>

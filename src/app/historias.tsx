@@ -12,6 +12,8 @@ import { StoryVideo } from '@/components/StoryVideo';
 import { Text } from '@/components/Text';
 import { Icon } from '@/components/ui';
 import { useLang } from '@/lib/i18n';
+import { useStores } from '@/lib/data';
+import { shareBlob } from '@/lib/textStory';
 import { cachedStories, countView, fetchStories, IMAGE_STORY_MS, markStorySeen, orderForViewer, useSeenStories } from '@/lib/stories';
 import { C } from '@/lib/theme';
 import type { Story } from '@/lib/types';
@@ -31,6 +33,7 @@ export default function StoriesViewer() {
 function Content() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { L, lang } = useLang();
+  const { data: stores } = useStores();
   const insets = useSafeAreaInsets();
   const seen = useSeenStories();
 
@@ -131,6 +134,9 @@ function Content() {
     );
   }
 
+  const storeLabel = current.store_id ? (stores || []).find((x) => x.id === current.store_id)?.nombre || 'Castillo' : 'Castillo Multiservices';
+  const hrs = Math.max(0, Math.round((Date.now() - new Date(current.starts_at || current.created_at).getTime()) / 3600000));
+  const ago = hrs < 1 ? L('hace un momento', 'just now') : hrs < 24 ? L(`hace ${hrs} h`, `${hrs} h ago`) : L(`hace ${Math.round(hrs / 24)} d`, `${Math.round(hrs / 24)} d ago`);
   const caption = lang === 'es' ? current.caption_es || current.caption_en : current.caption_en || current.caption_es;
   const cta: { label: string; icon: string; go: () => void } | null =
     current.link_type === 'product' && current.link_id
@@ -144,6 +150,21 @@ function Content() {
             : null;
 
   const fill = { position: 'absolute' as const, top: 0, left: 0, right: 0, bottom: 0 };
+  // Comparte la imagen de la historia (o la liga de la app si es video)
+  const share = async () => {
+    setPaused(true);
+    try {
+      if (current.media_type === 'image') {
+        const blob = await (await fetch(current.media_url)).blob();
+        await shareBlob(blob, caption || 'Castillo Multiservices');
+      } else {
+        const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+        const url = window.location.origin + window.location.pathname.replace(/historias.*$/, '');
+        if (nav.share) await nav.share({ title: caption || 'Castillo Multiservices', url });
+      }
+    } catch {}
+    setPaused(false);
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
@@ -187,7 +208,10 @@ function Content() {
             <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: C.goldSoft, fontWeight: '900' }}>C</Text>
             </View>
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15, textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 4 }}>Castillo Multiservices</Text>
+            <View>
+              <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15, textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 4 }}>{storeLabel}</Text>
+              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 4 }}>{ago}</Text>
+            </View>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel={L('Cerrar', 'Close')} onPress={close} hitSlop={12}>
             <Icon n="x" size={28} color="#fff" sw={2.4} />
@@ -200,10 +224,19 @@ function Content() {
           <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800', textAlign: 'center', textShadowColor: 'rgba(0,0,0,0.7)', textShadowRadius: 6 }}>{caption}</Text>
         ) : null}
         {cta ? (
-          <Pressable accessibilityRole="button" onPress={cta.go} style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: C.brown, paddingHorizontal: 28, paddingVertical: 14, borderRadius: 999, opacity: pressed ? 0.8 : 1 })}>
-            <Icon n={cta.icon} size={20} color="#fff" />
-            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 16 }}>{cta.label}</Text>
+          <Pressable accessibilityRole="button" onPress={cta.go} style={({ pressed }) => ({ alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', minHeight: 50, borderRadius: 14, opacity: pressed ? 0.85 : 1 })}>
+            <Icon n={cta.icon} size={20} color="#0B2E5E" />
+            <Text style={{ color: '#0B2E5E', fontWeight: '900', fontSize: 16 }}>{cta.label}</Text>
           </Pressable>
+        ) : null}
+        {Platform.OS === 'web' ? (
+          <Pressable accessibilityRole="button" onPress={share} style={({ pressed }) => ({ alignSelf: 'stretch', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: 'rgba(255,255,255,0.16)', minHeight: 46, borderRadius: 14, opacity: pressed ? 0.85 : 1 })}>
+            <Icon n="send" size={18} color="#fff" />
+            <Text style={{ color: '#fff', fontWeight: '800', fontSize: 15 }}>{L('Compartir en redes', 'Share')}</Text>
+          </Pressable>
+        ) : null}
+        {current.views ? (
+          <Text style={{ color: '#fff', opacity: 0.85, fontSize: 12.5 }}>{L(`${current.views} personas la vieron`, `${current.views} people saw it`)}</Text>
         ) : null}
       </View>
     </View>

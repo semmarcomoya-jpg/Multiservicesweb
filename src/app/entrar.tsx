@@ -1,7 +1,10 @@
 import { router } from 'expo-router';
 import React, { useState } from 'react';
+import { View } from 'react-native';
 
-import { BackBar, Btn, Card, Field, H1, Note, P, Pills, Screen } from '@/components/ui';
+import { Scene } from '@/components/scenes';
+
+import { BackBar, Btn, Card, Field, H1, Note, P, Screen } from '@/components/ui';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 
@@ -69,9 +72,12 @@ export default function Entrar() {
   return (
     <Screen wall="profile">
       <BackBar />
-      <H1>{L('Entrar', 'Sign in')}</H1>
+      <View style={{ alignItems: 'center', gap: 6, paddingTop: 8 }}>
+        <View style={{ width: 120, height: 90 }}><Scene n="envio" /></View>
+        <H1 style={{ textAlign: 'center' }}>{L('Entra a Castillo', 'Sign in to Castillo')}</H1>
+        <P muted style={{ textAlign: 'center' }}>{mode === 'code' ? L('Sin contraseña: te mandamos un código a tu correo.', 'No password: we email you a code.') : L('Con tu correo y contraseña de siempre.', 'With your usual email and password.')}</P>
+      </View>
       <Card>
-        <Pills options={[{ v: 'code' as Mode, label: L('Con código al correo', 'With an email code') }, { v: 'pass' as Mode, label: L('Con contraseña', 'With password') }]} value={mode} onChange={(v) => { setMode(v); setErr(''); }} />
         <Field label={L('Correo', 'Email')} value={email} onChangeText={(v) => { setEmail(v); setCodeSent(false); }} keyboardType="email-address" autoCapitalize="none" />
         {mode === 'pass' ? (
           <>
@@ -90,12 +96,13 @@ export default function Entrar() {
         ) : (
           <>
             <Note kind="blue" icon="check">{L(`Revisa ${mail} (también en spam) y escribe el código.`, `Check ${mail} (spam too) and type the code.`)}</Note>
-            <Field label={L('Código', 'Code')} value={code} onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 8))} keyboardType="number-pad" placeholder="123456" />
+            <Field label={L('Código de 6 dígitos', '6-digit code')} value={code} onChangeText={(v) => setCode(v.replace(/\D/g, '').slice(0, 8))} keyboardType="number-pad" placeholder="123456" />
             {err ? <Note kind="red">{err}</Note> : null}
             <Btn title={L('Entrar', 'Sign in')} onPress={verify} loading={busy} disabled={code.length < 6} />
             <Btn kind="ghost" small title={L('Mandar otro código', 'Send another code')} onPress={sendCode} disabled={busy} />
           </>
         )}
+        <Btn kind="ghost" small title={mode === 'code' ? L('Entrar con contraseña', 'Sign in with password') : L('Entrar con código al correo', 'Sign in with an email code')} onPress={() => { setMode(mode === 'code' ? 'pass' : 'code'); setErr(''); }} />
       </Card>
       <P small muted style={{ textAlign: 'center' }}>{L('Las tiendas y el administrador también entran aquí.', 'Stores and the administrator sign in here too.')}</P>
     </Screen>

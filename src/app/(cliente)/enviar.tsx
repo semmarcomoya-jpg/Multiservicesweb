@@ -4,8 +4,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
 import { Scene } from '@/components/scenes';
-import { BackBar, Btn, Card, Empty, H1, IcoBox, Label, Loading, Note, P, Pills, Row, Screen, TopBar, SearchBox, matches } from '@/components/ui';
-import { TextInput } from '@/components/Text';
+import { BackBar, Btn, Card, Empty, H1, IcoBox, Icon, Loading, Note, P, Pills, Row, Screen, TopBar, SearchBox, matches } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { countryOf, paisCfg } from '@/lib/countries';
 import { modOn, pickOpen, storeOptions, useSettings, useStores, useStoreScores } from '@/lib/data';
@@ -94,128 +93,189 @@ export default function Enviar() {
     );
   }
 
-  const steps = [L('Quién recibe', 'Recipient'), L('Monto', 'Amount'), L('Pago', 'Payment'), L('Listo', 'Done')];
+  const steps = [L('Monto', 'Amount'), L('Quién recibe', 'Recipient'), L('Cómo recibe', 'Delivery'), L('Pagar', 'Pay')];
+  const go = (n: number) => { setTried(false); setStep(n); };
+  const key = (k: string) =>
+    setMonto((m) => {
+      if (k === '⌫') return m.slice(0, -1);
+      if (k === '.' && m.includes('.')) return m;
+      const v = (m === '0' && k !== '.' ? '' : m) + k;
+      if (/\.\d{3}$/.test(v) || v.replace('.', '').length > 6) return m;
+      return v;
+    });
+  const recv = cur(amt * rate, pc.cur);
+  const ptsGain = (() => {
+    const st = sendStores.find((x) => x.id === storeId);
+    const ly = st?.loyalty;
+    return ly?.on ? Math.round((Number(ly.perTx) || 0) + (amt / 100) * (Number(ly.per100) || 0)) : 0;
+  })();
+  const shell = (n: number, body: React.ReactNode, footer: React.ReactNode) => (
+    <Screen wall="send" footer={footer}>
+      <BackBar steps={steps} cur={n - 1} />
+      {body}
+    </Screen>
+  );
 
+  // 1 · Monto con teclado grande y conversión en vivo
   if (step === 1)
-    return (
-      <Screen
-        wall="send"
-        footer={<Btn title={L('Siguiente', 'Next')} icon="arrow" onPress={() => { setTried(true); if (!errs.b) { setTried(false); setStep(2); } }} />}
-      >
-        <BackBar steps={steps} cur={0} />
-        <H1>{L('¿A quién le envías?', 'Who are you sending to?')}</H1>
+    return shell(
+      1,
+      <>
+        <Card style={{ alignItems: 'stretch', gap: 10 }}>
+          <Text style={{ textAlign: 'center', fontWeight: '800', color: C.muted }}>{L('¿Cuánto mandas?', 'How much are you sending?')}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
+            <Text accessibilityLabel={L('Monto en dólares', 'Amount in dollars')} style={{ fontSize: 46, fontWeight: '900', color: C.ink, letterSpacing: -1 }}>${monto || '0'}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: C.muted }}>USD</Text>
+          </View>
+          <View style={{ backgroundColor: '#DDF1E4', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, flexDirection: 'row', justifyContent: 'space-between' }}>
+            <Text style={{ fontWeight: '900', color: '#1E7A4A' }}>{L('Recibe', 'They receive')} {co.flag}</Text>
+            <Text style={{ fontWeight: '900', color: '#1E7A4A' }}>{recv}</Text>
+          </View>
+          <View style={{ flexDirection: 'row', gap: 6 }}>
+            {QUICK.map((v) => (
+              <Pressable key={v} accessibilityRole="button" accessibilityState={{ selected: monto === v }} onPress={() => setMonto(v)}
+                style={{ flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 12, borderWidth: 1.5, borderColor: monto === v ? '#0B2E5E' : C.line, backgroundColor: monto === v ? '#0B2E5E' : C.card }}>
+                <Text style={{ fontWeight: '900', color: monto === v ? '#fff' : C.ink }}>${v}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <P small muted style={{ textAlign: 'center' }}>{`1 USD = ${rate.toFixed(2)} ${pc.cur} · ${L('comisión', 'fee')} ${money(fee)} · ${L('hasta', 'up to')} ${money(limit)}`}</P>
+        </Card>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+          {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map((k) => (
+            <Pressable key={k} accessibilityRole="button" accessibilityLabel={k === '⌫' ? L('Borrar', 'Delete') : k} onPress={() => key(k)}
+              style={({ pressed }) => ({ width: '32%', flexGrow: 1, paddingVertical: 11, alignItems: 'center', borderRadius: 12, borderWidth: 1, borderColor: C.line, backgroundColor: pressed ? C.tint : C.card })}>
+              <Text style={{ fontSize: 20, fontWeight: '900', color: C.ink }}>{k}</Text>
+            </Pressable>
+          ))}
+        </View>
+        {tried && errs.monto ? <Note kind="red">{errs.monto}</Note> : null}
+        {profile?.id_status !== 'verificada' ? (
+          <P small muted style={{ textAlign: 'center' }}>
+            <Text onPress={() => router.push('/identidad')} style={{ color: C.blue, fontWeight: '800', textDecorationLine: 'underline' }}>{L('Verifica tu identidad para mandar más', 'Verify your ID to send more')}</Text>
+          </P>
+        ) : null}
+      </>,
+      <Btn title={amt < 10 ? L('Escribe al menos $10', 'Enter at least $10') : L('Siguiente', 'Next')} disabled={amt < 10} onPress={() => { setTried(true); if (!errs.monto) go(2); }} />,
+    );
+
+  // 2 · Quién recibe
+  if (step === 2)
+    return shell(
+      2,
+      <>
         {last && lastB ? (
           <Pressable
             accessibilityRole="button"
-            onPress={() => { setSel(lastB.id); setMonto(String(Number(last.monto))); setTried(false); setStep(2); }}
-            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: R.lg, backgroundColor: '#DDF1E4', opacity: pressed ? 0.85 : 1 })}
+            onPress={() => { setSel(lastB.id); setMonto(String(Number(last.monto))); go(4); }}
+            style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 16, backgroundColor: '#DDF1E4', opacity: pressed ? 0.85 : 1 })}
           >
             <IcoBox n="repeat" size={40} bg="#fff" color="#1E5B35" />
             <View style={{ flex: 1 }}>
-              <Text style={{ fontWeight: '900', color: '#1E5B35' }}>{L('Repetir el último envío', 'Repeat last transfer')}</Text>
+              <Text style={{ fontWeight: '800', color: '#1E5B35' }}>{L('Repetir el último envío', 'Repeat last transfer')}</Text>
               <P small style={{ color: '#1E5B35' }}>{`${lastB.nombre} ${lastB.apellidos}`.trim()} · {money(last.monto)}</P>
             </View>
           </Pressable>
         ) : null}
-        <Card>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <Label>{L('Tus personas', 'Your people')}</Label>
-            <Btn small kind="ghost" icon="users" title={L('Agregar', 'Add')} onPress={() => router.push('/beneficiarios/nuevo')} />
-          </Row>
-          {benefs.length === 0 ? <Empty>{L('Agrega a la persona que recibe el dinero.', 'Add the person who receives the money.')}</Empty> : null}
-          {benefs.length > 4 ? <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca a la persona', 'Search the person')} /> : null}
-          {benefs.filter((x) => x.id === sel || matches(q, x.nombre, x.apellidos, x.parentesco, x.ciudad, x.banco, x.red)).map((x) => {
-            const c = countryOf(x.pais);
-            return (
-              <Pressable
-                key={x.id}
-                accessibilityRole="radio"
-                accessibilityState={{ checked: sel === x.id }}
-                onPress={() => setSel(x.id)}
-                style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 12, borderRadius: R.md, borderWidth: sel === x.id ? 2 : 1.5, borderColor: sel === x.id ? C.brown : C.line, backgroundColor: sel === x.id ? C.tint : C.card }}
-              >
-                <IcoBox n={x.metodo === 'cuenta' ? 'bank' : 'cash'} size={40} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontWeight: '900', color: C.ink }}>{`${x.nombre} ${x.apellidos}`.trim()}</Text>
-                  <P small muted>
-                    {c.flag} {lang === 'es' ? c.es : c.en}{x.parentesco ? ' · ' + x.parentesco : ''} · {x.metodo === 'cuenta' ? `${x.banco} ···${x.cuenta.slice(-4)}` : L('Retiro en ', 'Pickup at ') + x.red}
-                  </P>
-                </View>
-              </Pressable>
-            );
-          })}
-          {tried && errs.b ? <Text style={{ color: C.red, fontWeight: '700' }}>{errs.b}</Text> : null}
-        </Card>
-      </Screen>
+        {benefs.length > 4 ? <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca a la persona', 'Search the person')} /> : null}
+        {benefs.length === 0 ? <Empty>{L('Agrega a la persona que recibe el dinero.', 'Add the person who receives the money.')}</Empty> : null}
+        {benefs.filter((x) => x.id === sel || matches(q, x.nombre, x.apellidos, x.parentesco, x.ciudad, x.banco, x.red)).map((x) => {
+          const c = countryOf(x.pais);
+          const on = sel === x.id;
+          const ini = `${x.nombre[0] || ''}${x.apellidos[0] || ''}`.toUpperCase();
+          return (
+            <Pressable key={x.id} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => setSel(x.id)}
+              style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: on ? 10.5 : 11, borderRadius: 16, borderWidth: on ? 2 : 1.5, borderColor: on ? C.brown : C.line, backgroundColor: on ? C.tint : C.card }}>
+              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: '#fff', fontWeight: '900' }}>{ini}</Text></View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontWeight: '800', color: C.ink }}>{`${x.nombre} ${x.apellidos}`.trim()}</Text>
+                <P small muted>{c.flag} {[x.parentesco, x.ciudad].filter(Boolean).join(' · ')} · {x.metodo === 'cuenta' ? `${x.banco} ···${x.cuenta.slice(-4)}` : L('Retiro en ', 'Pickup at ') + x.red}</P>
+              </View>
+              <View style={{ width: 22, height: 22, borderRadius: 11, borderWidth: 2, borderColor: on ? C.brown : C.line2, backgroundColor: on ? C.brown : 'transparent', alignItems: 'center', justifyContent: 'center' }}>{on ? <Icon n="check" size={13} color="#fff" sw={3.4} /> : null}</View>
+            </Pressable>
+          );
+        })}
+        <Pressable accessibilityRole="button" onPress={() => router.push('/beneficiarios/nuevo')}
+          style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 11, borderRadius: 16, borderWidth: 1.5, borderColor: C.line, backgroundColor: C.card }}>
+          <IcoBox n="plus" size={40} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '800', color: C.ink }}>{L('Agregar persona', 'Add a person')}</Text>
+            <P small muted>{L('Nombre como en su identificación', 'Name as on their ID')}</P>
+          </View>
+        </Pressable>
+        {tried && errs.b ? <Note kind="red">{errs.b}</Note> : null}
+      </>,
+      <Row style={{ flexWrap: 'nowrap' }}>
+        <Btn kind="ghost" title={L('Atrás', 'Back')} onPress={() => go(1)} />
+        <Btn title={L('Siguiente', 'Next')} style={{ flex: 1 }} onPress={() => { setTried(true); if (!errs.b) go(3); }} />
+      </Row>,
     );
 
-  return (
-    <Screen
-      wall="send"
-      footer={
-        <Row style={{ justifyContent: 'space-between', flexWrap: 'nowrap' }}>
-          <View>
-            <P small muted>{L('Pagas', 'You pay')}</P>
-            <Text style={{ fontSize: 22, fontWeight: '900', color: C.ink }}>{money(amt > 0 ? amt + fee : 0)}</Text>
+  // 3 · Cómo recibe
+  if (step === 3)
+    return shell(
+      3,
+      <>
+        {b ? (
+          <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 10.5, borderRadius: 16, borderWidth: 2, borderColor: C.brown, backgroundColor: C.tint }}>
+            <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: C.card, alignItems: 'center', justifyContent: 'center' }}><Scene n={b.metodo === 'cuenta' ? 'envio' : 'tramite'} size={40} /></View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '800', color: C.ink }}>{b.metodo === 'cuenta' ? L('Depósito a cuenta', 'Bank deposit') : L('Retiro en efectivo', 'Cash pickup')}</Text>
+              <P small muted>{b.metodo === 'cuenta' ? `${b.banco} ···${b.cuenta.slice(-4)}` : `${b.red} · ${L('con su identificación', 'with their ID')}`}</P>
+            </View>
+            <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: C.brown, alignItems: 'center', justifyContent: 'center' }}><Icon n="check" size={13} color="#fff" sw={3.4} /></View>
           </View>
-          <Btn title={L('Continuar al pago', 'Continue to payment')} onPress={next} icon="arrow" />
-        </Row>
-      }
-    >
-      <BackBar steps={steps} cur={1} />
-      <Pressable accessibilityRole="button" onPress={() => setStep(1)} style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-        <View style={{ width: 52, height: 52, borderRadius: 14, overflow: 'hidden', backgroundColor: C.tint }}><Scene n="envio" /></View>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontWeight: '900', color: C.ink, fontSize: 17 }}>{b ? `${b.nombre} ${b.apellidos}`.trim() : ''}</Text>
-          <P small muted>{co.flag} {lang === 'es' ? co.es : co.en} · {L('Cambiar', 'Change')}</P>
-        </View>
-      </Pressable>
-      <Card style={{ alignItems: 'stretch' }}>
-        <Label>{L('¿Cuánto envías?', 'How much are you sending?')}</Label>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 6 }}>
-          <Text style={{ fontSize: 40, fontWeight: '900', color: C.ink }}>$</Text>
-          <TextInput
-            accessibilityLabel={L('Monto en dólares', 'Amount in dollars')}
-            value={monto}
-            onChangeText={(v) => setMonto(v.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1'))}
-            keyboardType="decimal-pad"
-            placeholder="0"
-            placeholderTextColor="#93A5BD"
-            style={{ fontSize: 44, fontWeight: '900', color: C.ink, minWidth: 90, maxWidth: 220, textAlign: 'center', paddingVertical: 4 }}
-          />
-          <Text style={{ fontSize: 18, fontWeight: '900', color: C.muted }}>USD</Text>
-        </View>
-        <Row gap={8} style={{ justifyContent: 'center' }}>
-          {QUICK.map((v) => (
-            <Pressable key={v} accessibilityRole="button" onPress={() => setMonto(v)}
-              style={{ paddingHorizontal: 16, minHeight: 40, justifyContent: 'center', borderRadius: 12, borderWidth: 1.5, borderColor: monto === v ? C.brownDark : C.line2, backgroundColor: monto === v ? C.brownDark : C.card }}>
-              <Text style={{ fontWeight: '900', color: monto === v ? '#fff' : C.ink }}>${v}</Text>
-            </Pressable>
-          ))}
-        </Row>
-        <View style={{ backgroundColor: '#DDF1E4', borderRadius: R.md, padding: 14, gap: 2, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <P small style={{ color: '#1E5B35', fontWeight: '800' }}>{L('Recibe', 'They receive')}</P>
-            <P small style={{ color: '#1E5B35' }}>1 USD = {rate.toFixed(2)} {pc.cur}</P>
-          </View>
-          <Text style={{ fontSize: 22, fontWeight: '900', color: '#1E5B35' }}>{cur(amt * rate, pc.cur)}</Text>
-        </View>
-        <P small muted>
-          {L('Comisión ', 'Fee ') + money(fee)} · {L(`hasta ${money(limit)} por envío.`, `up to ${money(limit)} per transfer.`)}
-          {profile?.id_status !== 'verificada' ? ' ' : ''}
-          {profile?.id_status !== 'verificada' ? <Text onPress={() => router.push('/identidad')} style={{ color: C.blue, fontWeight: '800', textDecorationLine: 'underline' }}>{L('Verifica tu identidad para mandar más', 'Verify your ID to send more')}</Text> : null}
-        </P>
-        {tried && errs.monto ? <Note kind="red">{errs.monto}</Note> : null}
-      </Card>
-
-      {sendStores.length > 1 ? (
-        <Card>
-          <Pills label={L('¿Qué tienda hace tu envío?', 'Which store handles your transfer?')} options={storeOptions(sendStores, L('Cerrada', 'Closed'), scores)} value={storeId} onChange={setStoreId} />
-          {tried && errs.store ? <Note kind="red">{errs.store}</Note> : null}
-          <P small muted>{L('Esa tienda recibe tu pago por Zelle y realiza tu envío.', 'That store receives your Zelle payment and makes your transfer.')}</P>
+        ) : null}
+        <P small muted>{L(`Así lo recibe ${b?.nombre || ''}. Para cambiarlo, edita sus datos en Mis personas.`, `This is how ${b?.nombre || ''} receives it. To change it, edit them in My people.`)}</P>
+        {sendStores.length > 1 ? (
+          <Card>
+            <Pills label={L('¿Qué tienda hace tu envío?', 'Which store handles your transfer?')} options={storeOptions(sendStores, L('Cerrada', 'Closed'), scores)} value={storeId} onChange={setStoreId} />
+            {tried && errs.store ? <Note kind="red">{errs.store}</Note> : null}
+          </Card>
+        ) : tried && errs.store ? <Note kind="red">{errs.store}</Note> : null}
+        <Card style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
+          <Icon n="shield" size={16} color={C.muted} />
+          <P small muted style={{ flex: 1 }}>{L(`Hasta ${money(num(cfg.limit_l1))} sin identificación. Con tu ID verificada puedes mandar hasta ${money(num(cfg.limit_l2))}.`, `Up to ${money(num(cfg.limit_l1))} without ID. With a verified ID you can send up to ${money(num(cfg.limit_l2))}.`)}</P>
         </Card>
-      ) : tried && errs.store ? <Note kind="red">{errs.store}</Note> : null}
-      <Note kind="gold" icon="shield">{L('El tipo de cambio queda fijo en el momento en que mandas tu pedido.', 'The rate is locked in when you send your order.')}</Note>
-    </Screen>
+      </>,
+      <Row style={{ flexWrap: 'nowrap' }}>
+        <Btn kind="ghost" title={L('Atrás', 'Back')} onPress={() => go(2)} />
+        <Btn title={L('Siguiente', 'Next')} style={{ flex: 1 }} onPress={() => { setTried(true); if (!errs.store) go(4); }} />
+      </Row>,
+    );
+
+  // 4 · Pagar
+  return shell(
+    4,
+    <>
+      <Card style={{ gap: 8 }}>
+        {[
+          [L('Envías', 'You send'), money(amt)],
+          [L('Comisión', 'Fee'), money(fee)],
+          [`${b ? b.nombre : ''} ${L('recibe', 'receives')}`, recv],
+        ].map(([k, v]) => (
+          <Row key={k} style={{ justifyContent: 'space-between' }}>
+            <Text style={{ color: C.ink }}>{k}</Text>
+            <Text style={{ fontWeight: '800', color: C.ink }}>{v}</Text>
+          </Row>
+        ))}
+        <Row style={{ justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: C.line, paddingTop: 8 }}>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: C.ink }}>{L('Total a pagar', 'Total to pay')}</Text>
+          <Text style={{ fontSize: 20, fontWeight: '900', color: C.ink }}>{money(amt + fee)}</Text>
+        </Row>
+      </Card>
+      <P small muted>{L('En el siguiente paso ves a dónde mandar tu Zelle. El tipo de cambio queda fijo al mandar tu pedido.', 'Next you will see where to send your Zelle. The rate is locked when you send your order.')}</P>
+      {ptsGain > 0 ? (
+        <Row gap={6}>
+          <Icon n="gift" size={18} color={C.goldInk} />
+          <Text style={{ fontWeight: '800', fontSize: 13, color: C.goldInk }}>{L(`Ganas +${ptsGain} puntos con este envío`, `You earn +${ptsGain} points with this transfer`)}</Text>
+        </Row>
+      ) : null}
+      {tried && (errs.b || errs.monto || errs.store) ? <Note kind="red">{errs.b || errs.monto || errs.store}</Note> : null}
+    </>,
+    <Row style={{ flexWrap: 'nowrap' }}>
+      <Btn kind="ghost" title={L('Atrás', 'Back')} onPress={() => go(3)} />
+      <Btn title={L('Pagar con Zelle', 'Pay with Zelle')} icon="arrow" style={{ flex: 1 }} onPress={next} />
+    </Row>,
   );
 }

@@ -44,6 +44,7 @@ export default function Estadisticas() {
   const [rows, setRows] = useState<Order[] | null>(null);
   const [mes, setMes] = useState<Order[]>([]);
   const [goal, setGoal] = useState('');
+  const [d28, setD28] = useState<Order[]>([]);
 
   const load = useCallback(() => {
     if (!st) return;
@@ -53,6 +54,7 @@ export default function Estadisticas() {
     base().gte('paid_at', r.pa.toISOString()).lte('paid_at', r.b.toISOString()).limit(5000).then(({ data }) => setRows((data as Order[]) ?? []));
     const now = new Date();
     base().gte('paid_at', new Date(now.getFullYear(), now.getMonth(), 1).toISOString()).limit(5000).then(({ data }) => setMes((data as Order[]) ?? []));
+    base().gte('paid_at', new Date(Date.now() - 28 * DAY).toISOString()).limit(5000).then(({ data }) => setD28((data as Order[]) ?? []));
   }, [st, per]);
   useFocusEffect(load);
 
@@ -172,6 +174,32 @@ export default function Estadisticas() {
               )) : <P muted>{L('Sin ventas en este periodo.', 'No sales in this period.')}</P>}
             </Card>
           </Row>
+
+          {(() => {
+            const day0 = new Date(); day0.setHours(0, 0, 0, 0);
+            const A = Array.from({ length: 14 }, (_, i) => { const a = day0.getTime() - (13 - i) * DAY; return sum(d28.filter((o) => paid(o) >= a && paid(o) < a + DAY)); });
+            const B = Array.from({ length: 14 }, (_, i) => { const a = day0.getTime() - (27 - i) * DAY; return sum(d28.filter((o) => paid(o) >= a && paid(o) < a + DAY)); });
+            const mx = Math.max(1, ...A, ...B);
+            const back = new Set(cur.map((o) => o.user_id)).size;
+            const repeat = (() => { const by: Record<string, number> = {}; cur.forEach((o) => { if (o.user_id) by[o.user_id] = (by[o.user_id] || 0) + 1; }); const u = Object.values(by); return u.length ? Math.round((u.filter((n) => n > 1).length / u.length) * 100) : 0; })();
+            return (
+              <Card>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <H2>{L('Ventas por día · 14 días', 'Sales per day · 14 days')}</H2>
+                  <P small muted>{L(`${back} clientes · ${repeat}% regresan`, `${back} customers · ${repeat}% return`)}</P>
+                </Row>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 4, height: 140 }}>
+                  {A.map((v, i) => (
+                    <View key={i} style={{ flex: 1, height: '100%', justifyContent: 'flex-end', alignItems: 'center' }}>
+                      <View style={{ position: 'absolute', bottom: `${(B[i] / mx) * 100}%`, width: 7, height: 7, borderRadius: 4, backgroundColor: '#62BDF6', borderWidth: 1, borderColor: '#0B2E5E', zIndex: 2 }} />
+                      <View accessibilityLabel={`${money(v)} vs ${money(B[i])}`} style={{ width: '70%', height: `${Math.max(1, (v / mx) * 100)}%`, borderTopLeftRadius: 4, borderTopRightRadius: 4, backgroundColor: C.brown }} />
+                    </View>
+                  ))}
+                </View>
+                <P small muted>{L('■ estos 14 días · ● los 14 anteriores', '■ last 14 days · ● previous 14')}</P>
+              </Card>
+            );
+          })()}
 
           <Card>
             <H2>{L('¿A qué hora llega más gente?', 'When are you busiest?')}</H2>

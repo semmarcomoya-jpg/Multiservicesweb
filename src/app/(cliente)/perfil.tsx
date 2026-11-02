@@ -25,6 +25,15 @@ export default function Perfil() {
   const { profile, refreshProfile, signOut, session } = useAuth();
   const { data: stores } = useStores();
   const { balance } = useMyPoints(profile?.id);
+  // Lo que ha mandado por mes (últimos 6 meses)
+  const [sent, setSent] = useState<{ total: number; created_at: string }[]>([]);
+  useEffect(() => {
+    if (!profile?.id) return;
+    const from = new Date();
+    from.setMonth(from.getMonth() - 5, 1);
+    supabase.from('orders').select('total, created_at').eq('user_id', profile.id).eq('kind', 'send').neq('status', 'rechazado').gte('created_at', from.toISOString()).limit(500)
+      .then(({ data }) => setSent((data as { total: number; created_at: string }[]) ?? []));
+  }, [profile?.id]);
   const [f, setF] = useState({ nombre: '', apellidos: '', telefono: '', fecha_nac: '', store_id: '' as string | null, pais: '' as string, estado: '' });
   const [msg, setMsg] = useState('');
   const [tab, setTab] = useState<'res' | 'pts' | 'cred' | 'ajustes'>('res');
@@ -204,6 +213,32 @@ export default function Perfil() {
       ) : null}
 
       {tab === 'res' ? (<>
+      {(() => {
+        const now = new Date();
+        const months = Array.from({ length: 6 }, (_, i) => new Date(now.getFullYear(), now.getMonth() - 5 + i, 1));
+        const vals = months.map((m) => sent.filter((o) => { const d = new Date(o.created_at); return d.getFullYear() === m.getFullYear() && d.getMonth() === m.getMonth(); }).reduce((a, o) => a + Number(o.total), 0));
+        const mx = Math.max(1, ...vals);
+        const tot = vals.reduce((a, v) => a + v, 0);
+        if (!tot) return null;
+        return (
+          <Card style={{ gap: 8 }}>
+            <Row style={{ justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 16.5, fontWeight: '900', color: C.ink }}>{L('Lo que has mandado', 'What you have sent')}</Text>
+              <P small muted>{L('últimos 6 meses', 'last 6 months')}</P>
+            </Row>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: 8, height: 96 }}>
+              {months.map((m, i) => (
+                <View key={i} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 4, height: '100%' }}>
+                  <View accessibilityLabel={`${m.toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US', { month: 'short' })}: ${vals[i].toFixed(2)}`}
+                    style={{ width: '100%', height: `${Math.max(3, (vals[i] / mx) * 78)}%`, borderTopLeftRadius: 6, borderTopRightRadius: 6, borderBottomLeftRadius: 2, borderBottomRightRadius: 2, backgroundColor: i === 5 ? C.gold : C.brown }} />
+                  <Text style={{ fontSize: 11, fontWeight: '800', color: C.muted }}>{m.toLocaleDateString(lang === 'es' ? 'es-MX' : 'en-US', { month: 'short' }).replace('.', '')}</Text>
+                </View>
+              ))}
+            </View>
+            <P small muted>{L(`Total: $${tot.toFixed(2)}`, `Total: $${tot.toFixed(2)}`)}</P>
+          </Card>
+        );
+      })()}
       <SpecialDays />
       {profile.id_status !== 'verificada' ? (
         <Pressable accessibilityRole="button" onPress={() => router.push('/identidad')}

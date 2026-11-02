@@ -9,6 +9,7 @@ import { Icon, LangToggle, Row, ChipScroll } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useStores } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
+import { openState } from '@/lib/hours';
 import { errMsg, supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
 import type { Store } from '@/lib/types';
@@ -49,7 +50,7 @@ export function staffStores(profile: { role: string; store_id: string | null; st
 
 /** Interruptor grande para abrir o cerrar la tienda (no recibe pedidos nuevos mientras está cerrada). */
 export function OpenSwitch({ store, onChanged, compact }: { store: Store; onChanged?: () => void; compact?: boolean }) {
-  const { L } = useLang();
+  const { L, lang } = useLang();
   const [open, setOpen] = useState(store.abierta !== false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
@@ -79,7 +80,7 @@ export function OpenSwitch({ store, onChanged, compact }: { store: Store; onChan
         <View style={{ width: compact ? 14 : 18, height: compact ? 14 : 18, borderRadius: 9, backgroundColor: '#fff', transform: [{ translateX: open ? (compact ? 14 : 18) : 0 }] }} />
       </View>
       <Text style={{ fontWeight: '900', fontSize: compact ? 13 : 14, color: open ? '#1E5B35' : C.red }}>
-        {err ? err : compact ? (open ? L('Abierta', 'Open') : L('Cerrada', 'Closed')) : open ? L('Abierta · recibe pedidos', 'Open · taking orders') : L('Cerrada · no recibe pedidos', 'Closed · no new orders')}
+        {err ? err : compact ? (open ? L('Abierta', 'Open') : L('Cerrada', 'Closed')) : open ? (openState({ ...store, abierta: true }).open ? openState({ ...store, abierta: true }).label[lang] + L(' · recibe pedidos', ' · taking orders') : L('Abierta · fuera de horario', 'Open · outside hours')) : L('Cerrada · no recibe pedidos', 'Closed · no new orders')}
       </Text>
     </Pressable>
   );
@@ -200,7 +201,7 @@ export function usePanelLinks(kind: 'tienda' | 'admin'): [string, Link[]][] {
   return kind === 'tienda'
     ? [
         [L('Operación', 'Operations'), [
-          ['/tienda', L('Pedidos', 'Orders'), 'receipt'],
+          ['/tienda', L('Hoy', 'Today'), 'grid'],
           ['/tienda/mostrador', L('Mostrador', 'Counter'), 'qr'],
           ['/tienda/creditos', L('Créditos', 'Credits'), 'wallet'],
           ['/tienda/corte', L('Ventas y corte', 'Sales & close-out'), 'cash'],
@@ -222,7 +223,7 @@ export function usePanelLinks(kind: 'tienda' | 'admin'): [string, Link[]][] {
         ]],
       ]
     : [
-        [L('Resumen', 'Overview'), [['/admin', L('Ventas', 'Sales'), 'chart']]],
+        [L('Resumen', 'Overview'), [['/admin', L('Resumen', 'Overview'), 'grid']]],
         [L('Catálogo', 'Catalog'), [
           ['/admin/servicios', L('Servicios', 'Services'), 'tool'],
           ['/admin/productos', L('Productos', 'Products'), 'bag'],

@@ -7,9 +7,11 @@ import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Image, Platform, Pressable, View } from 'react-native';
 import { renderTextStory, shareBlob, TEXT_BGS } from '@/lib/textStory';
+import { Scene } from '@/components/scenes';
+import { useSettings } from '@/lib/data';
 
 import { Text } from '@/components/Text';
-import { Btn, Card, Empty, Field, H2, Icon, Label, Loading, Note, P, Pills, Row, SearchBox, matches } from '@/components/ui';
+import { Btn, Card, Empty, Field, H2, Icon, Label, Loading, Note, P, Pills, Row, SearchBox, Seg, matches } from '@/components/ui';
 import { prodName, useProducts, useServices } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
 import { expiresFor, hoursLeft, MAX_STORY_BYTES, mediaTypeOf, storyStatus, type StoryDuration } from '@/lib/stories';
@@ -76,6 +78,7 @@ function NewStory({ storeId, admin, stores, onDone }: { storeId: string | null; 
   const { data: products } = useProducts(target === 'all' ? null : target);
   const [media, setMedia] = useState<Picked | null>(null);
   const [mode, setMode] = useState<'media' | 'text'>('media');
+  const { data: cfg } = useSettings();
   const [txt, setTxt] = useState('');
   const [bgId, setBgId] = useState(TEXT_BGS[0].id);
   const footer = (admin || !storeId ? 'Castillo Multiservices' : (stores.find((s) => s.id === storeId)?.nombre || 'Castillo Multiservices'));
@@ -164,15 +167,28 @@ function NewStory({ storeId, admin, stores, onDone }: { storeId: string | null; 
     <Card>
       <H2>{L('Nueva historia', 'New story')}</H2>
       <P small>{L('Foto o video corto en vertical (como TikTok). Tus clientes la ven arriba en Inicio y se abre sola al entrar.', 'Short vertical photo or video (like TikTok). Customers see it at the top of Home and it opens on its own.')}</P>
+      {Platform.OS === 'web' && cfg?.exchange_rate ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 10, borderRadius: 14, backgroundColor: '#FFF2D6', borderWidth: 1, borderColor: '#F2D48F' }}>
+          <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}><Scene n="envio" size={40} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '800', color: '#3B2600' }}>{L(`Hoy el dólar está en $${Number(cfg.exchange_rate).toFixed(2)}`, `Today's rate is $${Number(cfg.exchange_rate).toFixed(2)}`)}</Text>
+            <P small style={{ color: '#5A3B00' }}>{L('Publícalo: los envíos suben cuando el tipo de cambio mejora.', 'Post it: transfers go up when the rate improves.')}</P>
+          </View>
+          <Btn small title={L('Usar esta idea', 'Use this idea')} onPress={() => { setMode('text'); setTxt(L(`Hoy el dólar está en $${Number(cfg.exchange_rate).toFixed(2)}. ¡Manda hoy, tu familia recibe más!`, `Today's rate: $${Number(cfg.exchange_rate).toFixed(2)}. Send today!`)); setLink('send'); }} />
+        </View>
+      ) : null}
       {Platform.OS === 'web' ? (
-        <Pills options={[{ v: 'media' as const, label: L('Foto o video', 'Photo or video'), icon: 'camera' }, { v: 'text' as const, label: L('Solo texto', 'Text only'), icon: 'edit' }]} value={mode} onChange={setMode} />
+        <Seg options={[{ v: 'media' as const, label: L('Foto o video', 'Photo or video') }, { v: 'text' as const, label: L('Solo texto', 'Text only') }]} value={mode} onChange={setMode} />
       ) : null}
       {mode === 'text' ? (
         <View style={{ gap: 10 }}>
           <Row style={{ alignItems: 'flex-start' }}>
+            <View style={{ gap: 6, alignItems: 'center' }}>
+            <Text style={{ fontSize: 12, fontWeight: '800', color: C.muted }}>{L('Así la ven', 'Preview')}</Text>
             <View style={{ width: 200, aspectRatio: 9 / 16, borderRadius: R.lg, overflow: 'hidden', backgroundColor: bg.a, alignItems: 'center', justifyContent: 'center', padding: 16, ...(Platform.OS === 'web' ? ({ backgroundImage: `linear-gradient(135deg, ${bg.a}, ${bg.b})` } as object) : {}) }}>
               <Text style={{ color: bg.ink, fontWeight: '900', fontSize: txt.length > 80 ? 16 : txt.length > 40 ? 20 : 24, textAlign: 'center' }}>{txt || L('Tu mensaje aquí', 'Your message here')}</Text>
               <Text style={{ position: 'absolute', bottom: 14, color: bg.ink, opacity: 0.85, fontSize: 9, fontWeight: '800' }}>{footer}</Text>
+            </View>
             </View>
             <View style={{ flex: 1, minWidth: 220, gap: 10 }}>
               <Field label={L('Texto', 'Text')} value={txt} onChangeText={setTxt} multiline maxLength={160} placeholder={L('Ej. ¡Hoy el dólar a 18.50! Ven por tu envío.', 'E.g. Great rate today! Come send money.')} />

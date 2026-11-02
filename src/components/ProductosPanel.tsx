@@ -4,6 +4,7 @@ import { Image, Linking, Pressable, View } from 'react-native';
 
 import { setAdminStore, usePanelStore } from '@/components/panel';
 import { Text } from '@/components/Text';
+import { Scene } from '@/components/scenes';
 import { Btn, Card, Empty, Field, H2, IcoBox, Icon, Loading, matches, Note, P, Pills, Row, Screen, SearchBox, Toggle } from '@/components/ui';
 import { modOn, prodName, storeShort, useFamilies, useProducts, useStores } from '@/lib/data';
 import { digits, money } from '@/lib/format';
@@ -100,6 +101,19 @@ export function ProductosPanel({ admin }: { admin?: boolean }) {
             </P>
             <Btn icon="plus" title={L('Dar de alta un producto', 'Add a product')} onPress={() => { setMsg(''); setEdit('new'); }} />
           </Row>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+            {[
+              [L('Piezas en existencia', 'Units in stock'), String((products || []).reduce((x, p) => x + p.product_variants.filter((v) => v.activo).reduce((y, v) => y + v.stock, 0), 0))],
+              [L('Inventario a costo', 'Inventory at cost'), money((products || []).reduce((x, p) => x + p.product_variants.reduce((y, v) => y + v.stock * (Number(costs[v.id]?.costo) || 0), 0), 0))],
+              [L('Por resurtir', 'To restock'), String(lowCount)],
+              [L('Productos prendidos', 'Products on'), L(`${onCount} de ${products?.length || 0}`, `${onCount} of ${products?.length || 0}`)],
+            ].map(([t, v]) => (
+              <View key={t} style={{ flexGrow: 1, flexBasis: 150, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, borderRadius: 14, paddingVertical: 9, paddingHorizontal: 12 }}>
+                <Text style={{ fontSize: 12, fontWeight: '800', color: C.muted }}>{t}</Text>
+                <Text style={{ fontSize: 22, fontWeight: '900', color: C.ink }}>{v}</Text>
+              </View>
+            ))}
+          </View>
           <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca marca, modelo o variante', 'Search brand, model or variant')} count={q ? list.length : undefined} />
           <Pills options={[{ v: 'all', label: L('Todo', 'All') }, ...(lowCount ? [{ v: 'low', label: L(`Por resurtir (${lowCount})`, `Restock (${lowCount})`), icon: 'box' }] : []), ...fams.map((f) => ({ v: f.id, label: nm(f), icon: f.icon }))]} value={fam} onChange={setFam} />
           {err ? <Note kind="red">{err}</Note> : null}
@@ -109,7 +123,7 @@ export function ProductosPanel({ admin }: { admin?: boolean }) {
             <Card key={p.id} style={{ opacity: p.activo ? 1 : 0.75 }}>
               <Row gap={12} style={{ flexWrap: 'nowrap', alignItems: 'flex-start' }}>
                 <View style={{ width: 64, height: 64, borderRadius: R.md, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-                  {p.foto_url ? <Image source={{ uri: p.foto_url }} style={{ width: 64, height: 64 }} resizeMode="contain" /> : <IcoBox n={fams.find((f) => f.id === p.family_id)?.icon || 'bag'} size={40} />}
+                  {p.foto_url ? <Image source={{ uri: p.foto_url }} style={{ width: 64, height: 64 }} resizeMode="contain" /> : <Scene n={p.family_id === 'cel' ? 'celular' : p.family_id === 'chip' ? 'recarga' : p.family_id === 'reg' ? 'puntos' : 'funda'} size={60} />}
                 </View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={{ fontWeight: '900', fontSize: 16, color: C.ink }}>{prodName(p)}</Text>
