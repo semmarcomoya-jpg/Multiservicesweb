@@ -45,9 +45,9 @@ const DARK: Partial<typeof C> = {
 };
 export function getThemePref(): ThemePref {
   try {
-    if (typeof localStorage !== 'undefined') return (localStorage.getItem(THEME_KEY) as ThemePref) || 'auto';
+    if (typeof localStorage !== 'undefined') return (localStorage.getItem(THEME_KEY) as ThemePref) || 'light';
   } catch {}
-  return 'auto';
+  return 'light';
 }
 export function setThemePref(p: ThemePref) {
   try {
