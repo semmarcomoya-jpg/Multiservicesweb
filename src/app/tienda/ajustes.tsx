@@ -3,6 +3,7 @@ import { Platform, View } from 'react-native';
 
 import { usePanelStore } from '@/components/panel';
 import { QrCode } from '@/components/Qr';
+import { PushCard } from '@/components/PushCard';
 import { StoreForm } from '@/components/StoreForm';
 import { Text } from '@/components/Text';
 import { Btn, Card, Empty, H2, Loading, P, Pills, Row, Screen } from '@/components/ui';
@@ -57,11 +58,13 @@ export default function MiTienda() {
         <P small muted>{L('Deja la pestaña de Pedidos abierta para escucharlo.', 'Keep the Orders tab open to hear it.')}</P>
       </Card>
 
+      <PushCard />
+
       <Card>
         <H2>{L('Cartel con QR para el mostrador', 'Counter QR sign')}</H2>
         <P small muted>{L('Imprímelo y pégalo en la tienda. Al escanearlo, el cliente ve la ficha de esta sucursal con sus servicios, horario y reseñas.', 'Print it and put it up in the store. Scanning it opens this branch page with services, hours and reviews.')}</P>
         <View nativeID="cartel-qr" style={{ alignSelf: 'center', alignItems: 'center', gap: 10, padding: 22, borderRadius: R.lg, borderWidth: 3, borderColor: C.brown, backgroundColor: '#fff', maxWidth: 360 }}>
-          <Text style={{ fontWeight: '900', fontSize: 22, color: C.brownDark, textAlign: 'center' }}>{L('¡Escanéame!', 'Scan me!')}</Text>
+          <Text style={{ fontWeight: '900', fontSize: 22, color: C.strong, textAlign: 'center' }}>{L('¡Escanéame!', 'Scan me!')}</Text>
           <Text style={{ fontWeight: '700', color: C.ink, textAlign: 'center' }}>{L('Envíos, pagos, recargas y más desde tu celular', 'Transfers, payments, top-ups and more from your phone')}</Text>
           <QrCode value={link} size={220} />
           <Text style={{ fontWeight: '900', color: C.ink }}>{storeShort(st)}</Text>

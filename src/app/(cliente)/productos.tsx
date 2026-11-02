@@ -99,7 +99,7 @@ export default function Productos() {
                 {p.foto_url ? <Image source={{ uri: p.foto_url }} style={{ width: '100%', height: '100%' }} resizeMode="cover" /> : <IcoBox n={famIcon} size={56} />}
               </View>
               <Text style={{ fontWeight: '900', color: C.ink }} numberOfLines={2}>{prodName(p)}</Text>
-              <Text style={{ fontWeight: '900', color: C.brownDark }}>{L('Desde ', 'From ') + money(prodFrom(p))}</Text>
+              <Text style={{ fontWeight: '900', color: C.strong }}>{L('Desde ', 'From ') + money(prodFrom(p))}</Text>
               <P small muted>{stock > 0 ? L(`${stock} disponibles`, `${stock} in stock`) : L('Agotado', 'Sold out')}</P>
             </Pressable>
           );

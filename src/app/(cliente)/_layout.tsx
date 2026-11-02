@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { cartCount, useCart } from '@/lib/cart';
 import { modOn, useStores } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
+import { useActiveOrderCount } from '@/lib/myorders';
 import { C } from '@/lib/theme';
 
 export default function ClienteLayout() {
@@ -16,6 +17,7 @@ export default function ClienteLayout() {
   const cart = useCart();
   const shop = (stores || []).some((st) => st.activo && modOn(st, 'shop'));
   const n = cartCount(cart);
+  const act = useActiveOrderCount();
   if (loading) return <Loading />;
   if (!session) return <Redirect href="/bienvenida" />;
   const tab = (n: string) => ({ color }: { color: unknown }) => <Icon n={n} size={22} color={String(color)} />;
@@ -26,7 +28,8 @@ export default function ClienteLayout() {
         tabBarActiveTintColor: C.brown,
         tabBarInactiveTintColor: C.muted,
         tabBarStyle: { backgroundColor: C.card, borderTopColor: '#E1E9F3', height: 74, paddingBottom: 10, paddingTop: 8 },
-        tabBarLabelStyle: { fontFamily: 'Nunito_800ExtraBold', fontSize: 11 },
+        tabBarLabelStyle: { fontFamily: 'Nunito_800ExtraBold', fontSize: 10.5 },
+        tabBarBadgeStyle: { backgroundColor: C.red, color: '#fff', fontSize: 10 },
         sceneStyle: { backgroundColor: C.page },
       }}
     >
@@ -34,6 +37,7 @@ export default function ClienteLayout() {
       <Tabs.Screen name="enviar" options={{ title: L('Enviar', 'Send'), tabBarIcon: tab('send') }} />
       <Tabs.Screen name="servicios" options={{ title: L('Servicios', 'Services'), tabBarIcon: tab('tool') }} />
       <Tabs.Screen name="productos" options={{ title: L('Tienda', 'Shop'), tabBarIcon: tab('bag'), href: shop ? undefined : null, tabBarBadge: n ? n : undefined }} />
+      <Tabs.Screen name="pedidos" options={{ title: L('Pedidos', 'Orders'), tabBarIcon: tab('receipt'), tabBarBadge: act ? act : undefined }} />
       <Tabs.Screen name="perfil" options={{ title: L('Perfil', 'Profile'), tabBarIcon: tab('user') }} />
     </Tabs>
   );

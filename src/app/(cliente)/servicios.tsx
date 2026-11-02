@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
@@ -18,7 +18,9 @@ export default function Servicios() {
   const { data: cats } = useCategories();
   const { data: services, loading } = useServices();
   const { data: stores } = useStores();
-  const [cat, setCat] = useState<string>('all');
+  const params = useLocalSearchParams<{ cat?: string }>();
+  const [cat, setCat] = useState<string>(typeof params.cat === 'string' && params.cat ? params.cat : 'all');
+  React.useEffect(() => { if (typeof params.cat === 'string' && params.cat) setCat(params.cat); }, [params.cat]);
   const [q, setQ] = useState('');
   const { modeLabel } = useOrderText();
 

@@ -49,7 +49,7 @@ export function Destacados({ items }: { items: FeaturedItem[] }) {
                 ) : null}
               </View>
               <Text style={{ fontWeight: '800', color: C.ink, fontSize: 13 }} numberOfLines={2}>{title}</Text>
-              <Text style={{ fontWeight: '900', color: C.brownDark, fontSize: 13 }} numberOfLines={1}>{price}</Text>
+              <Text style={{ fontWeight: '900', color: C.strong, fontSize: 13 }} numberOfLines={1}>{price}</Text>
             </Pressable>
           );
         })}

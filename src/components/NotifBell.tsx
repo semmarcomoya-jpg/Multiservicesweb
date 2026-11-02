@@ -33,7 +33,7 @@ export function NotifBell({ glass = false }: { glass?: boolean }) {
         borderRadius: 21,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: glass ? 'rgba(255,255,255,0.85)' : C.card,
+        backgroundColor: glass ? C.glass : C.card,
         borderWidth: glass ? 0 : 1,
         borderColor: C.line,
         opacity: pressed ? 0.8 : 1,

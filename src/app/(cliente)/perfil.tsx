@@ -15,14 +15,17 @@ import { SpecialDays } from '@/components/SpecialDays';
 import { digits } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
-import { C, R } from '@/lib/theme';
+import { C, R, getThemePref, setThemePref, type ThemePref } from '@/lib/theme';
+import { PushCard } from '@/components/PushCard';
 
 export default function Perfil() {
-  const { L, lang } = useLang();
+  const { L, lang, setLang } = useLang();
   const { profile, refreshProfile, signOut, session } = useAuth();
   const { data: stores } = useStores();
   const [f, setF] = useState({ nombre: '', apellidos: '', telefono: '', fecha_nac: '', store_id: '' as string | null, pais: '' as string, estado: '' });
   const [msg, setMsg] = useState('');
+  const [tab, setTab] = useState<'res' | 'datos' | 'ajustes'>('res');
+  const [themePref, setThemeP] = useState<ThemePref>(getThemePref());
   const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [fotoBusy, setFotoBusy] = useState(false);
@@ -123,7 +126,6 @@ export default function Perfil() {
     <Screen wall="profile">
       <TopBar />
       <H1>{L('Mi perfil', 'My profile')}</H1>
-      <SpecialDays />
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
         <Pressable accessibilityRole="button" accessibilityLabel={L('Cambiar foto de perfil', 'Change profile photo')} onPress={() => cambiarFoto()} disabled={fotoBusy}>
           <Avatar name={`${profile.nombre} ${profile.apellidos}`} size={84} uri={profile.foto_url} />
@@ -140,6 +142,18 @@ export default function Perfil() {
           {fotoErr ? <P small style={{ color: C.red }}>{fotoErr}</P> : <P small muted>{L('Así te reconocen en la tienda.', 'So the store recognizes you.')}</P>}
         </View>
       </Card>
+      <Pills
+        options={[
+          { v: 'res' as const, label: L('Resumen', 'Overview') },
+          { v: 'datos' as const, label: L('Mis datos', 'My info') },
+          { v: 'ajustes' as const, label: L('Ajustes', 'Settings') },
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
+
+      {tab === 'res' ? (<>
+      <SpecialDays />
       <View style={{ backgroundColor: C.brown, borderRadius: R.xl, padding: 18, gap: 4 }}>
         <Text style={{ color: C.goldSoft, fontWeight: '700' }}>{L('Tu número de cliente', 'Your member number')}</Text>
         <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: 1 }}>{profile.member_code}</Text>
@@ -156,6 +170,18 @@ export default function Perfil() {
         </Card>
       ) : null}
 
+      <Card>
+        <Btn kind="ghost" icon="qr" title={L('Mi tarjeta', 'My card')} onPress={() => router.push('/tarjeta')} />
+        <Btn kind="ghost" icon="star" title={L('Mis puntos', 'My points')} onPress={() => router.push('/puntos')} />
+        <Btn kind="ghost" icon="wallet" title={L('Mi crédito y apartados', 'My credit & layaways')} onPress={() => router.push('/credito')} />
+        <Btn kind="ghost" icon="chart" title={L('Mis cuentas', 'My accounts')} onPress={() => router.push('/cuentas')} />
+        <Btn kind="ghost" icon="receipt" title={L('Mis pedidos', 'My orders')} onPress={() => router.push('/pedidos')} />
+        <Btn kind="ghost" icon="users" title={L('Mis personas', 'My people')} onPress={() => router.push('/beneficiarios')} />
+        <Btn kind="ghost" icon="chat" title={L('Boca a boca', 'Word of mouth')} onPress={() => router.push('/comunidad')} />
+      </Card>
+      </>) : null}
+
+      {tab === 'datos' ? (<>
       <Card>
         <Row style={{ alignItems: 'flex-start' }}>
           <Field label={L('Nombre', 'First name')} value={f.nombre} onChangeText={set('nombre')} />
@@ -185,14 +211,25 @@ export default function Perfil() {
         {profile.id_status !== 'verificada' ? <Btn kind="ghost" icon="id" title={profile.id_status === 'pendiente' ? L('Ver estado', 'See status') : L('Verificar mi identidad', 'Verify my identity')} onPress={() => router.push('/identidad')} /> : null}
       </Card>
 
+      </>) : null}
+
+      {tab === 'ajustes' ? (<>
       <Card>
-        <Btn kind="ghost" icon="qr" title={L('Mi tarjeta', 'My card')} onPress={() => router.push('/tarjeta')} />
-        <Btn kind="ghost" icon="star" title={L('Mis puntos', 'My points')} onPress={() => router.push('/puntos')} />
-        <Btn kind="ghost" icon="wallet" title={L('Mi crédito y apartados', 'My credit & layaways')} onPress={() => router.push('/credito')} />
-        <Btn kind="ghost" icon="chart" title={L('Mis cuentas', 'My accounts')} onPress={() => router.push('/cuentas')} />
-        <Btn kind="ghost" icon="receipt" title={L('Mis pedidos', 'My orders')} onPress={() => router.push('/pedidos')} />
-        <Btn kind="ghost" icon="users" title={L('Mis personas', 'My people')} onPress={() => router.push('/beneficiarios')} />
-        <Btn kind="ghost" icon="chat" title={L('Boca a boca', 'Word of mouth')} onPress={() => router.push('/comunidad')} />
+        <Pills label={L('Idioma', 'Language')} options={[{ v: 'es' as const, label: 'Español' }, { v: 'en' as const, label: 'English' }]} value={lang} onChange={setLang} />
+        <Pills
+          label={L('Colores de la app', 'App colors')}
+          options={[
+            { v: 'auto' as ThemePref, label: L('Como mi celular', 'Like my phone') },
+            { v: 'light' as ThemePref, label: L('Claro', 'Light') },
+            { v: 'dark' as ThemePref, label: L('Modo noche', 'Dark') },
+          ]}
+          value={themePref}
+          onChange={(v) => { setThemeP(v); setThemePref(v); }}
+        />
+        <P small muted>{L('Se guarda en este celular. Al cambiarlo, la app se recarga.', 'Saved on this phone. Changing it reloads the app.')}</P>
+      </Card>
+      <PushCard />
+      <Card>
         <Btn kind="ghost" icon="doc" title={L('Ayuda y términos', 'Help & terms')} onPress={() => router.push('/ayuda')} />
         <Btn kind="ghost" icon="star" title={L('Ver la guía de bienvenida', 'See the welcome guide')} onPress={() => { resetTour(); router.push({ pathname: '/inicio', params: { tour: '1' } }); }} />
         <Btn
@@ -205,6 +242,7 @@ export default function Perfil() {
           }}
         />
       </Card>
+      </>) : null}
     </Screen>
   );
 }

@@ -114,7 +114,7 @@ export function OrderStatusCard({ o }: { o: Order }) {
           style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 54, borderRadius: 999, borderWidth: 2, borderColor: C.brownDark, backgroundColor: on ? C.blueSoft : 'transparent', paddingHorizontal: 16 }}
         >
           <Icon n={on ? 'check' : 'bell'} size={20} color={C.brownDark} />
-          <Text style={{ fontWeight: '900', color: C.brownDark, fontSize: 15, textAlign: 'center', flexShrink: 1 }}>
+          <Text style={{ fontWeight: '900', color: C.strong, fontSize: 15, textAlign: 'center', flexShrink: 1 }}>
             {on ? L('Te avisaremos en este teléfono', "We'll notify you on this phone") : L('Avisarme en este teléfono cuando esté listo', 'Notify me on this phone when ready')}
           </Text>
         </Pressable>

@@ -67,7 +67,7 @@ export function BrandChip({ full = false }: { full?: boolean; name?: string }) {
   const { brand } = useBranding();
   const name = full ? brand.nombre : brand.corto || brand.nombre;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingLeft: 6, paddingRight: 12, borderRadius: R.pill, backgroundColor: 'rgba(255,255,255,0.92)' }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingLeft: 6, paddingRight: 12, borderRadius: R.pill, backgroundColor: C.glass }}>
       <BrandMark size={30} />
       <Text style={{ fontWeight: '800', fontSize: 14, color: C.ink }}>{name}</Text>
     </View>
@@ -456,9 +456,9 @@ export const Loading = () => (
 export function LangToggle({ glass = false }: { glass?: boolean }) {
   const { lang, setLang } = useLang();
   return (
-    <View style={[s.seg, glass && { backgroundColor: 'rgba(255,255,255,0.85)' }]} accessibilityRole="radiogroup" accessibilityLabel="Idioma / Language">
+    <View style={[s.seg, glass && { backgroundColor: C.glass }]} accessibilityRole="radiogroup" accessibilityLabel="Idioma / Language">
       {(['es', 'en'] as const).map((l) => (
-        <Pressable key={l} accessibilityRole="radio" accessibilityState={{ checked: lang === l }} onPress={() => setLang(l)} style={[s.segBtn, lang === l && { backgroundColor: C.ink }]}>
+        <Pressable key={l} accessibilityRole="radio" accessibilityState={{ checked: lang === l }} onPress={() => setLang(l)} style={[s.segBtn, lang === l && { backgroundColor: C.sel }]}>
           <Text style={{ fontWeight: '900', color: lang === l ? '#fff' : C.segInk }}>{l.toUpperCase()}</Text>
         </Pressable>
       ))}

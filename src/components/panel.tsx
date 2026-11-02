@@ -101,7 +101,7 @@ export function ViewSwitch({ current, compact }: { current: 'cliente' | 'tienda'
         const on = k === current;
         return (
           <Pressable key={k} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => !on && router.replace(href as never)}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: compact ? 34 : 38, paddingHorizontal: compact ? 11 : 16, borderRadius: R.pill, backgroundColor: on ? C.ink : 'transparent' }}>
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: compact ? 34 : 38, paddingHorizontal: compact ? 11 : 16, borderRadius: R.pill, backgroundColor: on ? C.sel : 'transparent' }}>
             {compact ? null : <Icon n={ic} size={16} color={on ? '#fff' : C.segInk} />}
             <Text style={{ fontWeight: '800', color: on ? '#fff' : C.segInk }}>{label}</Text>
           </Pressable>
@@ -179,7 +179,7 @@ export function PanelHeader({ kind, store, stores, onStoreChange }: { kind: 'tie
             const on = path === href;
             return (
               <Pressable key={href} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => router.replace(href as never)}
-                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, minHeight: 40, borderRadius: 12, backgroundColor: on ? C.ink : 'transparent' }}>
+                style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 14, minHeight: 40, borderRadius: 12, backgroundColor: on ? C.sel : 'transparent' }}>
                 <Icon n={ic} size={16} color={on ? '#fff' : C.segInk} />
                 <Text style={{ fontWeight: '800', color: on ? '#fff' : C.segInk }}>{label}</Text>
               </Pressable>

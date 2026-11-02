@@ -29,7 +29,7 @@ function Seg({ value, onChange, opts }: { value: string; onChange: (v: WallMode)
         const on = v === value;
         return (
           <Pressable key={v} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => onChange(v)}
-            style={{ paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, backgroundColor: on ? C.ink : 'transparent' }}>
+            style={{ paddingHorizontal: 11, paddingVertical: 6, borderRadius: 999, backgroundColor: on ? C.sel : 'transparent' }}>
             <Text style={{ fontSize: 12, fontWeight: '800', color: on ? '#fff' : C.softInk }}>{label}</Text>
           </Pressable>
         );

@@ -45,7 +45,7 @@ export function BirthdayField({ value, onChange }: { value: string; onChange: (v
       <View style={{ flex, gap: 4 }}>
         <Text style={{ fontSize: 12, fontWeight: '800', color: C.muted }}>{label}</Text>
         <TextInput value={val} onChangeText={(t) => onPick(t.replace(/\D/g, ''))} keyboardType="number-pad" maxLength={label === L('Año', 'Year') ? 4 : 2}
-          style={{ height: 50, borderRadius: R.md, borderWidth: 1.5, borderColor: C.line2, backgroundColor: '#fff', paddingHorizontal: 12, fontSize: 16, color: C.ink }} />
+          style={{ height: 50, borderRadius: R.md, borderWidth: 1.5, borderColor: C.line2, backgroundColor: C.card, paddingHorizontal: 12, fontSize: 16, color: C.ink }} />
       </View>
     );
 

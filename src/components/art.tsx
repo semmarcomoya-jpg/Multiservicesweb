@@ -1,3 +1,4 @@
+import { C, isDark } from '@/lib/theme';
 import React, { useId } from 'react';
 import { Image, Platform, StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, G, Path, Pattern, Rect } from 'react-native-svg';
@@ -27,7 +28,9 @@ export function Wallpaper({ theme = 'home', override }: { theme?: WallTheme; ove
   const id = 'wall' + useId().replace(/[^a-zA-Z0-9]/g, '');
   const { brand } = useBranding();
   const cfg = override || brand.walls?.[theme];
-  const t = { ...(WALL_THEMES[theme] || WALL_THEMES.home), ...(cfg?.color ? { color: cfg.color } : {}) };
+  const t0 = { ...(WALL_THEMES[theme] || WALL_THEMES.home), ...(cfg?.color ? { color: cfg.color } : {}) };
+  // En modo noche el fondo usa el color de la página (los dibujitos se quedan, más tenues)
+  const t = isDark ? { ...t0, color: C.page } : t0;
   if (cfg?.mode === 'color') return <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: t.color }]} />;
   if (cfg?.mode === 'image' && cfg.img)
     return (
@@ -41,7 +44,7 @@ export function Wallpaper({ theme = 'home', override }: { theme?: WallTheme; ove
       <Svg width="100%" height="100%">
         <Defs>
           <Pattern id={id} x="0" y="0" width="220" height="220" patternUnits="userSpaceOnUse">
-            <G fill="none" stroke="#1656A8" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" opacity={0.16}>
+            <G fill="none" stroke={isDark ? '#62BDF6' : '#1656A8'} strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" opacity={isDark ? 0.1 : 0.16}>
               {SPOTS.map(([x, y, r], i) => {
                 const ic = ICONS[t.icons[i % t.icons.length]] || ICONS.star;
                 return (

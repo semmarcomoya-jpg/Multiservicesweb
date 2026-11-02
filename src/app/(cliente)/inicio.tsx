@@ -23,6 +23,8 @@ import { useBranding } from '@/lib/branding';
 import { useQuery } from '@/lib/data';
 import { supabase } from '@/lib/supabase';
 import { useLang } from '@/lib/i18n';
+import { countryOf, paisCfg } from '@/lib/countries';
+import { Scene, type SceneName } from '@/components/scenes';
 import { openState } from '@/lib/hours';
 import { useMyOrders } from '@/lib/myorders';
 import { autoOpenDecided, fetchStories, takeAutoOpen } from '@/lib/stories';
@@ -135,7 +137,10 @@ export default function Inicio() {
   const ptsStore = (myStore && myStore.loyalty?.on ? myStore : (stores || []).find((s) => s.activo && s.loyalty?.on)) || null;
   const bday = profile?.fecha_nac && new Date(profile.fecha_nac + 'T12:00:00').getMonth() === new Date().getMonth();
   const minPhone = (products || []).filter((p) => p.activo && p.family_id === 'cel').map(prodFrom).filter((x) => Number.isFinite(x));
-  const rate = cfg ? Number(cfg.exchange_rate) : 0;
+  // Tipo de cambio del país del cliente (si se le envía); si no, México
+  const myPais = profile?.pais && profile.pais !== 'US' && paisCfg(cfg, profile.pais).on && paisCfg(cfg, profile.pais).rate ? profile.pais : 'MX';
+  const pc = paisCfg(cfg, myPais);
+  const rate = cfg ? pc.rate : 0;
   const updated = cfg ? new Date(cfg.rate_updated_at).toLocaleTimeString(lang === 'es' ? 'es-MX' : 'en-US', { hour: '2-digit', minute: '2-digit' }) : '';
 
   const PROMO_BG = { shop: C.brown, send: '#0B2E5E', pts: C.goldInk } as const;
@@ -144,17 +149,22 @@ export default function Inicio() {
   const fromAdmin = (adminPromos || []).map((p) => ({ bg: PROMO_BG[p.theme] || C.brown, icon: PROMO_IC[p.theme] || 'star', t: lang === 'es' ? p.title_es : p.title_en || p.title_es, s: lang === 'es' ? p.sub_es : p.sub_en || p.sub_es, go: PROMO_GO[p.go] || '', img: p.img_url }));
   const computed = [
     any('shop') && minPhone.length && { bg: C.brown, icon: 'phone', t: L(`Celulares desde ${money(Math.min(...minPhone))}`, `Phones from ${money(Math.min(...minPhone))}`), s: L('Recoge hoy en tu tienda', 'Pick up today at your store'), go: '/productos?fam=cel' },
-    any('send') && { bg: C.blue, icon: 'send', t: L(`Hoy tu dólar vale ${rate.toFixed(2)}`, `Today your dollar is worth ${rate.toFixed(2)}`), s: L('Envía a México en minutos', 'Send to Mexico in minutes'), go: '/enviar' },
+    any('send') && { bg: C.blue, icon: 'send', t: L(`Hoy tu dólar vale ${rate.toFixed(2)}`, `Today your dollar is worth ${rate.toFixed(2)}`), s: L('Envía a tu familia en minutos', 'Send to your family in minutes'), go: '/enviar' },
     any('svc') && { bg: C.goldInk, icon: 'bolt', t: L('Paga tus recibos sin salir', 'Pay your bills from home'), s: L('Luz, agua, recargas y más', 'Power, water, top-ups and more'), go: '/servicios' },
   ].filter(Boolean) as { bg: string; icon: string; t: string; s: string; go: string; img?: string | null }[];
   // Las promociones que sube el administrador; si no hay, unas automáticas
   const promos = fromAdmin.length ? fromAdmin : computed;
 
+  const need = [
+    any('svc') && { sc: 'luz' as SceneName, bg: '#FFF4D6', label: L('Pagar recibos', 'Pay bills'), sub: L('Luz, agua, CFE y más', 'Power, water and more'), go: '/servicios?cat=pag' },
+    any('svc') && { sc: 'recarga' as SceneName, bg: '#E3F0FF', label: L('Recargas', 'Top-ups'), sub: L('Saldo y planes al momento', 'Credit and plans instantly'), go: '/servicios?cat=rec' },
+    any('shop') && { sc: 'celular' as SceneName, bg: '#E8F6EE', label: L('Celulares', 'Phones'), sub: minPhone.length ? L(`Desde ${money(Math.min(...minPhone))}`, `From ${money(Math.min(...minPhone))}`) : L('Nuevos y con garantía', 'New, with warranty'), go: '/productos?fam=cel' },
+    any('svc') && { sc: 'tramite' as SceneName, bg: '#F1EBFF', label: L('Trámites', 'Paperwork'), sub: L('Actas, traducciones y más', 'Certificates, translations'), go: '/servicios?cat=tra' },
+    any('svc') && { sc: 'paquete' as SceneName, bg: '#FFE9E0', label: L('Paquetería', 'Parcels'), sub: L('Manda cajas a tu país', 'Ship boxes home'), go: '/servicios?cat=paq' },
+    any('shop') && { sc: 'funda' as SceneName, bg: '#E6F4F6', label: L('Accesorios', 'Accessories'), sub: L('Fundas, micas y cargadores', 'Cases, screen guards, chargers'), go: '/productos?fam=all' },
+  ].filter(Boolean) as { sc: SceneName; bg: string; label: string; sub: string; go: string }[];
+
   const qa = [
-    (any('svc') || any('send')) && { ic: 'tool', tone: 'gold', label: L('Servicios', 'Services'), go: '/servicios' },
-    any('shop') && { ic: 'phone', tone: 'blue', label: L('Celulares', 'Phones'), go: '/productos?fam=cel' },
-    any('shop') && { ic: 'bag', tone: 'gold', label: L('Tienda', 'Shop'), go: '/productos?fam=all' },
-    any('send') && { ic: 'send', tone: 'blue', label: L('Enviar dinero', 'Send money'), go: '/enviar' },
     { ic: 'users', tone: 'gold', label: L('Mis personas', 'My people'), go: '/beneficiarios' },
     { ic: 'qr', tone: 'blue', label: L('Mi tarjeta', 'My card'), go: '/tarjeta' },
     { ic: 'receipt', tone: 'blue', label: L('Mis pedidos', 'My orders'), go: '/pedidos' },
@@ -198,7 +208,7 @@ export default function Inicio() {
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.blueSoft }}>
                 <View>
                   <Text style={{ fontSize: 13, color: C.blueInk }}>{L('Tipo de cambio de hoy', "Today's exchange rate")}</Text>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: C.blueInk }}>1 USD = {rate ? rate.toFixed(2) : '—'} MXN</Text>
+                  <Text style={{ fontSize: 20, fontWeight: '900', color: C.blueInk }}>{`${countryOf(myPais).flag} 1 USD = ${rate ? rate.toFixed(2) : '—'} ${pc.cur}`}</Text>
                 </View>
                 <Text style={{ fontSize: 12, fontWeight: '700', color: C.blueInk, textAlign: 'right' }}>
                   {L('Actualizado', 'Updated')}
@@ -257,8 +267,27 @@ export default function Inicio() {
               </Pressable>
             ) : null}
 
+            {/* ¿Qué necesitas? — con ilustraciones */}
+            {need.length ? <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('¿Qué necesitas?', 'What do you need?')}</Text> : null}
+            {need.length ? (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
+                {need.map((a) => (
+                  <Pressable key={a.label} accessibilityRole="button" onPress={() => router.push(a.go as never)}
+                    style={({ pressed }) => ({ width: '47%', flexGrow: 1, borderRadius: 20, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, overflow: 'hidden', opacity: pressed ? 0.8 : 1 })}>
+                    <View style={{ height: 92, backgroundColor: a.bg, alignItems: 'center', justifyContent: 'center' }}>
+                      <Scene n={a.sc} size={84} />
+                    </View>
+                    <View style={{ padding: 12, gap: 2 }}>
+                      <Text style={{ fontSize: 15, fontWeight: '900', color: C.ink }}>{a.label}</Text>
+                      <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={2}>{a.sub}</Text>
+                    </View>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+
             {/* Accesos rápidos */}
-            <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('¿Qué quieres hacer hoy?', 'What would you like to do today?')}</Text>
+            <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Tu cuenta', 'Your account')}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
               {qa.map((a) => (
                 <Pressable key={a.label} accessibilityRole="button" onPress={() => router.push(a.go as never)}

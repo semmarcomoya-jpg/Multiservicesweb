@@ -5,7 +5,8 @@
  */
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, Platform, Pressable, View } from 'react-native';
+import { renderTextStory, shareBlob, TEXT_BGS } from '@/lib/textStory';
 
 import { Text } from '@/components/Text';
 import { Btn, Card, Empty, Field, H2, Icon, Label, Loading, Note, P, Pills, Row, SearchBox, matches } from '@/components/ui';
@@ -74,6 +75,18 @@ function NewStory({ storeId, admin, stores, onDone }: { storeId: string | null; 
   const { data: services } = useServices();
   const { data: products } = useProducts(target === 'all' ? null : target);
   const [media, setMedia] = useState<Picked | null>(null);
+  const [mode, setMode] = useState<'media' | 'text'>('media');
+  const [txt, setTxt] = useState('');
+  const [bgId, setBgId] = useState(TEXT_BGS[0].id);
+  const footer = (admin || !storeId ? 'Castillo Multiservices' : (stores.find((s) => s.id === storeId)?.nombre || 'Castillo Multiservices'));
+  const bg = TEXT_BGS.find((x) => x.id === bgId) || TEXT_BGS[0];
+  const share = async () => {
+    try {
+      await shareBlob(await renderTextStory(txt, bgId, footer), footer);
+    } catch (e) {
+      if ((e as Error)?.name !== 'AbortError') setMsg({ ok: false, t: errMsg(e) });
+    }
+  };
   const [capEs, setCapEs] = useState('');
   const [capEn, setCapEn] = useState('');
   const [link, setLink] = useState<StoryLink>('none');
@@ -97,18 +110,25 @@ function NewStory({ storeId, admin, stores, onDone }: { storeId: string | null; 
   };
 
   const publish = async () => {
-    if (!media) return;
+    let m = media;
+    if (mode === 'text') {
+      if (!txt.trim()) return setMsg({ ok: false, t: L('Escribe el texto de la historia.', 'Write the story text.') });
+      const blob = await renderTextStory(txt, bgId, footer);
+      m = { uri: URL.createObjectURL(blob), mime: 'image/png', ext: 'png', type: 'image' } as typeof media;
+    }
+    if (!m) return;
+    const media_ = m;
     if ((link === 'product' || link === 'service') && !linkId) return setMsg({ ok: false, t: L('Elige a qué lleva el botón.', 'Choose where the button goes.') });
     setBusy(true);
     setMsg(null);
     try {
       const folder = target === 'all' ? 'general' : target;
-      const path = await uploadImage('stories', folder, { uri: media.uri, mime: media.mime, ext: media.ext });
+      const path = await uploadImage('stories', folder, { uri: media_.uri, mime: media_.mime, ext: media_.ext });
       const { data: pub } = supabase.storage.from('stories').getPublicUrl(path);
       const { error } = await supabase.from('stories').insert({
         store_id: target === 'all' ? null : target,
         media_url: pub.publicUrl,
-        media_type: media.type,
+        media_type: media_.type,
         caption_es: capEs.trim() || null,
         caption_en: capEn.trim() || null,
         link_type: link,
@@ -119,6 +139,7 @@ function NewStory({ storeId, admin, stores, onDone }: { storeId: string | null; 
       });
       if (error) throw error;
       setMedia(null);
+      setTxt('');
       setCapEs('');
       setCapEn('');
       setLink('none');
@@ -143,6 +164,30 @@ function NewStory({ storeId, admin, stores, onDone }: { storeId: string | null; 
     <Card>
       <H2>{L('Nueva historia', 'New story')}</H2>
       <P small>{L('Foto o video corto en vertical (como TikTok). Tus clientes la ven arriba en Inicio y se abre sola al entrar.', 'Short vertical photo or video (like TikTok). Customers see it at the top of Home and it opens on its own.')}</P>
+      {Platform.OS === 'web' ? (
+        <Pills options={[{ v: 'media' as const, label: L('Foto o video', 'Photo or video'), icon: 'camera' }, { v: 'text' as const, label: L('Solo texto', 'Text only'), icon: 'edit' }]} value={mode} onChange={setMode} />
+      ) : null}
+      {mode === 'text' ? (
+        <View style={{ gap: 10 }}>
+          <Row style={{ alignItems: 'flex-start' }}>
+            <View style={{ width: 200, aspectRatio: 9 / 16, borderRadius: R.lg, overflow: 'hidden', backgroundColor: bg.a, alignItems: 'center', justifyContent: 'center', padding: 16, ...(Platform.OS === 'web' ? ({ backgroundImage: `linear-gradient(135deg, ${bg.a}, ${bg.b})` } as object) : {}) }}>
+              <Text style={{ color: bg.ink, fontWeight: '900', fontSize: txt.length > 80 ? 16 : txt.length > 40 ? 20 : 24, textAlign: 'center' }}>{txt || L('Tu mensaje aquí', 'Your message here')}</Text>
+              <Text style={{ position: 'absolute', bottom: 14, color: bg.ink, opacity: 0.85, fontSize: 9, fontWeight: '800' }}>{footer}</Text>
+            </View>
+            <View style={{ flex: 1, minWidth: 220, gap: 10 }}>
+              <Field label={L('Texto', 'Text')} value={txt} onChangeText={setTxt} multiline maxLength={160} placeholder={L('Ej. ¡Hoy el dólar a 18.50! Ven por tu envío.', 'E.g. Great rate today! Come send money.')} />
+              <Label>{L('Fondo', 'Background')}</Label>
+              <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                {TEXT_BGS.map((b) => (
+                  <Pressable key={b.id} accessibilityRole="radio" accessibilityState={{ checked: bgId === b.id }} accessibilityLabel={b.id} onPress={() => setBgId(b.id)}
+                    style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: b.b, borderWidth: bgId === b.id ? 3 : 1, borderColor: bgId === b.id ? C.ink : C.line }} />
+                ))}
+              </View>
+              <Btn small kind="ghost" icon="send" title={L('Compartir en WhatsApp o Facebook', 'Share on WhatsApp or Facebook')} onPress={share} disabled={!txt.trim()} style={{ alignSelf: 'flex-start' }} />
+            </View>
+          </Row>
+        </View>
+      ) : (<>
       <Pressable accessibilityRole="button" onPress={choose} disabled={busy}
         style={{ height: 300, borderRadius: R.lg, borderWidth: 2, borderStyle: 'dashed', borderColor: C.brown, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', backgroundColor: C.cream }}>
         {!media ? (
@@ -165,14 +210,15 @@ function NewStory({ storeId, admin, stores, onDone }: { storeId: string | null; 
           <Text style={{ color: C.brown, fontWeight: '800' }}>{L('Cambiar', 'Change')}</Text>
         </Pressable>
       ) : null}
+      </>)}
 
       {admin ? (
         <Pills label={L('¿Quién la ve?', 'Who sees it?')} options={[{ v: 'all', label: L('Todas las tiendas', 'All stores') }, ...stores.map((s) => ({ v: s.id, label: s.nombre.replace('Castillo · ', ''), icon: 'store' }))]}
           value={target} onChange={(v) => { setTarget(v); if (link === 'product') { setLink('none'); setLinkId(null); } }} />
       ) : null}
 
-      <Field label={L('Texto en español (opcional)', 'Text in Spanish (optional)')} value={capEs} onChangeText={setCapEs} maxLength={200} placeholder={L('Ej. ¡Galaxy A15 a $189 este fin!', 'E.g. Galaxy A15 for $189 this weekend!')} />
-      <Field label={L('Texto en inglés (opcional)', 'Text in English (optional)')} value={capEn} onChangeText={setCapEn} maxLength={200} />
+      {mode === 'media' ? <Field label={L('Texto en español (opcional)', 'Text in Spanish (optional)')} value={capEs} onChangeText={setCapEs} maxLength={200} placeholder={L('Ej. ¡Galaxy A15 a $189 este fin!', 'E.g. Galaxy A15 for $189 this weekend!')} /> : null}
+      {mode === 'media' ? <Field label={L('Texto en inglés (opcional)', 'Text in English (optional)')} value={capEn} onChangeText={setCapEn} maxLength={200} /> : null}
 
       <Pills
         label={L('Botón de la historia', 'Story button')}
@@ -196,7 +242,7 @@ function NewStory({ storeId, admin, stores, onDone }: { storeId: string | null; 
       <Pills label={L('¿Cuánto tiempo se ve?', 'How long is it shown?')} options={DUR} value={duration} onChange={setDuration} />
 
       {msg ? <Note kind={msg.ok ? 'blue' : 'red'} icon={msg.ok ? 'check' : 'x'}>{msg.t}</Note> : null}
-      <Btn title={busy ? L('Subiendo…', 'Uploading…') : L('Publicar historia', 'Publish story')} loading={busy} disabled={!media || (!admin && !storeId)} onPress={publish} />
+      <Btn title={busy ? L('Subiendo…', 'Uploading…') : L('Publicar historia', 'Publish story')} loading={busy} disabled={(mode === 'media' ? !media : !txt.trim()) || (!admin && !storeId)} onPress={publish} />
     </Card>
   );
 }

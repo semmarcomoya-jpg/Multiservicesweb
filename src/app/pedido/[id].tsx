@@ -74,7 +74,7 @@ export default function PedidoCliente() {
       {o.code && mode && mode !== 'digital' && o.status !== 'completado' && o.status !== 'rechazado' ? (
         <View style={{ backgroundColor: C.card, borderRadius: 24, borderWidth: 2.5, borderColor: C.gold, padding: 22, alignItems: 'center', gap: 6 }}>
           <Text style={{ fontSize: 13, fontWeight: '900', letterSpacing: 2.5, color: C.muted }}>{L('CÓDIGO PARA RECOGER', 'PICKUP CODE')}</Text>
-          <Text selectable style={{ fontSize: 64, fontWeight: '900', letterSpacing: 14, color: C.brownDark, lineHeight: 72, paddingLeft: 14 }}>{o.code}</Text>
+          <Text selectable style={{ fontSize: 64, fontWeight: '900', letterSpacing: 14, color: C.strong, lineHeight: 72, paddingLeft: 14 }}>{o.code}</Text>
           <P style={{ textAlign: 'center' }}>
             {mode === 'home'
               ? L('Díselo a quien te entregue. No lo compartas con nadie más.', 'Tell it to the delivery person. Do not share it with anyone else.')

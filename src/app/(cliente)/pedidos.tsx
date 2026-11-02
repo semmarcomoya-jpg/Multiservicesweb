@@ -3,7 +3,7 @@ import React, { useCallback, useState } from 'react';
 import { View } from 'react-native';
 
 import { OrderRow, useOrderText } from '@/components/orders';
-import { BackBar, Btn, Empty, H1, Loading, Pills, Screen, SearchBox, matches } from '@/components/ui';
+import { Btn, Empty, H1, Loading, Pills, Screen, SearchBox, matches } from '@/components/ui';
 import { useLang } from '@/lib/i18n';
 import { useMyOrders } from '@/lib/myorders';
 import { supabase } from '@/lib/supabase';
@@ -41,7 +41,6 @@ export default function Pedidos() {
 
   return (
     <Screen wall="send">
-      <BackBar />
       <H1>{L('Mis pedidos', 'My orders')}</H1>
       {!orders ? <Loading /> : null}
       {orders && orders.length === 0 ? <Empty>{L('Aún no tienes pedidos.', 'No orders yet.')}</Empty> : null}

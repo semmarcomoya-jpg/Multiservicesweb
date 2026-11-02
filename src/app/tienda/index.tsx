@@ -91,7 +91,7 @@ export default function TiendaPedidos() {
     </Pressable>
   );
   const col = (k: string, label: string, rows: Order[]) => (
-    <View key={k} style={{ flexGrow: 1, flexBasis: 260, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.55)', borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 8, gap: 6 }}>
+    <View key={k} style={{ flexGrow: 1, flexBasis: 260, minWidth: 0, backgroundColor: C.cream, borderRadius: 14, borderWidth: 1, borderColor: C.line, padding: 8, gap: 6 }}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text style={{ fontWeight: '900', color: C.segInk }}>{label}</Text>
         <Text style={{ fontWeight: '900', color: C.segInk }}>{rows.length}</Text>
