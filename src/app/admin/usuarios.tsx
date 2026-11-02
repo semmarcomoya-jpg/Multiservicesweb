@@ -31,6 +31,7 @@ export default function AdminUsuarios() {
   const [emails, setEmails] = useState<Record<string, string>>({});
   const [q, setQ] = useState('');
   const [rf, setRf] = useState<'all' | Role>('all');
+  const [loadErr, setLoadErr] = useState('');
   // Cuenta abierta
   const [open, setOpen] = useState<string | null>(null);
   const [role, setRole] = useState<Role>('cliente');
@@ -39,8 +40,12 @@ export default function AdminUsuarios() {
   const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
 
   const loadAll = useCallback(() => {
-    supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(3000).then(({ data }) => setAll((data as Profile[]) ?? []));
-    supabase.rpc('admin_account_emails').then(({ data }) => setEmails(Object.fromEntries(((data as { id: string; email: string }[]) ?? []).map((r) => [r.id, r.email]))));
+    // Si algo falla se muestra el motivo en pantalla (antes la lista salía vacía sin decir nada)
+    supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(3000).then(({ data, error }) => {
+      setLoadErr(error ? errMsg(error) : '');
+      setAll((data as Profile[]) ?? []);
+    }, (e) => { setLoadErr(errMsg(e)); setAll([]); });
+    supabase.rpc('admin_account_emails').then(({ data }) => setEmails(Object.fromEntries(((data as { id: string; email: string }[]) ?? []).map((r) => [r.id, r.email]))), () => {});
   }, []);
   useFocusEffect(loadAll);
   useEffect(() => {
@@ -158,6 +163,8 @@ export default function AdminUsuarios() {
 
       <Card>
         <H2>{L('Cuentas', 'Accounts')}{all ? ` (${all.length})` : ''}</H2>
+        {loadErr ? <Note kind="red" icon="x">{L('No se pudieron cargar las cuentas: ', 'Could not load accounts: ') + loadErr}</Note> : null}
+        {!all ? <P muted>{L('Cargando cuentas…', 'Loading accounts…')}</P> : null}
         <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca por nombre, correo, número de cliente o teléfono', 'Search by name, email, member number or phone')} count={q ? shownAll.length : undefined} />
         <Pills
           options={[
