@@ -4,10 +4,13 @@ import React, { useEffect, useState } from 'react';
 import { Image, Linking, Pressable, View } from 'react-native';
 
 import { Text } from '@/components/Text';
-import { BackBar, Btn, Card, Empty, H1, IcoBox, Loading, P, Pills, Row, Screen } from '@/components/ui';
+import { BackBar, BrandMark, Btn, Card, Empty, IcoBox, Icon, Loading, NavyHead, P, Row, Screen, Seg } from '@/components/ui';
+import { useAuth } from '@/lib/auth';
+import { Scene, sceneFor } from '@/components/scenes';
+import { useMyPoints } from '@/lib/points';
 import { modOn, prodFrom, prodName, scoreOf, storesForService, useProducts, useServices, useStoreScores, useStores } from '@/lib/data';
 import { digits, money } from '@/lib/format';
-import { DAY_NAMES, fmtTime, hoursOf, openState } from '@/lib/hours';
+import { DAY_NAMES, fmtTime, hoursOf, openState, storeLink } from '@/lib/hours';
 import { useLang } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { C, R } from '@/lib/theme';
@@ -23,6 +26,8 @@ export default function Sucursal() {
   const { data: products } = useProducts(id);
   const { data: scores } = useStoreScores();
   const [tab, setTab] = useState<Tab>('svc');
+  const { profile } = useAuth();
+  const { balance } = useMyPoints(profile?.id);
   const [revs, setRevs] = useState<Post[] | null>(null);
   useEffect(() => {
     supabase.from('posts').select('*').eq('store_id', id).eq('kind', 'reco').eq('hidden', false).gt('stars', 0).order('created_at', { ascending: false }).limit(30)
@@ -43,42 +48,69 @@ export default function Sucursal() {
   const tabs: { v: Tab; label: string }[] = [
     ...(modOn(st, 'svc') ? [{ v: 'svc' as Tab, label: L('Servicios', 'Services') }] : []),
     ...(modOn(st, 'shop') && prods.length ? [{ v: 'shop' as Tab, label: L('Tienda', 'Shop') }] : []),
-    { v: 'rev', label: L(`Reseñas${sc?.total ? ` (${sc.total})` : ''}`, `Reviews${sc?.total ? ` (${sc.total})` : ''}`) },
+    { v: 'rev', label: L('Reseñas', 'Reviews') },
     { v: 'info', label: L('Info', 'Info') },
   ];
   const cur = tabs.some((t) => t.v === tab) ? tab : tabs[0].v;
+  const share = async () => {
+    const url = storeLink(st.id);
+    try {
+      const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+      if (nav.share) await nav.share({ title: st.nombre, url });
+      else await navigator.clipboard?.writeText(url);
+    } catch {}
+  };
 
   return (
     <Screen>
-      <BackBar title={st.nombre} />
-      <View style={{ borderRadius: R.lg, overflow: 'hidden', backgroundColor: C.brownDark }}>
-        {st.fotos?.[0] ? <Image source={{ uri: st.fotos[0] }} style={{ width: '100%', height: 170 }} resizeMode="cover" accessibilityLabel={st.nombre} /> : null}
-        <View style={{ padding: 16, gap: 8 }}>
-          <H1 style={{ color: '#fff' }}>{st.nombre}</H1>
-          <Row gap={8}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: R.pill, backgroundColor: os.open ? '#D8F3E3' : '#FDE7D2' }}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: os.open ? '#1F9D55' : '#C2410C' }} />
-              <Text style={{ fontWeight: '800', fontSize: 13, color: os.open ? '#14532D' : '#7C2D12' }}>{os.label[lang]}</Text>
-            </View>
-            {sc && Number(sc.total) > 0 ? <Text style={{ color: C.gold, fontWeight: '900' }}>{`★ ${Number(sc.promedio).toFixed(1)}`}<Text style={{ color: '#fff', fontWeight: '600' }}>{` · ${sc.total} ${L('reseñas', 'reviews')}`}</Text></Text> : null}
-          </Row>
-          <Text style={{ color: '#E6EEF9' }}>{[st.direccion, st.ciudad].filter(Boolean).join(', ')}</Text>
-          <Row gap={8}>
-            <Btn small kind="soft" icon="car" title={L('Cómo llegar', 'Directions')} onPress={() => Linking.openURL(mapUrl)} />
-            {tel ? <Btn small kind="ghost" icon="phone" title={L('Llamar', 'Call')} onPress={() => Linking.openURL('tel:' + tel)} /> : null}
-          </Row>
+      <NavyHead style={{ borderRadius: 22, paddingTop: 12 }}>
+        {st.fotos?.[0] ? <Image source={{ uri: st.fotos[0] }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.25 }} resizeMode="cover" /> : null}
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={L('Regresar', 'Back')} onPress={() => (router.canGoBack() ? router.back() : router.replace('/inicio'))}
+            style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon n="back" size={20} color="#fff" />
+          </Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel={L('Compartir', 'Share')} onPress={share}
+            style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon n="send" size={18} color="#fff" />
+          </Pressable>
         </View>
-      </View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14 }}>
+          <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: '#62BDF6' }}>
+            <BrandMark size={40} />
+          </View>
+          <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+            {st.ciudad ? <Text style={{ color: '#C9DDF4', fontSize: 12.5, fontWeight: '700' }}>{st.ciudad}</Text> : null}
+            <Text style={{ color: '#fff', fontSize: 21, fontWeight: '900' }}>{st.nombre}</Text>
+            <View style={{ alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 9, paddingVertical: 2, borderRadius: R.pill, backgroundColor: os.open ? '#DDF1E4' : '#F7DCD6' }}>
+              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: os.open ? '#1E7A4A' : '#B23A2A' }} />
+              <Text style={{ fontWeight: '900', fontSize: 11.5, color: os.open ? '#1E7A4A' : '#B23A2A' }}>{os.label[lang]}</Text>
+            </View>
+          </View>
+        </View>
+        <View style={{ flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 14 }}>
+          {[
+            [sc && Number(sc.total) ? `${Number(sc.promedio).toFixed(1)} ★` : '—', L(`${sc?.total || 0} reseñas`, `${sc?.total || 0} reviews`)],
+            [String(svcs.length), L('servicios', 'services')],
+            [profile && st.loyalty?.on ? String(balance(st.id)) : String(prods.length), profile && st.loyalty?.on ? L('tus puntos aquí', 'your points here') : L('productos', 'products')],
+          ].map(([v, t], i) => (
+            <View key={i} style={{ flex: 1, paddingVertical: 7, alignItems: 'center', borderLeftWidth: i ? 1 : 0, borderLeftColor: 'rgba(255,255,255,0.14)' }}>
+              <Text style={{ color: '#fff', fontSize: 17, fontWeight: '900' }}>{v}</Text>
+              <Text style={{ color: '#C9DDF4', fontSize: 11 }}>{t}</Text>
+            </View>
+          ))}
+        </View>
+      </NavyHead>
       {st.abierta === false && st.aviso_cerrada ? <P small muted>{st.aviso_cerrada}</P> : null}
 
-      <Pills options={tabs} value={cur} onChange={setTab} />
+      <Seg options={tabs} value={cur} onChange={setTab} />
 
       {cur === 'svc' ? (
         <Card>
           {svcs.length ? svcs.map((s) => (
             <Pressable key={s.id} accessibilityRole="link" onPress={() => router.push(`/servicio/${s.id}`)}
               style={({ pressed }) => ({ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.line, opacity: pressed ? 0.7 : 1 })}>
-              <IcoBox n={s.icon || 'tool'} />
+              <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center' }}><Scene n={sceneFor(s.icon, s.cat_id)} size={40} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={{ fontWeight: '800', color: C.ink }}>{nm(s)}</Text>
                 <P small muted>{lang === 'es' ? s.desc_es : s.desc_en || s.desc_es}</P>
@@ -134,6 +166,12 @@ export default function Sucursal() {
           <P>{L('Dirección: ', 'Address: ') + [st.direccion, st.ciudad].filter(Boolean).join(', ')}</P>
         </Card>
       ) : null}
+      {/* Botones fijos abajo */}
+      <View style={{ position: 'sticky' as never, bottom: 0, flexDirection: 'row', gap: 8, paddingVertical: 10, backgroundColor: C.page }}>
+        <Btn icon="send" title={L('Enviar desde aquí', 'Send from here')} style={{ flex: 1 }} onPress={() => router.push('/enviar')} />
+        <Btn kind="ghost" icon="car" title={L('Llegar', 'Map')} onPress={() => Linking.openURL(mapUrl)} />
+        {tel ? <Btn kind="ghost" icon="chat" title="WhatsApp" onPress={() => Linking.openURL(`https://wa.me/1${tel.slice(-10)}`)} /> : null}
+      </View>
     </Screen>
   );
 }

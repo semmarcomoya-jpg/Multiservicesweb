@@ -15,7 +15,7 @@ import { StoriesRow } from '@/components/StoriesRow';
 import { useDestacados } from '@/lib/featured';
 import { useMyPoints } from '@/lib/points';
 import { Text } from '@/components/Text';
-import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Loading, Note, P } from '@/components/ui';
+import { Avatar, BrandChip, Circ, Empty, Icon, LangToggle, Loading, NavyHead, Note, P } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { modOn, prodFrom, useProducts, useSettings, useStores, scoreOf, useStoreScores } from '@/lib/data';
 import { money } from '@/lib/format';
@@ -46,6 +46,8 @@ export default function Inicio() {
   const params = useLocalSearchParams<{ tour?: string }>();
   const [tour, setTour] = useState(false);
   const [focused, setFocused] = useState(true);
+  const [fw, setFw] = useState(0);
+  const [fi, setFi] = useState(0);
   useFocusEffect(
     useCallback(() => {
       setFocused(true);
@@ -172,67 +174,131 @@ export default function Inicio() {
     (stores || []).some((st) => st.activo && modOn(st, 'comm')) && { ic: 'chat', tone: 'gold', label: L('Boca a boca', 'Word of mouth'), go: '/comunidad' },
   ].filter(Boolean) as { ic: string; tone: 'gold' | 'blue'; label: string; go: string }[];
 
+  // Carrusel: tu pedido activo, las promociones y tus puntos
+  const active = (orders || []).find((o) => o.status === 'verificar' || o.status === 'proceso');
+  const pts = ptsStore ? balance(ptsStore.id) : 0;
+  const nextRw = ptsStore?.loyalty?.rewards?.filter((r) => Number(r.pts) > pts).sort((a, b) => a.pts - b.pts)[0];
+  const feats: { key: string; sc: SceneName; lbl: string; t: string; s: string; go: string; bg: [string, string]; img?: string | null }[] = [
+    ...(active ? [{ key: 'o', sc: 'ok' as SceneName, lbl: active.status === 'verificar' ? L('Tu pedido · revisando el pago', 'Your order · checking payment') : L('Tu pedido · en proceso', 'Your order · in progress'), t: active.folio, s: L('Toca para ver cómo va', 'Tap to see its status'), go: `/pedido/${active.id}`, bg: ['#0B2E5E', '#1656A8'] as [string, string] }] : []),
+    ...promos.map((p, i) => ({ key: 'p' + i, sc: (p.icon === 'phone' ? 'celular' : p.icon === 'send' ? 'envio' : p.icon === 'bolt' ? 'luz' : 'puntos') as SceneName, lbl: L('Promoción', 'Promotion'), t: p.t, s: p.s, go: p.go, img: p.img, bg: ['#0D4A82', '#2A8BDA'] as [string, string] })),
+    ...(ptsStore ? [{ key: 'pts', sc: 'puntos' as SceneName, lbl: L('Tus puntos', 'Your points'), t: nextRw ? L(`${pts} pts · te faltan ${nextRw.pts - pts}`, `${pts} pts · ${nextRw.pts - pts} to go`) : `${pts} pts`, s: nextRw ? L(`Para "${nextRw.es}"`, `For "${nextRw.en || nextRw.es}"`) : L('Úsalos en tu tienda', 'Use them at your store'), go: '/puntos', bg: ['#7A4A00', '#E8A317'] as [string, string] }] : []),
+  ];
+  const tiles: { sc: SceneName; label: string; go: string }[] = [
+    any('send') && { sc: 'envio' as SceneName, label: L('Enviar dinero', 'Send money'), go: '/enviar' },
+    any('svc') && { sc: 'luz' as SceneName, label: L('Pagar luz o agua', 'Pay bills'), go: '/servicios?cat=pag' },
+    any('svc') && { sc: 'recarga' as SceneName, label: L('Recargas', 'Top-ups'), go: '/servicios?cat=rec' },
+    any('shop') && { sc: 'celular' as SceneName, label: L('Celulares', 'Phones'), go: '/productos?fam=cel' },
+    any('svc') && { sc: 'paquete' as SceneName, label: L('Caja a tu país', 'Ship a box'), go: '/servicios?cat=paq' },
+    any('svc') && { sc: 'tramite' as SceneName, label: L('Trámites', 'Paperwork'), go: '/servicios?cat=tra' },
+  ].filter(Boolean) as { sc: SceneName; label: string; go: string }[];
+  const web = typeof document !== 'undefined';
+
   return (
     <View style={{ flex: 1 }}>
       <Wallpaper theme="home" />
       <ScrollView contentContainerStyle={{ alignItems: 'center', paddingBottom: 24 }}>
         <View style={{ width: '100%', maxWidth: 520 }}>
-          {/* Portada */}
-          <View style={{ height: 200, overflow: 'hidden', backgroundColor: '#D3E7FA' }}>
-            {brand.home_bg_url ? <FramedImage uri={brand.home_bg_url} frame={brand.home_pos} /> : <Scenery mid />}
-            <SafeAreaView edges={['top']} style={{ position: 'absolute', top: 0, left: 16, right: 16 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16 }}>
-                <BrandChip />
+          {/* Encabezado azul con tipo de cambio y puntos (maqueta v2) */}
+          <NavyHead>
+            {brand.home_bg_url ? (
+              <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.35 }}>
+                <FramedImage uri={brand.home_bg_url} frame={brand.home_pos} />
+              </View>
+            ) : null}
+            <SafeAreaView edges={['top']}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10 }}>
+                <BrandChip dark />
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <NotifBell glass />
                   <LangToggle glass />
+                  <NotifBell glass />
                 </View>
               </View>
             </SafeAreaView>
-          </View>
-
-          <View style={{ marginTop: -58, marginHorizontal: 16, gap: 16 }}>
             {profile && profile.role !== 'cliente' && !inFrame ? (
-              <View style={{ alignItems: 'center' }}>
+              <View style={{ alignItems: 'flex-start' }}>
                 <ViewSwitch current="cliente" />
               </View>
             ) : null}
-            {/* Saludo */}
-            <View style={{ padding: 18, borderRadius: 22, backgroundColor: C.card, gap: 12, shadowColor: '#0B2E5E', shadowOpacity: 0.1, shadowRadius: 30, shadowOffset: { width: 0, height: 10 }, elevation: 4 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <Avatar name={`${profile?.nombre || ''} ${profile?.apellidos || ''}`} size={44} uri={profile?.foto_url} />
-                <Text style={{ fontSize: 22, fontWeight: '900', color: C.ink }}>
-                  {L('Hola', 'Hi')}, {profile?.nombre || ''}
-                </Text>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.blueSoft }}>
-                <View>
-                  <Text style={{ fontSize: 13, color: C.blueInk }}>{L('Tipo de cambio de hoy', "Today's exchange rate")}</Text>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: C.blueInk }}>{`${countryOf(myPais).flag} 1 USD = ${rate ? rate.toFixed(2) : '—'} ${pc.cur}`}</Text>
-                </View>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: C.blueInk, textAlign: 'right' }}>
-                  {L('Actualizado', 'Updated')}
-                  {'\n'}
-                  {updated}
-                </Text>
+            <Text style={{ fontSize: 24, fontWeight: '900', color: '#fff' }}>
+              {L('Hola', 'Hi')}{profile?.nombre ? `, ${profile.nombre}` : ''}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.14)' }}>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#B9D3F2' }}>{L('Tipo de cambio de hoy', "Today's rate")}{updated ? ` · ${updated}` : ''}</Text>
+                <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff' }}>{`${countryOf(myPais).flag} 1 USD = ${rate ? rate.toFixed(2) : '—'} ${pc.cur}`}</Text>
               </View>
               {ptsStore ? (
-                <Pressable accessibilityRole="button" onPress={() => router.push('/puntos')}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.goldSoft }}>
-                  <Text style={{ fontSize: 14, color: C.goldInk, flex: 1 }} numberOfLines={1}>{L('Tus puntos en ', 'Your points at ') + ptsStore.nombre.replace('Castillo · ', '')}</Text>
-                  <Text style={{ fontSize: 18, fontWeight: '900', color: C.goldInk }}>{balance(ptsStore.id)} pts</Text>
-                </Pressable>
-              ) : profile?.member_code ? (
-                <Pressable accessibilityRole="button" onPress={() => router.push('/tarjeta')}
-                  style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 14, backgroundColor: C.goldSoft }}>
-                  <Text style={{ fontSize: 14, color: C.goldInk }}>{L('Tu número de cliente', 'Your member number')}</Text>
-                  <Text style={{ fontSize: 18, fontWeight: '900', color: C.goldInk }}>{profile.member_code}</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel={L('Mis puntos', 'My points')} onPress={() => router.push('/puntos')}
+                  style={{ backgroundColor: '#E8A317', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 10, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 17, fontWeight: '900', color: '#3B2600' }}>{pts}</Text>
+                  <Text style={{ fontSize: 10.5, fontWeight: '900', color: '#5A3B00' }}>{L('PUNTOS', 'POINTS')}</Text>
                 </Pressable>
               ) : null}
             </View>
+          </NavyHead>
 
+          <View style={{ marginHorizontal: 16, marginTop: 12, gap: 14 }}>
             {stories && (stories.length || (profile && profile.role !== 'cliente')) ? (
               <StoriesRow stories={stories} addHref={profile?.role === 'admin' ? '/admin/historias' : profile?.role === 'tienda' ? '/tienda/historias' : undefined} />
+            ) : null}
+
+            {/* ¿Qué necesitas? — 6 cuadritos con ilustración */}
+            {tiles.length ? (
+              <View style={{ gap: 8 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 16.5, fontWeight: '900', color: C.ink }}>{L('¿Qué necesitas?', 'What do you need?')}</Text>
+                  <Pressable accessibilityRole="link" onPress={() => router.push('/servicios')}><Text style={{ fontWeight: '800', color: C.brown }}>{L('Ver todo', 'See all')}</Text></Pressable>
+                </View>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                  {tiles.map((a) => (
+                    <Pressable key={a.label} accessibilityRole="button" onPress={() => router.push(a.go as never)}
+                      style={({ pressed }) => ({ width: '31.5%', flexGrow: 1, borderRadius: 16, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, overflow: 'hidden', opacity: pressed ? 0.8 : 1 })}>
+                      <View style={{ height: 58, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center' }}>
+                        <Scene n={a.sc} size={54} />
+                      </View>
+                      <Text style={{ fontSize: 12.5, fontWeight: '800', color: C.ink, textAlign: 'center', paddingVertical: 6, paddingHorizontal: 4 }} numberOfLines={2}>{a.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            ) : null}
+
+            {/* Carrusel con puntitos: pedido activo, promociones y puntos */}
+            {feats.length ? (
+              <View style={{ gap: 6 }} onLayout={(e) => setFw(e.nativeEvent.layout.width)}>
+                <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={(e) => fw && setFi(Math.round(e.nativeEvent.contentOffset.x / fw))} scrollEventThrottle={32}>
+                  {feats.map((f) => (
+                    <Pressable key={f.key} accessibilityRole="button" onPress={() => f.go && router.push(f.go as never)}
+                      style={{ width: fw || 340, minHeight: 104, borderRadius: 18, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', backgroundColor: f.bg[0], ...(web ? ({ backgroundImage: `linear-gradient(120deg, ${f.bg[0]}, ${f.bg[1]})` } as object) : {}) }}>
+                      {f.img ? (
+                        <>
+                          <Image source={{ uri: f.img }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
+                          <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(11,31,58,0.5)' }} />
+                        </>
+                      ) : (
+                        <View style={{ width: 62, height: 62, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+                          <Scene n={f.sc} size={56} />
+                        </View>
+                      )}
+                      <View style={{ flex: 1, minWidth: 0 }}>
+                        <Text style={{ fontSize: 10.5, letterSpacing: 1, fontWeight: '900', color: '#BFE3FF', textTransform: 'uppercase' }}>{f.lbl}</Text>
+                        <Text style={{ fontSize: 16, fontWeight: '900', color: '#fff' }} numberOfLines={2}>{f.t}</Text>
+                        <Text style={{ fontSize: 12.5, color: '#fff', opacity: 0.92 }} numberOfLines={2}>{f.s}</Text>
+                      </View>
+                      {f.go ? (
+                        <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
+                          <Icon n="arrow" size={18} color="#0B2E5E" />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </ScrollView>
+                {feats.length > 1 ? (
+                  <View style={{ flexDirection: 'row', justifyContent: 'center', gap: 6 }}>
+                    {feats.map((f, i) => <View key={f.key} style={{ width: i === fi ? 22 : 8, height: 8, borderRadius: 4, backgroundColor: i === fi ? C.brown : C.line2 }} />)}
+                  </View>
+                ) : null}
+              </View>
             ) : null}
 
             {bday ? (
@@ -255,72 +321,6 @@ export default function Inicio() {
 
             {/* Destacados: lo que elige el administrador o lo más vendido */}
             {destacados ? <Destacados items={destacados} /> : null}
-
-            {/* Enviar dinero */}
-            {any('send') ? (
-              <Pressable accessibilityRole="button" onPress={() => router.push('/enviar')} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 20, borderRadius: 22, backgroundColor: C.brown }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#fff', fontSize: 21, fontWeight: '900' }}>{L('Enviar dinero a tu país', 'Send money home')}</Text>
-                  <Text style={{ color: C.goldSoft, fontSize: 14, marginTop: 4 }}>{L('Rápido, seguro y con comprobante', 'Fast, safe and with a receipt')}</Text>
-                </View>
-                <Circ n="arrow" tone="sun" size={52} />
-              </Pressable>
-            ) : null}
-
-            {/* ¿Qué necesitas? — con ilustraciones */}
-            {need.length ? <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('¿Qué necesitas?', 'What do you need?')}</Text> : null}
-            {need.length ? (
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-                {need.map((a) => (
-                  <Pressable key={a.label} accessibilityRole="button" onPress={() => router.push(a.go as never)}
-                    style={({ pressed }) => ({ width: '47%', flexGrow: 1, borderRadius: 20, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, overflow: 'hidden', opacity: pressed ? 0.8 : 1 })}>
-                    <View style={{ height: 92, backgroundColor: a.bg, alignItems: 'center', justifyContent: 'center' }}>
-                      <Scene n={a.sc} size={84} />
-                    </View>
-                    <View style={{ padding: 12, gap: 2 }}>
-                      <Text style={{ fontSize: 15, fontWeight: '900', color: C.ink }}>{a.label}</Text>
-                      <Text style={{ fontSize: 12, color: C.muted }} numberOfLines={2}>{a.sub}</Text>
-                    </View>
-                  </Pressable>
-                ))}
-              </View>
-            ) : null}
-
-            {/* Accesos rápidos */}
-            <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Tu cuenta', 'Your account')}</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-              {qa.map((a) => (
-                <Pressable key={a.label} accessibilityRole="button" onPress={() => router.push(a.go as never)}
-                  style={{ width: '31%', flexGrow: 1, minHeight: 100, alignItems: 'center', gap: 8, paddingVertical: 14, paddingHorizontal: 6, borderRadius: 18, borderWidth: 1, borderColor: C.line, backgroundColor: C.card }}>
-                  <Circ n={a.ic} tone={a.tone} size={44} />
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: C.ink, textAlign: 'center' }}>{a.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-
-            {/* Promociones (abajo de los accesos rápidos) */}
-            {promos.length ? <Text style={{ fontSize: 18, fontWeight: '900', color: C.ink }}>{L('Promociones', 'Promotions')}</Text> : null}
-            {promos.length ? (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} snapToInterval={292} decelerationRate="fast" contentContainerStyle={{ gap: 10, paddingRight: 16 }} style={{ marginHorizontal: -16, paddingLeft: 16 }}>
-                {promos.map((p) => (
-                  <Pressable key={p.go + p.t} accessibilityRole="button" onPress={() => p.go && router.push(p.go as never)}
-                    style={{ width: 282, minHeight: 118, borderRadius: 20, backgroundColor: p.bg, padding: 16, justifyContent: 'flex-end', overflow: 'hidden' }}>
-                    {p.img ? (
-                      <>
-                        <Image source={{ uri: p.img }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
-                        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(11,31,58,0.45)' }} />
-                      </>
-                    ) : (
-                      <View style={{ position: 'absolute', right: -10, top: -10, opacity: 0.22 }}>
-                        <Icon n={p.icon} size={110} color="#fff" sw={1.4} />
-                      </View>
-                    )}
-                    <Text style={{ color: '#fff', fontSize: 19, fontWeight: '900', lineHeight: 22 }}>{p.t}</Text>
-                    <Text style={{ color: '#fff', fontSize: 13, fontWeight: '700' }}>{p.s}</Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            ) : null}
 
             {/* Boca a boca: lo más reciente de la comunidad */}
             {feed.length ? (

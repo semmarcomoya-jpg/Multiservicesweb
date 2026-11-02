@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Text } from '@/components/Text';
 
-import { Circ, Empty, H1, Loading, MiniChip, P, Pills, Screen, TopBar, SearchBox, matches } from '@/components/ui';
+import { BackBar, Circ, Empty, H1, Loading, MiniChip, P, Pills, Screen, SearchBox, matches } from '@/components/ui';
 import { useOrderText } from '@/components/orders';
 import { storesForService, svcCatIcon, useCategories, useServices, useStores } from '@/lib/data';
 import { money } from '@/lib/format';
@@ -37,7 +37,7 @@ export default function Servicios() {
 
   return (
     <Screen wall="shop">
-      <TopBar />
+      <BackBar />
       <H1>{L('Servicios', 'Services')}</H1>
       <P muted>{L('Elige un servicio y dinos cómo lo quieres: sin salir de casa, en tienda, sin bajar del carro o a domicilio.', 'Pick a service and tell us how you want it: from home, in store, curbside or delivered.')}</P>
       <SearchBox value={q} onChangeText={setQ} placeholder={L('Busca: luz, recarga, Telcel…', 'Search: power, top-up, Telcel…')} count={list.length} />

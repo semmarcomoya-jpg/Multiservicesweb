@@ -17,6 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Wallpaper, type WallTheme } from '@/components/art';
+import { doodleUrl } from '@/components/scenes';
 import { Text, TextInput } from '@/components/Text';
 import { useBranding } from '@/lib/branding';
 import { useLang } from '@/lib/i18n';
@@ -63,13 +64,13 @@ export const MiniChip = ({ children, icon }: { children: React.ReactNode; icon?:
   </View>
 );
 
-export function BrandChip({ full = false }: { full?: boolean; name?: string }) {
+export function BrandChip({ full = false, dark = false }: { full?: boolean; name?: string; dark?: boolean }) {
   const { brand } = useBranding();
   const name = full ? brand.nombre : brand.corto || brand.nombre;
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 6, paddingLeft: 6, paddingRight: 12, borderRadius: R.pill, backgroundColor: C.glass }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4, paddingLeft: 4, paddingRight: 12, borderRadius: R.pill, backgroundColor: dark ? 'rgba(255,255,255,0.12)' : C.glass }}>
       <BrandMark size={30} />
-      <Text style={{ fontWeight: '800', fontSize: 14, color: C.ink }}>{name}</Text>
+      <Text style={{ fontWeight: '900', fontSize: 14, color: dark ? '#fff' : C.ink }}>{name}</Text>
     </View>
   );
 }
@@ -540,6 +541,41 @@ export function SearchBox({ value, onChangeText, placeholder, count }: { value: 
         ) : null}
       </View>
       {value && count !== undefined ? <P small muted style={{ paddingLeft: 16 }}>{count === 0 ? L('Sin resultados', 'No results') : L(`${count} resultado${count === 1 ? '' : 's'}`, `${count} result${count === 1 ? '' : 's'}`)}</P> : null}
+    </View>
+  );
+}
+
+/** Encabezado azul marino con dibujitos (como la maqueta v2). */
+export function NavyHead({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
+  const web = Platform.OS === 'web';
+  return (
+    <View
+      style={[
+        { backgroundColor: '#0B2E5E', paddingHorizontal: 16, paddingBottom: 16, gap: 12, borderBottomLeftRadius: 26, borderBottomRightRadius: 26, overflow: 'hidden' },
+        web ? ({ backgroundImage: `${navyDoodle}, linear-gradient(165deg, #0B2E5E, #123E78)`, backgroundSize: '180px, cover' } as object) : null,
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
+const navyDoodle = doodleUrl('#62BDF6', 0.14);
+
+/** Botones segmentados (pestañas) como en la maqueta; acepta contador rojo por opción. */
+export function Seg<T extends string>({ options, value, onChange }: { options: { v: T; label: string; count?: number }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <View accessibilityRole="tablist" style={{ flexDirection: 'row', backgroundColor: C.seg, borderRadius: 14, padding: 4, gap: 3 }}>
+      {options.map((o) => {
+        const on = o.v === value;
+        return (
+          <Pressable key={o.v} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => onChange(o.v)}
+            style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, minHeight: 36, paddingHorizontal: 3, borderRadius: 10, backgroundColor: on ? C.card : 'transparent', ...(on ? { shadowColor: '#0B2E5E', shadowOpacity: 0.15, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } } : null) }}>
+            <Text style={{ fontWeight: '800', fontSize: 12.5, color: on ? C.ink : C.segInk }} numberOfLines={1}>{o.label}</Text>
+            {o.count ? <View style={{ backgroundColor: '#E2503A', borderRadius: 9, paddingHorizontal: 6 }}><Text style={{ color: '#fff', fontSize: 10.5, fontWeight: '900' }}>{o.count}</Text></View> : null}
+          </Pressable>
+        );
+      })}
     </View>
   );
 }

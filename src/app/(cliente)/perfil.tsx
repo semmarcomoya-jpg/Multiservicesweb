@@ -6,7 +6,7 @@ import { Text } from '@/components/Text';
 import { BirthdayField } from '@/components/BirthdayField';
 import { InstallCard } from '@/components/InstallCard';
 import { resetTour } from '@/components/Tour';
-import { Avatar, Btn, Card, Field, H1, Label, Note, P, Pills, Row, Screen, TopBar } from '@/components/ui';
+import { Avatar, Btn, Card, Field, H1, Label, Note, P, Pills, Row, Screen, TopBar, NavyHead, Seg, Icon } from '@/components/ui';
 import { pickImage, uploadImage } from '@/lib/upload';
 import { useAuth } from '@/lib/auth';
 import { COUNTRIES, STATES } from '@/lib/countries';
@@ -14,6 +14,8 @@ import { useStores } from '@/lib/data';
 import { SpecialDays } from '@/components/SpecialDays';
 import { digits } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
+import { Scene } from '@/components/scenes';
+import { useMyPoints } from '@/lib/points';
 import { errMsg, supabase } from '@/lib/supabase';
 import { C, R, getThemePref, setThemePref, type ThemePref } from '@/lib/theme';
 import { PushCard } from '@/components/PushCard';
@@ -22,9 +24,10 @@ export default function Perfil() {
   const { L, lang, setLang } = useLang();
   const { profile, refreshProfile, signOut, session } = useAuth();
   const { data: stores } = useStores();
+  const { balance } = useMyPoints(profile?.id);
   const [f, setF] = useState({ nombre: '', apellidos: '', telefono: '', fecha_nac: '', store_id: '' as string | null, pais: '' as string, estado: '' });
   const [msg, setMsg] = useState('');
-  const [tab, setTab] = useState<'res' | 'datos' | 'ajustes'>('res');
+  const [tab, setTab] = useState<'res' | 'pts' | 'cred' | 'ajustes'>('res');
   const [themePref, setThemeP] = useState<ThemePref>(getThemePref());
   const [ok, setOk] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -37,6 +40,10 @@ export default function Perfil() {
   }, [profile]);
 
   if (!profile) return null;
+  const myStore = (stores || []).find((x) => x.id === profile.store_id);
+  const ptsStore = (myStore && myStore.loyalty?.on ? myStore : (stores || []).find((x) => x.activo && x.loyalty?.on)) || null;
+  const pts = ptsStore ? balance(ptsStore.id) : 0;
+  const nextRw = ptsStore?.loyalty?.rewards?.filter((r) => Number(r.pts) > pts).sort((a, b) => a.pts - b.pts)[0];
   const set = (k: keyof typeof f) => (v: string) => {
     setOk(false);
     setMsg('');
@@ -124,41 +131,91 @@ export default function Perfil() {
 
   return (
     <Screen wall="profile">
-      <TopBar />
-      <H1>{L('Mi perfil', 'My profile')}</H1>
-      <Card style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={L('Cambiar foto de perfil', 'Change profile photo')} onPress={() => cambiarFoto()} disabled={fotoBusy}>
-          <Avatar name={`${profile.nombre} ${profile.apellidos}`} size={84} uri={profile.foto_url} />
-          <View style={{ position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: 15, backgroundColor: C.brown, borderWidth: 3, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontWeight: '900', fontSize: 16, lineHeight: 18 }}>+</Text>
+      <NavyHead style={{ borderRadius: 22, paddingTop: 16 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Pressable accessibilityRole="button" accessibilityLabel={L('Cambiar foto de perfil', 'Change profile photo')} onPress={() => cambiarFoto()} disabled={fotoBusy}>
+            <Avatar name={`${profile.nombre} ${profile.apellidos}`} size={60} uri={profile.foto_url} />
+            <View style={{ position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: 12, backgroundColor: '#62BDF6', borderWidth: 2, borderColor: '#0B2E5E', alignItems: 'center', justifyContent: 'center' }}>
+              <Icon n="camera" size={12} color="#06213F" />
+            </View>
+          </Pressable>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text style={{ fontSize: 21, fontWeight: '900', color: '#fff' }} numberOfLines={1}>{`${profile.nombre} ${profile.apellidos}`.trim()}</Text>
+            <Text style={{ color: '#C9DDF4', fontSize: 13 }}>{`${profile.member_code} · ${idTxt}`}</Text>
           </View>
-        </Pressable>
-        <View style={{ flex: 1, gap: 6 }}>
-          <Text style={{ fontWeight: '900', fontSize: 18, color: C.ink }}>{`${profile.nombre} ${profile.apellidos}`.trim()}</Text>
-          <Row>
-            <Btn small icon="camera" title={fotoBusy ? L('Subiendo…', 'Uploading…') : profile.foto_url ? L('Cambiar foto', 'Change photo') : L('Subir foto', 'Add photo')} onPress={() => cambiarFoto()} loading={fotoBusy} />
-            {profile.foto_url ? <Btn small kind="ghost" title={L('Quitar', 'Remove')} onPress={quitarFoto} /> : null}
-          </Row>
-          {fotoErr ? <P small style={{ color: C.red }}>{fotoErr}</P> : <P small muted>{L('Así te reconocen en la tienda.', 'So the store recognizes you.')}</P>}
+          <Pressable accessibilityRole="button" accessibilityLabel={L('Mi tarjeta', 'My card')} onPress={() => router.push('/tarjeta')}
+            style={{ width: 42, height: 42, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon n="qr" size={22} color="#fff" />
+          </Pressable>
         </View>
-      </Card>
-      <Pills
+        {fotoErr ? <Text style={{ color: '#F7DCD6', fontSize: 12 }}>{fotoErr}</Text> : null}
+        {fotoBusy ? <Text style={{ color: '#C9DDF4', fontSize: 12 }}>{L('Subiendo foto…', 'Uploading photo…')}</Text> : null}
+      </NavyHead>
+      <Seg
         options={[
           { v: 'res' as const, label: L('Resumen', 'Overview') },
-          { v: 'datos' as const, label: L('Mis datos', 'My info') },
+          { v: 'pts' as const, label: L('Puntos', 'Points') },
+          { v: 'cred' as const, label: L('Crédito', 'Credit') },
           { v: 'ajustes' as const, label: L('Ajustes', 'Settings') },
         ]}
         value={tab}
         onChange={setTab}
       />
 
+      {tab === 'pts' ? (
+        <Card>
+          {ptsStore ? (
+            <>
+              <Row style={{ alignItems: 'baseline' }}>
+                <Text style={{ fontSize: 30, fontWeight: '900', color: C.ink }}>{pts}</Text>
+                <P muted>{L('puntos en ', 'points at ') + ptsStore.nombre.replace('Castillo · ', '')}</P>
+              </Row>
+              {nextRw ? (
+                <>
+                  <View style={{ height: 7, borderRadius: 4, backgroundColor: C.line, overflow: 'hidden' }}>
+                    <View style={{ width: `${Math.min(100, (pts / nextRw.pts) * 100)}%`, height: '100%', backgroundColor: C.brown }} />
+                  </View>
+                  <P small muted>{L(`${nextRw.pts - pts} más para "${nextRw.es}"`, `${nextRw.pts - pts} more for "${nextRw.en || nextRw.es}"`)}</P>
+                </>
+              ) : null}
+              {(ptsStore.loyalty?.rewards || []).map((r) => (
+                <Row key={r.id || r.es} style={{ justifyContent: 'space-between', paddingVertical: 6, borderTopWidth: 1, borderTopColor: C.line }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: '800', color: C.ink }}>{lang === 'es' ? r.es : r.en || r.es}</Text>
+                    <P small muted>{`${r.pts} pts`}</P>
+                  </View>
+                  <Text style={{ fontWeight: '900', fontSize: 12, color: pts >= r.pts ? '#1E7A4A' : C.brown }}>{pts >= r.pts ? L('Lo puedes usar', 'Available') : L(`Te faltan ${r.pts - pts}`, `${r.pts - pts} to go`)}</Text>
+                </Row>
+              ))}
+            </>
+          ) : (
+            <P muted>{L('Tu tienda todavía no tiene puntos activos.', 'Your store has no points program yet.')}</P>
+          )}
+          <Btn kind="ghost" icon="star" title={L('Ver mis movimientos de puntos', 'See my points history')} onPress={() => router.push('/puntos')} />
+        </Card>
+      ) : null}
+
+      {tab === 'cred' ? (
+        <Card>
+          <P muted>{L('Tus compras a pagos y apartados, con cada abono y cuándo vence.', 'Your installment purchases and layaways, with each payment and due date.')}</P>
+          <Btn icon="wallet" title={L('Mi crédito y apartados', 'My credit & layaways')} onPress={() => router.push('/credito')} />
+          <Btn kind="ghost" icon="chart" title={L('Mis cuentas (lo que he gastado)', 'My accounts (my spending)')} onPress={() => router.push('/cuentas')} />
+        </Card>
+      ) : null}
+
       {tab === 'res' ? (<>
       <SpecialDays />
-      <View style={{ backgroundColor: C.brown, borderRadius: R.xl, padding: 18, gap: 4 }}>
-        <Text style={{ color: C.goldSoft, fontWeight: '700' }}>{L('Tu número de cliente', 'Your member number')}</Text>
-        <Text style={{ color: '#fff', fontSize: 26, fontWeight: '900', letterSpacing: 1 }}>{profile.member_code}</Text>
-        <Text style={{ color: C.goldSoft, fontSize: 13 }}>{L('Dilo en la tienda para sumar tus puntos.', 'Say it at the store to earn your points.')}</Text>
-      </View>
+      {profile.id_status !== 'verificada' ? (
+        <Pressable accessibilityRole="button" onPress={() => router.push('/identidad')}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12, borderRadius: 18, backgroundColor: C.card, borderWidth: 1, borderColor: C.line }}>
+          <View style={{ width: 42, height: 42, borderRadius: 12, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center' }}><Scene n="tramite" size={40} /></View>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '800', color: C.ink }}>{profile.id_status === 'pendiente' ? L('Tu identificación está en revisión', 'Your ID is under review') : L('Sube tu identificación', 'Upload your ID')}</Text>
+            <P small muted>{L('Para mandar montos más altos', 'To send larger amounts')}</P>
+          </View>
+          <Icon n="arrow" size={16} color={C.muted} />
+        </Pressable>
+      ) : null}
 
       <InstallCard />
 
@@ -181,7 +238,7 @@ export default function Perfil() {
       </Card>
       </>) : null}
 
-      {tab === 'datos' ? (<>
+      {tab === 'ajustes' ? (<>
       <Card>
         <Row style={{ alignItems: 'flex-start' }}>
           <Field label={L('Nombre', 'First name')} value={f.nombre} onChangeText={set('nombre')} />
