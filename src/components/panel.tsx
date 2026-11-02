@@ -264,7 +264,7 @@ function SideMenu({ kind }: { kind: 'tienda' | 'admin' }) {
             const on = path === href;
             return (
               <Pressable key={href} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => router.replace(href as never)}
-                style={({ hovered }: { hovered?: boolean }) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, minHeight: 38, borderRadius: 10, backgroundColor: on ? C.brownDark : hovered ? C.card : 'transparent' })}>
+                style={(st) => ({ flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 10, minHeight: 38, borderRadius: 10, backgroundColor: on ? C.brownDark : (st as { hovered?: boolean }).hovered || st.pressed ? C.card : 'transparent' })}>
                 <Icon n={ic} size={17} color={on ? C.gold : C.brown} />
                 <Text style={{ fontWeight: '800', color: on ? '#fff' : C.ink, fontSize: 14 }}>{label}</Text>
               </Pressable>
