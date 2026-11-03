@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Text } from '@/components/Text';
 
 import { Btn, Card, Field, H2, Loading, Note, P, Row, Screen, Toggle } from '@/components/ui';
-import { COUNTRIES } from '@/lib/countries';
+import { COUNTRIES, countryOf } from '@/lib/countries';
+import { CountryCombo } from '@/components/PlacePicker';
 import { useSettings } from '@/lib/data';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
@@ -20,9 +21,10 @@ export default function AdminCambio() {
   useEffect(() => {
     if (cfg)
       setPaises(
-        COUNTRIES.filter((c) => c.c !== 'MX' && c.c !== 'US').map((c) => {
-          const p = (cfg.paises || []).find((x) => x.c === c.c);
-          return { c: c.c, on: !!p?.on, cur: p?.cur || c.cur, rate: p ? String(p.rate) : '', fee: p ? String(p.fee) : String(cfg.send_fee) };
+        [...COUNTRIES.filter((c) => c.c !== 'MX' && c.c !== 'US').map((c) => c.c), ...(cfg.paises || []).map((x) => x.c).filter((c) => c !== 'MX' && !COUNTRIES.some((k) => k.c === c))].map((code) => {
+          const c = countryOf(code);
+          const p = (cfg.paises || []).find((x) => x.c === code);
+          return { c: code, on: !!p?.on, cur: p?.cur || c.cur, rate: p ? String(p.rate) : '', fee: p ? String(p.fee) : String(cfg.send_fee) };
         }),
       );
     if (cfg) setF({ exchange_rate: String(cfg.exchange_rate), send_fee: String(cfg.send_fee), limit_l1: String(cfg.limit_l1), limit_l2: String(cfg.limit_l2), proveedor: cfg.proveedor });
@@ -68,7 +70,7 @@ export default function AdminCambio() {
         <H2>{L('Otros países', 'Other countries')}</H2>
         <P small muted>{L('Prende los países a los que envías y pon su tipo de cambio y comisión. El cliente los elige al agregar a la persona que recibe. Revisa el tipo de cambio cada día, igual que el de México.', 'Turn on the countries you send to and set their rate and fee. Customers pick the country when adding a recipient. Update rates daily, like Mexico.')}</P>
         {paises.map((p, i) => {
-          const c = COUNTRIES.find((x) => x.c === p.c)!;
+          const c = countryOf(p.c);
           const upd = (patch: Partial<typeof p>) => setPaises((arr) => arr.map((x, j) => (j === i ? { ...x, ...patch } : x)));
           return (
             <Row key={p.c} style={{ alignItems: 'flex-end', paddingVertical: 6, borderTopWidth: i ? 1 : 0, borderTopColor: C.line }}>
@@ -78,6 +80,9 @@ export default function AdminCambio() {
             </Row>
           );
         })}
+        <CountryCombo label={L('Agregar otro país', 'Add another country')} value=""
+          isAllowed={(c) => c !== 'MX' && c !== 'US' && !paises.some((p) => p.c === c)} blockedText={L('Ya está en la lista', 'Already listed')}
+          onChange={(c) => setPaises((arr) => [...arr, { c, on: true, cur: countryOf(c).cur, rate: '', fee: String(cfg.send_fee) }])} />
         {paises.some((p) => p.on && !(Number(p.rate) > 0)) ? <Note kind="red">{L('Un país prendido necesita su tipo de cambio.', 'An enabled country needs its rate.')}</Note> : null}
       </Card>
       <Card>

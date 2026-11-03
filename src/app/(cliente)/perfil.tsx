@@ -9,7 +9,7 @@ import { resetTour } from '@/components/Tour';
 import { Avatar, Btn, Card, Field, H1, Label, Note, P, Pills, Row, Screen, TopBar, NavyHead, Seg, Icon } from '@/components/ui';
 import { pickImage, uploadImage } from '@/lib/upload';
 import { useAuth } from '@/lib/auth';
-import { COUNTRIES, STATES } from '@/lib/countries';
+import { CountryCombo, StateCityPicker } from '@/components/PlacePicker';
 import { useStores } from '@/lib/data';
 import { SpecialDays } from '@/components/SpecialDays';
 import { digits } from '@/lib/format';
@@ -280,12 +280,8 @@ export default function Perfil() {
           <Field label={L('Apellidos', 'Last name')} value={f.apellidos} onChangeText={set('apellidos')} />
         </Row>
         <Field label={L('Teléfono', 'Phone')} value={f.telefono} onChangeText={(v) => set('telefono')(digits(v))} keyboardType="phone-pad" maxLength={10} />
-        <Pills label={L('¿De qué país eres?', 'Which country are you from?')} options={COUNTRIES.map((c) => ({ v: c.c, label: `${c.flag} ${lang === 'es' ? c.es : c.en}` }))} value={f.pais} onChange={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, pais: v, estado: '' })); }} wrap={false} />
-        {f.pais && STATES[f.pais] ? (
-          <Pills label={f.pais === 'MX' ? L('¿De qué estado?', 'Which state?') : L('¿De qué departamento?', 'Which department?')} options={STATES[f.pais].map((s) => ({ v: s, label: s }))} value={f.estado} onChange={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, estado: v })); }} wrap={false} />
-        ) : f.pais && f.pais !== 'US' ? (
-          <Field label={L('Estado, provincia o departamento', 'State or province')} value={f.estado} onChangeText={set('estado')} />
-        ) : null}
+        <CountryCombo label={L('¿De qué país eres?', 'Which country are you from?')} value={f.pais} onChange={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, pais: v, estado: '' })); }} />
+        {f.pais ? <StateCityPicker country={f.pais} estado={f.estado} hideCity onEstado={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, estado: v })); }} /> : null}
         <P small muted>{L('Lo usamos para avisarte de los días especiales de tu tierra y de Estados Unidos.', 'We use it to remind you of special days back home and in the U.S.')}</P>
         <BirthdayField value={f.fecha_nac} onChange={(v) => { setOk(false); setMsg(''); setF((p) => ({ ...p, fecha_nac: v })); }} />
         <P small muted>{session?.user.email}</P>

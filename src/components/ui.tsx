@@ -18,6 +18,7 @@ import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Wallpaper, type WallTheme } from '@/components/art';
 import { doodleUrl } from '@/components/scenes';
+import { Combo } from '@/components/Combo';
 import { Text, TextInput } from '@/components/Text';
 import { useBranding } from '@/lib/branding';
 import { useLang } from '@/lib/i18n';
@@ -360,13 +361,19 @@ export function Pills<T extends string | number>({
   onChange,
   label,
   wrap,
+  combo,
 }: {
   options: { v: T; label: string; icon?: string; img?: string | null; disabled?: boolean }[];
   value: T | null | undefined;
   onChange: (v: T) => void;
   label?: string;
   wrap?: boolean;
+  /** true: siempre lista desplegable; false: siempre botones. Si no se dice, un campo con título y 4 opciones o más se muestra como lista desplegable. */
+  combo?: boolean;
 }) {
+  if (combo ?? (!!label && options.length >= 4)) {
+    return <Combo label={label} value={value} onChange={onChange} options={options.map((o) => ({ v: o.v, label: o.label, disabled: o.disabled }))} />;
+  }
   const multi = wrap ?? !!label;
   const items = options.map((o) => {
     const on = o.v === value;

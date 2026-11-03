@@ -8,7 +8,9 @@ import { digits } from '@/lib/format';
 import { useLang } from '@/lib/i18n';
 import { errMsg, supabase } from '@/lib/supabase';
 
-import { countryOf, sendCountries, STATES } from '@/lib/countries';
+import { countryOf, phoneOk, sendCountries } from '@/lib/countries';
+import { Combo } from '@/components/Combo';
+import { CountryCombo, StateCityPicker } from '@/components/PlacePicker';
 
 export default function NuevoBeneficiario() {
   const { L } = useLang();
@@ -25,15 +27,17 @@ export default function NuevoBeneficiario() {
   // México usa la lista de redes que pone el administrador (Admin → Reglas)
   const REDES = f.pais === 'MX' && cfg?.redes ? cfg.redes.split(',').map((x) => x.trim()).filter(Boolean) : co.redes;
   const paises = sendCountries(cfg);
+  const allowed = React.useCallback((c: string) => paises.some((p) => p.c === c), [paises.map((p) => p.c).join()]); // eslint-disable-line react-hooks/exhaustive-deps
   const PAR = [L('Mamá', 'Mother'), L('Papá', 'Father'), L('Esposa(o)', 'Spouse'), L('Hija(o)', 'Child'), L('Hermana(o)', 'Sibling'), L('Otro', 'Other')];
 
   const cl = digits(f.cuenta);
   const errors: Record<string, string> = {
     nombre: f.nombre.trim() ? '' : L('Escribe el nombre', 'Enter the first name'),
     apellidos: f.apellidos.trim() ? '' : L('Escribe los apellidos (como en su identificación)', 'Enter the last name (as on their ID)'),
-    telefono: digits(f.telefono).length === co.phone ? '' : L(`Teléfono a ${co.phone} dígitos`, `${co.phone}-digit phone`),
-    estado: f.estado.trim() ? '' : L('Escribe el estado', 'Enter the state'),
-    ciudad: f.ciudad.trim() ? '' : L('Escribe la ciudad', 'Enter the city'),
+    telefono: phoneOk(co, digits(f.telefono).length) ? '' : co.phone ? L(`Teléfono a ${co.phone} dígitos`, `${co.phone}-digit phone`) : L('Escribe el teléfono con lada', 'Enter the phone with area code'),
+    pais: allowed(f.pais) ? '' : L('Por ahora no enviamos a ese país', 'We do not send to that country yet'),
+    estado: f.estado.trim() ? '' : L('Elige el estado', 'Choose the state'),
+    ciudad: f.ciudad.trim() ? '' : L('Elige el municipio o ciudad', 'Choose the city'),
     banco: f.metodo === 'cuenta' && !f.banco ? L('Elige el banco', 'Choose the bank') : '',
     cuenta: f.metodo === 'cuenta' && (f.pais === 'MX' ? cl.length !== 18 && cl.length !== 16 : cl.length < 6 || cl.length > 22) ? (f.pais === 'MX' ? L('CLABE de 18 dígitos o tarjeta de 16', '18-digit CLABE or 16-digit card') : L('Escribe el número de cuenta', 'Enter the account number')) : '',
     red: f.metodo === 'efectivo' && !f.red ? L('Elige dónde recoge', 'Choose the pickup network') : '',
@@ -72,27 +76,20 @@ export default function NuevoBeneficiario() {
       <BackBar title={L('Nueva persona', 'New person')} />
       <H1>{L('¿Quién recibe el dinero?', 'Who receives the money?')}</H1>
       <Card>
-        <Pills label={L('¿En qué país recibe?', 'Which country do they receive in?')} options={paises.map((c) => ({ v: c.c, label: `${c.flag} ${lang2 === 'es' ? c.es : c.en}` }))} value={f.pais}
-          onChange={(v) => setF((p) => ({ ...p, pais: v, estado: '', banco: '', red: '' }))} />
+        <CountryCombo label={L('¿En qué país recibe?', 'Which country do they receive in?')} value={f.pais}
+          isAllowed={allowed} blockedText={L('Por ahora no enviamos aquí', 'Not available yet')}
+          onChange={(v) => setF((p) => ({ ...p, pais: v, estado: '', ciudad: '', banco: '', red: '' }))} />
         <Row style={{ alignItems: 'flex-start' }}>
           <Field label={L('Nombre', 'First name')} value={f.nombre} onChangeText={set('nombre')} error={e('nombre')} autoCapitalize="words" />
           <Field label={L('Apellidos', 'Last name')} value={f.apellidos} onChangeText={set('apellidos')} error={e('apellidos')} autoCapitalize="words" />
         </Row>
-        <Pills label={L('Parentesco', 'Relationship')} options={PAR.map((p) => ({ v: p, label: p }))} value={f.parentesco} onChange={set('parentesco')} />
-        <Field label={L(`Teléfono en ${co.es}`, `Phone in ${co.en}`)} value={f.telefono} onChangeText={(v) => set('telefono')(digits(v))} keyboardType="phone-pad" maxLength={co.phone} error={e('telefono')} />
-        {STATES[f.pais] ? (
-          <>
-            <Pills label={f.pais === 'MX' ? L('Estado', 'State') : L('Departamento', 'Department')} options={STATES[f.pais].map((s) => ({ v: s, label: s }))} value={f.estado} onChange={set('estado')} wrap={false} />
-            {e('estado') ? <Note kind="red">{e('estado')}</Note> : null}
-          </>
-        ) : null}
-        <Row style={{ alignItems: 'flex-start' }}>
-          {!STATES[f.pais] ? <Field label={L('Estado, provincia o departamento', 'State or province')} value={f.estado} onChangeText={set('estado')} error={e('estado')} autoCapitalize="words" /> : null}
-          <Field label={L('Ciudad o municipio', 'City')} value={f.ciudad} onChangeText={set('ciudad')} error={e('ciudad')} autoCapitalize="words" />
-        </Row>
+        <Combo label={L('Parentesco', 'Relationship')} options={PAR.map((p) => ({ v: p, label: p }))} value={f.parentesco} onChange={set('parentesco')} allowCustom placeholder={L('Elige el parentesco', 'Choose the relationship')} />
+        <Field label={L(`Teléfono en ${co.es}`, `Phone in ${co.en}`)} value={f.telefono} onChangeText={(v) => set('telefono')(digits(v))} keyboardType="phone-pad" maxLength={co.phone || 15} error={e('telefono')} />
+        <StateCityPicker country={f.pais} estado={f.estado} ciudad={f.ciudad} onEstado={set('estado')} onCiudad={set('ciudad')} errEstado={e('estado')} errCiudad={e('ciudad')} />
       </Card>
       <Card>
         <Pills
+          combo={false}
           label={L('¿Cómo recibe?', 'How do they receive it?')}
           options={[
             { v: 'cuenta', label: L('Depósito a cuenta', 'Bank deposit'), icon: 'bank' },
@@ -103,14 +100,14 @@ export default function NuevoBeneficiario() {
         />
         {f.metodo === 'cuenta' ? (
           <>
-            <Pills label={L('Banco', 'Bank')} options={BANCOS.map((b) => ({ v: b, label: b }))} value={f.banco} onChange={set('banco')} />
-            {e('banco') ? <Note kind="red">{e('banco')}</Note> : null}
+            <Combo label={L('Banco', 'Bank')} options={BANCOS.filter((b) => b !== 'Otro').map((b) => ({ v: b, label: b }))} value={f.banco} onChange={set('banco')} allowCustom
+              placeholder={L('Elige o escribe el banco', 'Choose or type the bank')} error={e('banco')} emptyText={L('Escribe el nombre del banco y tócalo para usarlo.', 'Type the bank name and tap it.')} />
             <Field label={L(co.acct, co.acctEn)} value={f.cuenta} onChangeText={(v) => set('cuenta')(digits(v))} keyboardType="number-pad" maxLength={f.pais === 'MX' ? 18 : 22} error={e('cuenta')} />
           </>
         ) : (
           <>
-            <Pills label={L('¿Dónde recoge?', 'Where do they pick it up?')} options={REDES.map((r) => ({ v: r, label: r }))} value={f.red} onChange={set('red')} />
-            {e('red') ? <Note kind="red">{e('red')}</Note> : null}
+            <Combo label={L('¿Dónde recoge?', 'Where do they pick it up?')} options={REDES.map((r) => ({ v: r, label: r }))} value={f.red} onChange={set('red')} allowCustom
+              placeholder={L('Elige dónde recoge', 'Choose the pickup place')} error={e('red')} emptyText={L('Escribe el nombre y tócalo para usarlo.', 'Type the name and tap it.')} />
             <Note kind="blue">{L('Debe llevar identificación oficial con el mismo nombre.', 'They must bring an official ID with the same name.')}</Note>
           </>
         )}

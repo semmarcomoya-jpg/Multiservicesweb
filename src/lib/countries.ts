@@ -1,5 +1,6 @@
 /** Países a los que se envía y de donde son los clientes. */
 import type { Settings } from './types';
+import { geoCountry } from './geo';
 
 export interface Country { c: string; es: string; en: string; flag: string; cur: string; phone: number; acct: string; acctEn: string; bancos: string[]; redes: string[] }
 
@@ -15,7 +16,16 @@ export const COUNTRIES: Country[] = [
   { c: 'PE', es: 'Perú', en: 'Peru', flag: '🇵🇪', cur: 'PEN', phone: 9, acct: 'Número de cuenta o CCI', acctEn: 'Account number or CCI', bancos: ['BCP', 'Interbank', 'BBVA Perú', 'Scotiabank', 'Otro'], redes: ['BCP', 'Interbank'] },
   { c: 'US', es: 'Estados Unidos', en: 'United States', flag: '🇺🇸', cur: 'USD', phone: 10, acct: '', acctEn: '', bancos: [], redes: [] },
 ];
-export const countryOf = (c?: string | null) => COUNTRIES.find((x) => x.c === (c || 'MX')) || COUNTRIES[0];
+/** Datos del país: los que conocemos a detalle (bancos, redes, largo del teléfono) o, para cualquier otro, los generales. phone = 0 → de 7 a 15 dígitos. */
+export const countryOf = (c?: string | null): Country => {
+  const code = c || 'MX';
+  const known = COUNTRIES.find((x) => x.c === code);
+  if (known) return known;
+  const g = geoCountry(code);
+  if (!g) return COUNTRIES[0];
+  return { c: g.c, es: g.es, en: g.en, flag: g.flag, cur: g.cur || 'USD', phone: 0, acct: 'Número de cuenta', acctEn: 'Account number', bancos: [], redes: [] };
+};
+export const phoneOk = (co: Country, digitsLen: number) => (co.phone ? digitsLen === co.phone : digitsLen >= 7 && digitsLen <= 15);
 
 export interface PaisCfg { c: string; on: boolean; cur: string; rate: number; fee: number }
 /** Tipo de cambio y comisión del país (México usa el de siempre). */
@@ -26,7 +36,7 @@ export function paisCfg(cfg: Settings | null | undefined, c?: string | null): Pa
   return { c: code, on: !!p?.on, cur: p?.cur || countryOf(code).cur, rate: Number(p?.rate) || 0, fee: Number(p?.fee ?? cfg?.send_fee) || 0 };
 }
 /** Países activos para enviar */
-export const sendCountries = (cfg: Settings | null | undefined) => COUNTRIES.filter((c) => c.c !== 'US' && paisCfg(cfg, c.c).on);
+export const sendCountries = (cfg: Settings | null | undefined) => [...COUNTRIES.filter((c) => c.c !== 'US'), ...(cfg?.paises || []).filter((p) => !COUNTRIES.some((k) => k.c === p.c)).map((p) => countryOf(p.c))].filter((c) => paisCfg(cfg, c.c).on);
 
 export const fmtCur = (v: unknown, cur = 'MXN') => {
   const n = Number(v) || 0;
