@@ -81,7 +81,7 @@ export default function AdminCambio() {
           );
         })}
         <CountryCombo label={L('Agregar otro país', 'Add another country')} value=""
-          isAllowed={(c) => c !== 'MX' && c !== 'US' && !paises.some((p) => p.c === c)} blockedText={L('Ya está en la lista', 'Already listed')}
+          isAllowed={(c) => c !== 'MX' && c !== 'US' && !paises.some((p) => p.c === c)} blockedText={L('Ya está en la lista', 'Already listed')} block
           onChange={(c) => setPaises((arr) => [...arr, { c, on: true, cur: countryOf(c).cur, rate: '', fee: String(cfg.send_fee) }])} />
         {paises.some((p) => p.on && !(Number(p.rate) > 0)) ? <Note kind="red">{L('Un país prendido necesita su tipo de cambio.', 'An enabled country needs its rate.')}</Note> : null}
       </Card>

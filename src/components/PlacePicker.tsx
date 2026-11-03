@@ -6,20 +6,22 @@ import { Combo } from '@/components/Combo';
 import { allCountries, CONTINENTS, loadStates, type GeoState } from '@/lib/geo';
 import { useLang } from '@/lib/i18n';
 
-export function CountryCombo({ value, onChange, label, isAllowed, blockedText, errors }: {
+export function CountryCombo({ value, onChange, label, isAllowed, blockedText, errors, block }: {
   value: string; onChange: (c: string) => void; label: string;
-  /** Si se da, los países que no pasan salen grises (por ejemplo, a los que aún no se envía). */
+  /** Si se da, los países que no pasan llevan una nota (por ejemplo, a los que aún no se envía). */
   isAllowed?: (c: string) => boolean; blockedText?: string; errors?: string;
+  /** true: los que no pasan no se pueden elegir. */
+  block?: boolean;
 }) {
   const { L, lang } = useLang();
   const opts = useMemo(() => {
     const all = allCountries().map((c) => {
       const ok = !isAllowed || isAllowed(c.c);
-      return { v: c.c, label: lang === 'es' ? c.es : c.en, left: c.flag, group: c.cont, disabled: !ok, sub: !ok ? blockedText : undefined };
+      return { v: c.c, label: lang === 'es' ? c.es : c.en, left: c.flag, group: c.cont, disabled: block && !ok, sub: !ok ? blockedText : undefined, ok };
     });
     // Los disponibles primero
-    return isAllowed ? [...all.filter((o) => !o.disabled), ...all.filter((o) => o.disabled)] : all;
-  }, [lang, isAllowed, blockedText]);
+    return isAllowed ? [...all.filter((o) => o.ok), ...all.filter((o) => !o.ok)] : all;
+  }, [lang, isAllowed, blockedText, block]);
   return (
     <Combo label={label} value={value} onChange={onChange} options={opts} groups={CONTINENTS.map((c) => ({ v: c.v, label: lang === 'es' ? c.es : c.en }))}
       placeholder={L('Elige el país', 'Choose the country')} title={label} error={errors} />

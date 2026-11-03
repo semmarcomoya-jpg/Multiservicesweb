@@ -35,7 +35,6 @@ export default function NuevoBeneficiario() {
     nombre: f.nombre.trim() ? '' : L('Escribe el nombre', 'Enter the first name'),
     apellidos: f.apellidos.trim() ? '' : L('Escribe los apellidos (como en su identificación)', 'Enter the last name (as on their ID)'),
     telefono: phoneOk(co, digits(f.telefono).length) ? '' : co.phone ? L(`Teléfono a ${co.phone} dígitos`, `${co.phone}-digit phone`) : L('Escribe el teléfono con lada', 'Enter the phone with area code'),
-    pais: allowed(f.pais) ? '' : L('Por ahora no enviamos a ese país', 'We do not send to that country yet'),
     estado: f.estado.trim() ? '' : L('Elige el estado', 'Choose the state'),
     ciudad: f.ciudad.trim() ? '' : L('Elige el municipio o ciudad', 'Choose the city'),
     banco: f.metodo === 'cuenta' && !f.banco ? L('Elige el banco', 'Choose the bank') : '',
@@ -77,8 +76,9 @@ export default function NuevoBeneficiario() {
       <H1>{L('¿Quién recibe el dinero?', 'Who receives the money?')}</H1>
       <Card>
         <CountryCombo label={L('¿En qué país recibe?', 'Which country do they receive in?')} value={f.pais}
-          isAllowed={allowed} blockedText={L('Por ahora no enviamos aquí', 'Not available yet')}
+          isAllowed={allowed} blockedText={L('Envíos próximamente', 'Transfers coming soon')}
           onChange={(v) => setF((p) => ({ ...p, pais: v, estado: '', ciudad: '', banco: '', red: '' }))} />
+        {!allowed(f.pais) ? <Note kind="gold" icon="send">{L(`Puedes guardar a esta persona, pero todavía no hacemos envíos a ${co.es}. Te avisamos cuando abramos.`, `You can save this person, but we do not send to ${co.en} yet. We will let you know.`)}</Note> : null}
         <Row style={{ alignItems: 'flex-start' }}>
           <Field label={L('Nombre', 'First name')} value={f.nombre} onChangeText={set('nombre')} error={e('nombre')} autoCapitalize="words" />
           <Field label={L('Apellidos', 'Last name')} value={f.apellidos} onChangeText={set('apellidos')} error={e('apellidos')} autoCapitalize="words" />
