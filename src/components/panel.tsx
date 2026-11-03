@@ -87,7 +87,7 @@ export function OpenSwitch({ store, onChanged, compact }: { store: Store; onChan
 }
 
 /** Selector de vista como en la maqueta: Cliente · Tienda · Admin (según el rol). */
-export function ViewSwitch({ current, compact }: { current: 'cliente' | 'tienda' | 'admin'; compact?: boolean }) {
+export function ViewSwitch({ current, compact, icons }: { current: 'cliente' | 'tienda' | 'admin'; compact?: boolean; icons?: boolean }) {
   const { L } = useLang();
   const { profile } = useAuth();
   if (!profile || profile.role === 'cliente') return null;
@@ -96,6 +96,21 @@ export function ViewSwitch({ current, compact }: { current: 'cliente' | 'tienda'
     ['tienda', L('Tienda', 'Store'), 'store', '/tienda'],
     ...(profile.role === 'admin' ? [['admin', L('Admin', 'Admin'), 'lock', '/admin'] as ['admin', string, string, string]] : []),
   ];
+  // Solo íconos (para la portada del cliente): ocupa poco junto al logo
+  if (icons)
+    return (
+      <View style={{ flexDirection: 'row', padding: 3, gap: 2, borderRadius: R.pill, backgroundColor: 'rgba(255,255,255,0.16)' }} accessibilityRole="tablist">
+        {opts.map(([k, label, ic, href]) => {
+          const on = k === current;
+          return (
+            <Pressable key={k} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: on }} onPress={() => !on && router.replace(href as never)}
+              style={{ width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: on ? '#fff' : 'transparent' }}>
+              <Icon n={ic} size={17} color={on ? '#0B2E5E' : '#fff'} />
+            </Pressable>
+          );
+        })}
+      </View>
+    );
   return (
     <View style={{ flexDirection: 'row', alignSelf: 'flex-start', padding: 3, borderRadius: R.pill, backgroundColor: C.seg }} accessibilityRole="tablist">
       {opts.map(([k, label, ic, href]) => {

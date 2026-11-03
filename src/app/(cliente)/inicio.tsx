@@ -199,7 +199,8 @@ export default function Inicio() {
   const coverUri = brand.cover_url || myStore?.fotos?.[0] || brand.home_bg_url || null;
   const coverFrame = brand.cover_url ? brand.cover_pos : brand.home_bg_url && !myStore?.fotos?.[0] ? brand.home_pos : undefined;
   const coverSub = (lang === 'es' ? brand.cover_sub_es : brand.cover_sub_en || brand.cover_sub_es) || '';
-  const coverH = Math.max(420, Math.min(560, Math.round(winH * 0.62)));
+  // La portada deja ver debajo las pestañas y los cuadritos sin bajar
+  const coverH = Math.max(330, Math.min(420, Math.round(winH * 0.44)));
 
   return (
     <View style={{ flex: 1 }}>
@@ -210,54 +211,52 @@ export default function Inicio() {
           <View style={{ minHeight: coverH, backgroundColor: '#0B2E5E', overflow: 'hidden', borderBottomLeftRadius: 26, borderBottomRightRadius: 26 }}>
             {coverUri ? <FramedImage uri={coverUri} frame={coverFrame} /> : null}
             <View pointerEvents="none" style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, ...(web ? ({ backgroundImage: coverUri ? 'linear-gradient(180deg, rgba(11,31,58,.55) 0%, rgba(11,31,58,.35) 35%, rgba(11,31,58,.92) 100%)' : `${doodleUrl('#62BDF6', 0.14)}, linear-gradient(165deg, #0B2E5E, #123E78)`, backgroundSize: coverUri ? 'cover' : '180px, cover' } as object) : { backgroundColor: 'rgba(11,31,58,0.6)' }) }} />
-            <SafeAreaView edges={['top']} style={{ paddingHorizontal: 16 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10 }}>
-                <BrandChip dark />
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <SafeAreaView edges={['top']} style={{ paddingHorizontal: 12 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, gap: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, minWidth: 0 }}>
+                  <BrandChip dark />
+                  {profile && profile.role !== 'cliente' && !inFrame ? <ViewSwitch current="cliente" icons /> : null}
+                </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <LangToggle glass />
                   <NotifBell glass />
                 </View>
               </View>
             </SafeAreaView>
-            {profile && profile.role !== 'cliente' && !inFrame ? (
-              <View style={{ alignItems: 'flex-start', paddingHorizontal: 16, paddingTop: 8 }}>
-                <ViewSwitch current="cliente" />
-              </View>
-            ) : null}
             {stories && (stories.length || (profile && profile.role !== 'cliente')) ? (
-              <View style={{ paddingLeft: 16, paddingTop: 12 }}>
-                <StoriesRow dark size={60} stories={stories} addHref={profile?.role === 'admin' ? '/admin/historias' : profile?.role === 'tienda' ? '/tienda/historias' : undefined} />
+              <View style={{ paddingLeft: 12, paddingTop: 8 }}>
+                <StoriesRow dark size={50} stories={stories} addHref={profile?.role === 'admin' ? '/admin/historias' : profile?.role === 'tienda' ? '/tienda/historias' : undefined} />
               </View>
             ) : null}
-            <View style={{ flex: 1, justifyContent: 'flex-end', paddingHorizontal: 16, paddingBottom: 16, paddingTop: 16, gap: 10 }}>
-              <Text style={{ fontSize: 30, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 6 }}>
+            <View style={{ flex: 1, justifyContent: 'flex-end', paddingHorizontal: 14, paddingBottom: 12, paddingTop: 10, gap: 8 }}>
+              <Text style={{ fontSize: 24, fontWeight: '900', color: '#fff', textShadowColor: 'rgba(0,0,0,0.35)', textShadowRadius: 6 }}>
                 {L('Hola', 'Hi')}{profile?.nombre ? `, ${profile.nombre}` : ''}
               </Text>
-              {coverSub ? <Text style={{ color: 'rgba(255,255,255,0.88)', fontSize: 15, marginTop: -4 }}>{coverSub}</Text> : null}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16, backgroundColor: 'rgba(11,31,58,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}>
+              {coverSub ? <Text style={{ color: 'rgba(255,255,255,0.88)', fontSize: 13, marginTop: -4 }} numberOfLines={2}>{coverSub}</Text> : null}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 14, backgroundColor: 'rgba(11,31,58,0.55)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.18)' }}>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Text style={{ fontSize: 12, fontWeight: '700', color: '#B9D3F2' }}>{L('Tipo de cambio de hoy', "Today's rate")}{updated ? ` · ${updated}` : ''}</Text>
-                  <Text style={{ fontSize: 20, fontWeight: '900', color: '#fff' }}>{`${countryOf(myPais).flag} 1 USD = ${rate ? rate.toFixed(2) : '—'} ${pc.cur}`}</Text>
+                  <Text style={{ fontSize: 18, fontWeight: '900', color: '#fff' }}>{`${countryOf(myPais).flag} 1 USD = ${rate ? rate.toFixed(2) : '—'} ${pc.cur}`}</Text>
                 </View>
                 {ptsStore ? (
                   <Pressable accessibilityRole="button" accessibilityLabel={L('Mis puntos', 'My points')} onPress={() => router.push('/puntos')}
-                    style={{ backgroundColor: '#E8A317', borderRadius: 12, paddingVertical: 6, paddingHorizontal: 10, alignItems: 'center' }}>
-                    <Text style={{ fontSize: 17, fontWeight: '900', color: '#3B2600' }}>{pts}</Text>
+                    style={{ backgroundColor: '#E8A317', borderRadius: 10, paddingVertical: 4, paddingHorizontal: 9, alignItems: 'center' }}>
+                    <Text style={{ fontSize: 15, fontWeight: '900', color: '#3B2600' }}>{pts}</Text>
                     <Text style={{ fontSize: 10.5, fontWeight: '900', color: '#5A3B00' }}>{L('PUNTOS', 'POINTS')}</Text>
                   </Pressable>
                 ) : null}
               </View>
               <View style={{ flexDirection: 'row', gap: 8 }}>
-                {any('send') ? <Btn icon="send" title={L('Enviar dinero', 'Send money')} style={{ flex: 1 }} onPress={() => router.push('/enviar')} /> : null}
+                {any('send') ? <Btn small icon="send" title={L('Enviar dinero', 'Send money')} style={{ flex: 1, minHeight: 42 }} onPress={() => router.push('/enviar')} /> : null}
                 <Pressable accessibilityRole="button" onPress={() => router.push('/servicios')}
-                  style={({ pressed }) => ({ flex: 1, minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', opacity: pressed ? 0.8 : 1 })}>
+                  style={({ pressed }) => ({ flex: 1, minHeight: 42, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.16)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)', opacity: pressed ? 0.8 : 1 })}>
                   <Text style={{ color: '#fff', fontWeight: '900', fontSize: 15 }}>{L('Ver servicios', 'See services')}</Text>
                 </Pressable>
               </View>
             </View>
           </View>
 
-          <View style={{ marginHorizontal: 16, marginTop: 12, gap: 14 }}>
+          <View style={{ marginHorizontal: 14, marginTop: 10, gap: 10 }}>
             <Seg
               options={[
                 { v: 'hoy' as HTab, label: L('Para ti', 'For you') },
@@ -281,10 +280,10 @@ export default function Inicio() {
                   {tiles.map((a) => (
                     <Pressable key={a.label} accessibilityRole="button" onPress={() => router.push(a.go as never)}
                       style={({ pressed }) => ({ width: '31.5%', flexGrow: 1, borderRadius: 16, backgroundColor: C.card, borderWidth: 1, borderColor: C.line, overflow: 'hidden', opacity: pressed ? 0.8 : 1 })}>
-                      <View style={{ height: 58, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center' }}>
-                        <Scene n={a.sc} size={54} />
+                      <View style={{ height: 46, backgroundColor: C.tint, alignItems: 'center', justifyContent: 'center' }}>
+                        <Scene n={a.sc} size={42} />
                       </View>
-                      <Text style={{ fontSize: 12.5, fontWeight: '800', color: C.ink, textAlign: 'center', paddingVertical: 6, paddingHorizontal: 4 }} numberOfLines={2}>{a.label}</Text>
+                      <Text style={{ fontSize: 12.5, fontWeight: '800', color: C.ink, textAlign: 'center', paddingVertical: 5, paddingHorizontal: 4 }} numberOfLines={1}>{a.label}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -297,7 +296,7 @@ export default function Inicio() {
                 <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={(e) => fw && setFi(Math.round(e.nativeEvent.contentOffset.x / fw))} scrollEventThrottle={32}>
                   {feats.map((f) => (
                     <Pressable key={f.key} accessibilityRole="button" onPress={() => f.go && router.push(f.go as never)}
-                      style={{ width: fw || 340, minHeight: 104, borderRadius: 18, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', backgroundColor: f.bg[0], ...(web ? ({ backgroundImage: `linear-gradient(120deg, ${f.bg[0]}, ${f.bg[1]})` } as object) : {}) }}>
+                      style={{ width: fw || 340, minHeight: 84, borderRadius: 18, padding: 10, flexDirection: 'row', alignItems: 'center', gap: 12, overflow: 'hidden', backgroundColor: f.bg[0], ...(web ? ({ backgroundImage: `linear-gradient(120deg, ${f.bg[0]}, ${f.bg[1]})` } as object) : {}) }}>
                       {f.img ? (
                         <>
                           <Image source={{ uri: f.img }} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} resizeMode="cover" />
