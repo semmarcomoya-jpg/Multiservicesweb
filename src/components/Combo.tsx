@@ -111,7 +111,7 @@ export function Combo<T extends string | number>({
                 <Pressable accessibilityRole="button" onPress={() => pick(custom as T)} style={{ marginTop: 6, padding: 12, borderRadius: 12, backgroundColor: C.tint }}>
                   <Text style={{ fontWeight: '800', color: C.brown }}>{L(`No está en la lista: usar "${custom}"`, `Not listed: use "${custom}"`)}</Text>
                 </Pressable>
-              ) : null}
+              ) : undefined}
               ListEmptyComponent={<Text style={{ color: C.muted, padding: 12 }}>{loading ? L('Cargando…', 'Loading…') : emptyText || L('No hay resultados.', 'No results.')}</Text>}
               renderItem={({ item: o }) => {
                 const on = o.v === value;
